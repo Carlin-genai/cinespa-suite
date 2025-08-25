@@ -8,74 +8,79 @@ import TaskCard from '@/components/Tasks/TaskCard';
 import { Plus, Search, Filter } from 'lucide-react';
 import { apiService } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
+import { Task } from '@/types';
 
 const MyTasks = () => {
-  const [tasks, setTasks] = useState([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
 
-  // Fetch tasks data
-  const { data: tasksData, isLoading } = useQuery({
+  // Mock data for fallback
+  const mockTasks: Task[] = [
+    {
+      id: '1',
+      title: 'Install Premium Sound System',
+      description: 'Configure and install 7.2 surround sound system with Dolby Atmos support for the main theatre room.',
+      status: 'in-progress',
+      priority: 'high',
+      assignee: 'John Smith',
+      dueDate: '2024-01-30',
+      progress: 65,
+      comments: 3
+    },
+    {
+      id: '2',
+      title: 'Setup Lighting Automation',
+      description: 'Program smart lighting system with scene presets for different viewing experiences.',
+      status: 'not-started',
+      priority: 'medium',
+      assignee: 'Sarah Johnson',
+      dueDate: '2024-02-05',
+      progress: 0,
+      comments: 1
+    },
+    {
+      id: '3',
+      title: 'Calibrate Projector Display',
+      description: 'Fine-tune 4K laser projector for optimal color accuracy and brightness.',
+      status: 'blocked',
+      priority: 'critical',
+      assignee: 'Mike Davis',
+      dueDate: '2024-01-25',
+      progress: 30,
+      comments: 5
+    },
+    {
+      id: '4',
+      title: 'Configure Network Infrastructure',
+      description: 'Setup dedicated network for streaming devices and smart home integration.',
+      status: 'completed',
+      priority: 'high',
+      assignee: 'John Smith',
+      dueDate: '2024-01-20',
+      progress: 100,
+      comments: 2
+    }
+  ];
+
+  // Fetch tasks data with proper error handling
+  const { data: tasksData, isLoading, error } = useQuery<Task[]>({
     queryKey: ['my-tasks'],
     queryFn: apiService.getTasks,
-    onError: (error) => {
-      console.log('Using mock data due to API error:', error);
-      // Fallback to mock data
-      setTasks([
-        {
-          id: '1',
-          title: 'Install Premium Sound System',
-          description: 'Configure and install 7.2 surround sound system with Dolby Atmos support for the main theatre room.',
-          status: 'in-progress',
-          priority: 'high',
-          assignee: 'John Smith',
-          dueDate: '2024-01-30',
-          progress: 65,
-          comments: 3
-        },
-        {
-          id: '2',
-          title: 'Setup Lighting Automation',
-          description: 'Program smart lighting system with scene presets for different viewing experiences.',
-          status: 'not-started',
-          priority: 'medium',
-          assignee: 'Sarah Johnson',
-          dueDate: '2024-02-05',
-          progress: 0,
-          comments: 1
-        },
-        {
-          id: '3',
-          title: 'Calibrate Projector Display',
-          description: 'Fine-tune 4K laser projector for optimal color accuracy and brightness.',
-          status: 'blocked',
-          priority: 'critical',
-          assignee: 'Mike Davis',
-          dueDate: '2024-01-25',
-          progress: 30,
-          comments: 5
-        },
-        {
-          id: '4',
-          title: 'Configure Network Infrastructure',
-          description: 'Setup dedicated network for streaming devices and smart home integration.',
-          status: 'completed',
-          priority: 'high',
-          assignee: 'John Smith',
-          dueDate: '2024-01-20',
-          progress: 100,
-          comments: 2
-        }
-      ]);
-    }
   });
 
   useEffect(() => {
-    if (tasksData && tasksData.length > 0) {
+    if (error) {
+      console.log('Using mock data due to API error:', error);
+      setTasks(mockTasks);
+    } else if (tasksData && Array.isArray(tasksData)) {
       setTasks(tasksData);
+    } else {
+      // If no data from API, use mock data
+      setTasks(mockTasks);
     }
-  }, [tasksData]);
+  }, [tasksData, error]);
 
   // Filter tasks based on search and filters
   const filteredTasks = tasks.filter(task => {
@@ -89,7 +94,7 @@ const MyTasks = () => {
 
   const handleStatusChange = (taskId: string, newStatus: string) => {
     setTasks(tasks.map(task => 
-      task.id === taskId ? { ...task, status: newStatus } : task
+      task.id === taskId ? { ...task, status: newStatus as Task['status'] } : task
     ));
   };
 

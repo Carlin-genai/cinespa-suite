@@ -15,66 +15,95 @@ import {
 } from 'lucide-react';
 import { apiService } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
+import { Task } from '@/types';
 
 const Dashboard = () => {
-  const [tasks, setTasks] = useState([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
 
-  // Fetch tasks data
-  const { data: tasksData, isLoading: tasksLoading } = useQuery({
+  // Mock data for fallback
+  const mockTasks: Task[] = [
+    {
+      id: '1',
+      title: 'Install Premium Sound System',
+      description: 'Configure and install 7.2 surround sound system with Dolby Atmos support for the main theatre room.',
+      status: 'in-progress',
+      priority: 'high',
+      assignee: 'John Smith',
+      dueDate: '2024-01-30',
+      progress: 65,
+      comments: 3
+    },
+    {
+      id: '2',
+      title: 'Setup Lighting Automation',
+      description: 'Program smart lighting system with scene presets for different viewing experiences.',
+      status: 'not-started',
+      priority: 'medium',
+      assignee: 'Sarah Johnson',
+      dueDate: '2024-02-05',
+      progress: 0,
+      comments: 1
+    },
+    {
+      id: '3',
+      title: 'Calibrate Projector Display',
+      description: 'Fine-tune 4K laser projector for optimal color accuracy and brightness.',
+      status: 'blocked',
+      priority: 'critical',
+      assignee: 'Mike Davis',
+      dueDate: '2024-01-25',
+      progress: 30,
+      comments: 5
+    }
+  ];
+
+  // Fetch tasks data with proper error handling
+  const { data: tasksData, isLoading: tasksLoading, error } = useQuery<Task[]>({
     queryKey: ['tasks'],
     queryFn: apiService.getTasks,
-    onError: (error) => {
-      console.log('Using mock data due to API error:', error);
-      // Fallback to mock data
-      setTasks([
-        {
-          id: '1',
-          title: 'Install Premium Sound System',
-          description: 'Configure and install 7.2 surround sound system with Dolby Atmos support for the main theatre room.',
-          status: 'in-progress',
-          priority: 'high',
-          assignee: 'John Smith',
-          dueDate: '2024-01-30',
-          progress: 65,
-          comments: 3
-        },
-        {
-          id: '2',
-          title: 'Setup Lighting Automation',
-          description: 'Program smart lighting system with scene presets for different viewing experiences.',
-          status: 'not-started',
-          priority: 'medium',
-          assignee: 'Sarah Johnson',
-          dueDate: '2024-02-05',
-          progress: 0,
-          comments: 1
-        },
-        {
-          id: '3',
-          title: 'Calibrate Projector Display',
-          description: 'Fine-tune 4K laser projector for optimal color accuracy and brightness.',
-          status: 'blocked',
-          priority: 'critical',
-          assignee: 'Mike Davis',
-          dueDate: '2024-01-25',
-          progress: 30,
-          comments: 5
-        }
-      ]);
-    }
   });
 
   useEffect(() => {
-    if (tasksData && tasksData.length > 0) {
+    if (error) {
+      console.log('Using mock data due to API error:', error);
+      setTasks(mockTasks);
+    } else if (tasksData && Array.isArray(tasksData)) {
       setTasks(tasksData);
+    } else {
+      // If no data from API, use mock data
+      setTasks(mockTasks);
     }
-  }, [tasksData]);
+  }, [tasksData, error]);
 
   const stats = [
-    { title: 'Total Tasks', value: tasks.length, change: '+12% from last week', icon: CheckSquare, trend: 'up' },
-    { title: 'In Progress', value: tasks.filter(t => t.status === 'in-progress').length, change: '+5% from last week', icon: Clock, trend: 'up' },
-    { title: 'Team Members', value: 8, change: '2 new this month', icon: Users, trend: 'up' },
-    { title: 'Completion Rate', value: '87%', change: '+3% from last week', icon: TrendingUp, trend: 'up' }
+    { 
+      title: 'Total Tasks', 
+      value: tasks.length, 
+      change: '+12% from last week', 
+      icon: CheckSquare, 
+      trend: 'up' as const 
+    },
+    { 
+      title: 'In Progress', 
+      value: tasks.filter(t => t.status === 'in-progress').length, 
+      change: '+5% from last week', 
+      icon: Clock, 
+      trend: 'up' as const 
+    },
+    { 
+      title: 'Team Members', 
+      value: 8, 
+      change: '2 new this month', 
+      icon: Users, 
+      trend: 'up' as const 
+    },
+    { 
+      title: 'Completion Rate', 
+      value: '87%', 
+      change: '+3% from last week', 
+      icon: TrendingUp, 
+      trend: 'up' as const 
+    }
   ];
 
   return (
