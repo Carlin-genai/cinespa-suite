@@ -37,8 +37,9 @@ const Auth = () => {
         } else {
           toast({
             title: 'Success!',
-            description: 'Please check your email to verify your account.',
+            description: 'Account created successfully! You are now signed in.',
           });
+          navigate('/');
         }
       } else {
         const { error } = await signIn(email, password);
@@ -49,6 +50,10 @@ const Auth = () => {
             variant: 'destructive',
           });
         } else {
+          toast({
+            title: 'Welcome!',
+            description: 'Successfully signed in.',
+          });
           navigate('/');
         }
       }

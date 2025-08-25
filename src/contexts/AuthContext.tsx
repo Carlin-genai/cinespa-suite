@@ -65,10 +65,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       options: {
         data: {
           full_name: fullName,
-        }
+        },
+        emailRedirectTo: undefined // Disable email confirmation
       }
     });
     console.log('Sign up result:', { user: data?.user?.email, error });
+    
+    // If sign up is successful and user is created but not confirmed, 
+    // try to sign in immediately
+    if (!error && data?.user && !data?.user?.email_confirmed_at) {
+      console.log('User created but not confirmed, attempting immediate sign in...');
+      const signInResult = await signIn(email, password);
+      return signInResult;
+    }
+    
     return { error };
   };
 
