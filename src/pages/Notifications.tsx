@@ -13,8 +13,7 @@ import {
   Clock, 
   AlertCircle, 
   Calendar,
-  Filter,
-  MarkAsUnread
+  Filter
 } from 'lucide-react';
 import { format, isToday, isYesterday, formatDistanceToNow } from 'date-fns';
 

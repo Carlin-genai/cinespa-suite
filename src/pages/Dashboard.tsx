@@ -54,28 +54,24 @@ const Dashboard = () => {
         <StatsCard
           title="Total Tasks"
           value={totalTasks}
-          description="All assigned tasks"
           icon={CheckSquare}
           trend="neutral"
         />
         <StatsCard
           title="In Progress"
           value={inProgressTasks}
-          description="Currently active"
           icon={Clock}
           trend="up"
         />
         <StatsCard
           title="Completed"
           value={completedTasks}
-          description="Successfully finished"
           icon={CheckSquare}
           trend="up"
         />
         <StatsCard
           title="Overdue"
           value={overdueTasks}
-          description="Past due date"
           icon={AlertCircle}
           trend={overdueTasks > 0 ? "down" : "neutral"}
         />
