@@ -108,6 +108,30 @@ class ApiService {
       body: JSON.stringify({ read: true }),
     });
   }
+
+  // Reminders
+  async getReminders(): Promise<any[]> {
+    return this.makeRequest<any[]>('/api/reminders');
+  }
+
+  async createReminder(reminder: any): Promise<any> {
+    return this.makeRequest<any>('/api/reminders', {
+      method: 'POST',
+      body: JSON.stringify(reminder),
+    });
+  }
+
+  // Daily Journal
+  async getJournalEntries(): Promise<any[]> {
+    return this.makeRequest<any[]>('/api/journal');
+  }
+
+  async createJournalEntry(entry: any): Promise<any> {
+    return this.makeRequest<any>('/api/journal', {
+      method: 'POST',
+      body: JSON.stringify(entry),
+    });
+  }
 }
 
 export const apiService = new ApiService();

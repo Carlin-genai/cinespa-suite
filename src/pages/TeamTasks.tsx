@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,13 +6,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import TaskCard from '@/components/Tasks/TaskCard';
 import TaskEditDialog from '@/components/Tasks/TaskEditDialog';
 import ReminderDialog from '@/components/Tasks/ReminderDialog';
-import { Plus, Search, Filter, Bell, Edit } from 'lucide-react';
+import { Plus, Search, Filter, Bell, Edit, Users } from 'lucide-react';
 import { supabaseApi } from '@/lib/supabaseApi';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Task } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 
-const MyTasks = () => {
+const TeamTasks = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -26,10 +25,10 @@ const MyTasks = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch tasks data
+  // Fetch all team tasks
   const { data: tasksData, isLoading } = useQuery<Task[]>({
-    queryKey: ['my-tasks'],
-    queryFn: supabaseApi.getTasks,
+    queryKey: ['team-tasks'],
+    queryFn: supabaseApi.getTeamTasks,
   });
 
   useEffect(() => {
@@ -42,7 +41,7 @@ const MyTasks = () => {
   const updateTaskMutation = useMutation({
     mutationFn: ({ id, task }: { id: string; task: Partial<Task> }) => supabaseApi.updateTask(id, task),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['my-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['team-tasks'] });
       toast({ title: 'Success', description: 'Task updated successfully!' });
     },
     onError: () => {
@@ -53,7 +52,7 @@ const MyTasks = () => {
   const deleteTaskMutation = useMutation({
     mutationFn: (id: string) => supabaseApi.deleteTask(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['my-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['team-tasks'] });
       toast({ title: 'Success', description: 'Task deleted successfully!' });
     },
     onError: () => {
@@ -72,7 +71,7 @@ const MyTasks = () => {
     }
   });
 
-  // Filter tasks based on search and filters
+  // Filter tasks
   const filteredTasks = tasks.filter(task => {
     const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (task.description && task.description.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -82,6 +81,7 @@ const MyTasks = () => {
     return matchesSearch && matchesStatus && matchesPriority;
   });
 
+  // Event handlers - same as MyTasks
   const handleEditTask = (task: Task) => {
     setEditingTask(task);
     setShowEditDialog(true);
@@ -128,20 +128,49 @@ const MyTasks = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold font-montserrat text-foreground">
-            My Tasks
+          <h1 className="text-3xl font-bold font-montserrat text-foreground flex items-center gap-3">
+            <Users className="h-8 w-8 text-luxury-gold" />
+            Team Tasks
           </h1>
           <p className="text-muted-foreground font-opensans mt-1">
-            Manage your assigned tasks and track your progress.
+            View and manage all team tasks across the organization.
           </p>
         </div>
         <Button className="gradient-gold text-charcoal-black hover:opacity-90">
           <Plus className="mr-2 h-4 w-4" />
-          New Task
+          Assign Task
         </Button>
       </div>
 
-      {/* Filters */}
+      {/* Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold font-montserrat text-foreground">{tasks.length}</div>
+            <p className="text-sm text-muted-foreground">Total Team Tasks</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold font-montserrat text-progress-blue">{tasks.filter(t => t.status === 'in-progress').length}</div>
+            <p className="text-sm text-muted-foreground">In Progress</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold font-montserrat text-completed-green">{tasks.filter(t => t.status === 'completed').length}</div>
+            <p className="text-sm text-muted-foreground">Completed</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold font-montserrat text-blocked-red">{tasks.filter(t => t.status === 'overdue').length}</div>
+            <p className="text-sm text-muted-foreground">Overdue</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters - same as MyTasks */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg font-montserrat text-foreground flex items-center gap-2">
@@ -150,6 +179,7 @@ const MyTasks = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          
           <div className="grid gap-4 md:grid-cols-4">
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -202,7 +232,7 @@ const MyTasks = () => {
         </CardContent>
       </Card>
 
-      {/* Tasks Grid */}
+      {/* Tasks Grid - same as MyTasks but with team view */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filteredTasks.map((task) => (
           <Card key={task.id} className="transition-all duration-300 hover:shadow-lg hover:shadow-luxury-gold/20">
@@ -239,15 +269,15 @@ const MyTasks = () => {
         <Card>
           <CardContent className="py-12 text-center">
             <div className="text-muted-foreground">
-              <Plus className="mx-auto h-12 w-12 mb-4 text-luxury-gold" />
-              <p className="font-opensans text-lg mb-2">No tasks found</p>
-              <p className="text-sm">Try adjusting your filters or wait for tasks to be assigned to you.</p>
+              <Users className="mx-auto h-12 w-12 mb-4 text-luxury-gold" />
+              <p className="font-opensans text-lg mb-2">No team tasks found</p>
+              <p className="text-sm">Try adjusting your filters or create new tasks for the team.</p>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Edit Task Dialog */}
+      {/* Dialogs - same as MyTasks */}
       <TaskEditDialog
         task={editingTask}
         open={showEditDialog}
@@ -258,7 +288,6 @@ const MyTasks = () => {
         onRestart={handleRestartTask}
       />
 
-      {/* Reminder Dialog */}
       <ReminderDialog
         open={showReminderDialog}
         onOpenChange={setShowReminderDialog}
@@ -270,4 +299,4 @@ const MyTasks = () => {
   );
 };
 
-export default MyTasks;
+export default TeamTasks;

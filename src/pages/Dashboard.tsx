@@ -13,65 +13,25 @@ import {
   Calendar,
   Bell
 } from 'lucide-react';
-import { apiService } from '@/lib/api';
+import { supabaseApi } from '@/lib/supabaseApi';
 import { useQuery } from '@tanstack/react-query';
 import { Task } from '@/types';
 
 const Dashboard = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
 
-  // Mock data for fallback
-  const mockTasks: Task[] = [
-    {
-      id: '1',
-      title: 'Install Premium Sound System',
-      description: 'Configure and install 7.2 surround sound system with Dolby Atmos support for the main theatre room.',
-      status: 'in-progress',
-      priority: 'high',
-      assignee: 'John Smith',
-      dueDate: '2024-01-30',
-      progress: 65,
-      comments: 3
-    },
-    {
-      id: '2',
-      title: 'Setup Lighting Automation',
-      description: 'Program smart lighting system with scene presets for different viewing experiences.',
-      status: 'not-started',
-      priority: 'medium',
-      assignee: 'Sarah Johnson',
-      dueDate: '2024-02-05',
-      progress: 0,
-      comments: 1
-    },
-    {
-      id: '3',
-      title: 'Calibrate Projector Display',
-      description: 'Fine-tune 4K laser projector for optimal color accuracy and brightness.',
-      status: 'blocked',
-      priority: 'critical',
-      assignee: 'Mike Davis',
-      dueDate: '2024-01-25',
-      progress: 30,
-      comments: 5
-    }
-  ];
-
   // Fetch tasks data with proper error handling
   const { data: tasksData, isLoading: tasksLoading, error } = useQuery<Task[]>({
-    queryKey: ['tasks'],
-    queryFn: apiService.getTasks,
+    queryKey: ['user-tasks'],
+    queryFn: supabaseApi.getTasks,
   });
 
   useEffect(() => {
-    if (error) {
-      console.log('Using mock data due to API error:', error);
-      setTasks(mockTasks);
-    } else if (tasksData && Array.isArray(tasksData)) {
+    if (tasksData && Array.isArray(tasksData)) {
       setTasks(tasksData);
-    } else {
-      // If no data from API, use mock data
-      setTasks(mockTasks);
+    } else if (error) {
+      console.log('Error fetching tasks:', error);
+      setTasks([]);
     }
   }, [tasksData, error]);
 
@@ -79,30 +39,30 @@ const Dashboard = () => {
     { 
       title: 'Total Tasks', 
       value: tasks.length, 
-      change: '+12% from last week', 
+      change: `${tasks.length} assigned to you`, 
       icon: CheckSquare, 
       trend: 'up' as const 
     },
     { 
       title: 'In Progress', 
       value: tasks.filter(t => t.status === 'in-progress').length, 
-      change: '+5% from last week', 
+      change: 'Active tasks', 
       icon: Clock, 
       trend: 'up' as const 
     },
     { 
-      title: 'Team Members', 
-      value: 8, 
-      change: '2 new this month', 
-      icon: Users, 
+      title: 'Completed', 
+      value: tasks.filter(t => t.status === 'completed').length, 
+      change: 'Tasks finished', 
+      icon: CheckSquare, 
       trend: 'up' as const 
     },
     { 
-      title: 'Completion Rate', 
-      value: '87%', 
-      change: '+3% from last week', 
-      icon: TrendingUp, 
-      trend: 'up' as const 
+      title: 'Pending', 
+      value: tasks.filter(t => t.status === 'pending').length, 
+      change: 'Awaiting start', 
+      icon: Clock, 
+      trend: 'neutral' as const 
     }
   ];
 
@@ -172,7 +132,7 @@ const Dashboard = () => {
             {tasks.length === 0 && !tasksLoading && (
               <div className="text-center py-8 text-muted-foreground">
                 <CheckSquare className="mx-auto h-12 w-12 mb-4 text-luxury-gold" />
-                <p className="font-opensans">No tasks found. Create your first task to get started!</p>
+                <p className="font-opensans">No tasks assigned yet. Tasks will appear here when assigned to you!</p>
               </div>
             )}
           </CardContent>

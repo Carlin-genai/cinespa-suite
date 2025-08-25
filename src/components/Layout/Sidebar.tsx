@@ -2,6 +2,8 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard,
   CheckSquare,
@@ -28,6 +30,7 @@ const navigation = [
 
 const Sidebar = () => {
   const location = useLocation();
+  const { user, signOut } = useAuth();
 
   return (
     <div className="flex h-screen w-64 flex-col bg-sidebar border-r border-sidebar-border">
@@ -38,7 +41,7 @@ const Sidebar = () => {
             CINESPA
           </h1>
           <p className="text-xs text-sidebar-foreground font-opensans">
-            LUXURY HOME THEATRES
+            LUXURY HOME THEATRES & AUTOMATIONS
           </p>
         </div>
       </div>
@@ -78,15 +81,20 @@ const Sidebar = () => {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-sidebar-foreground truncate">
-              Admin User
+              {user?.user_metadata?.full_name || user?.email || 'User'}
             </p>
             <p className="text-xs text-sidebar-foreground/70 truncate">
-              Project Manager
+              Employee
             </p>
           </div>
-          <button className="p-1 rounded-md hover:bg-sidebar-accent transition-colors">
+          <Button 
+            onClick={signOut}
+            size="sm"
+            variant="ghost"
+            className="p-1 rounded-md hover:bg-sidebar-accent transition-colors"
+          >
             <LogOut className="h-4 w-4 text-sidebar-foreground" />
-          </button>
+          </Button>
         </div>
       </div>
     </div>
