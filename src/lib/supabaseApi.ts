@@ -2,16 +2,48 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Task, User, Project } from '@/types';
 
+// Helper mappers to normalize DB rows into our Task union types
+const STATUS_SET = new Set<Task['status']>(['pending', 'in-progress', 'completed', 'overdue']);
+const PRIORITY_SET = new Set<Task['priority']>(['low', 'medium', 'high', 'critical']);
+
+function mapStatus(value: string | null | undefined): Task['status'] {
+  const s = (value || '').toLowerCase();
+  return STATUS_SET.has(s as Task['status']) ? (s as Task['status']) : 'pending';
+}
+
+function mapPriority(value: string | null | undefined): Task['priority'] {
+  const p = (value || '').toLowerCase();
+  return PRIORITY_SET.has(p as Task['priority']) ? (p as Task['priority']) : 'medium';
+}
+
+function mapDbTaskToTask(row: any): Task {
+  return {
+    id: row?.id ?? '',
+    title: row?.title ?? '',
+    description: row?.description ?? '',
+    status: mapStatus(row?.status),
+    priority: mapPriority(row?.priority),
+    assigned_to: row?.assigned_to ?? '',
+    assigned_by: row?.assigned_by ?? '',
+    due_date: row?.due_date ?? '',
+    notes: row?.notes ?? undefined,
+    created_at: row?.created_at ?? '',
+    updated_at: row?.updated_at ?? '',
+  };
+}
+
 export class SupabaseApiService {
   // Task Management
   async getTasks(): Promise<Task[]> {
+    const userId = (await supabase.auth.getUser()).data.user?.id;
     const { data, error } = await supabase
       .from('tasks')
       .select('*')
-      .eq('assigned_to', (await supabase.auth.getUser()).data.user?.id);
-    
+      .eq('assigned_to', userId);
+
     if (error) throw error;
-    return data || [];
+    const tasks = (data || []).map(mapDbTaskToTask);
+    return tasks;
   }
 
   async getTeamTasks(): Promise<Task[]> {
@@ -20,7 +52,8 @@ export class SupabaseApiService {
       .select('*');
     
     if (error) throw error;
-    return data || [];
+    const tasks = (data || []).map(mapDbTaskToTask);
+    return tasks;
   }
 
   async createTask(task: Partial<Task>): Promise<Task> {
@@ -41,7 +74,7 @@ export class SupabaseApiService {
       .single();
     
     if (error) throw error;
-    return data;
+    return mapDbTaskToTask(data);
   }
 
   async updateTask(id: string, task: Partial<Task>): Promise<Task> {
@@ -61,7 +94,7 @@ export class SupabaseApiService {
       .single();
     
     if (error) throw error;
-    return data;
+    return mapDbTaskToTask(data);
   }
 
   async deleteTask(id: string): Promise<void> {
@@ -87,10 +120,11 @@ export class SupabaseApiService {
   }
 
   async getReminders(): Promise<any[]> {
+    const userId = (await supabase.auth.getUser()).data.user?.id;
     const { data, error } = await supabase
       .from('reminders')
       .select('*')
-      .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+      .eq('user_id', userId);
     
     if (error) throw error;
     return data || [];
@@ -98,10 +132,11 @@ export class SupabaseApiService {
 
   // Notifications
   async getNotifications(): Promise<any[]> {
+    const userId = (await supabase.auth.getUser()).data.user?.id;
     const { data, error } = await supabase
       .from('notifications')
       .select('*')
-      .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+      .eq('user_id', userId)
       .order('created_at', { ascending: false });
     
     if (error) throw error;
@@ -119,10 +154,11 @@ export class SupabaseApiService {
 
   // Daily Journal
   async getDailyJournalEntries(): Promise<any[]> {
+    const userId = (await supabase.auth.getUser()).data.user?.id;
     const { data, error } = await supabase
       .from('daily_journal')
       .select('*')
-      .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+      .eq('user_id', userId)
       .order('date', { ascending: false });
     
     if (error) throw error;
