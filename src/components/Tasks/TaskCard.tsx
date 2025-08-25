@@ -11,12 +11,13 @@ interface Task {
   id: string;
   title: string;
   description: string;
-  status: 'not-started' | 'in-progress' | 'blocked' | 'completed';
+  status: 'pending' | 'in-progress' | 'completed' | 'overdue';
   priority: 'low' | 'medium' | 'high' | 'critical';
-  assignee: string;
-  dueDate: string;
-  progress: number;
-  comments: number;
+  assigned_to: string;
+  due_date: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface TaskCardProps {
@@ -27,9 +28,9 @@ interface TaskCardProps {
 }
 
 const statusColors = {
-  'not-started': 'bg-not-started-beige text-charcoal-black',
+  'pending': 'bg-not-started-beige text-charcoal-black',
   'in-progress': 'bg-progress-blue text-white',
-  'blocked': 'bg-blocked-red text-white',
+  'overdue': 'bg-blocked-red text-white',
   'completed': 'bg-completed-green text-white'
 };
 
@@ -41,6 +42,8 @@ const priorityColors = {
 };
 
 const TaskCard = ({ task, onEdit, onDelete, onStatusChange }: TaskCardProps) => {
+  const daysLeft = Math.ceil((new Date(task.due_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+  
   return (
     <Card className="transition-all duration-300 hover:shadow-lg hover:shadow-luxury-gold/20 animate-slide-up">
       <CardHeader className="pb-3">
@@ -87,43 +90,30 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange }: TaskCardProps) => 
           {task.description}
         </p>
         
-        {task.progress > 0 && (
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Progress</span>
-              <span className="font-medium text-luxury-gold">{task.progress}%</span>
-            </div>
-            <Progress value={task.progress} className="h-2" />
-          </div>
-        )}
-        
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1">
               <User className="h-4 w-4" />
-              <span>{task.assignee}</span>
+              <span>{task.assigned_to}</span>
             </div>
             
             <div className="flex items-center gap-1">
               <Calendar className="h-4 w-4" />
-              <span>{new Date(task.dueDate).toLocaleDateString()}</span>
+              <span>{new Date(task.due_date).toLocaleDateString()}</span>
             </div>
-            
-            {task.comments > 0 && (
-              <div className="flex items-center gap-1">
-                <MessageSquare className="h-4 w-4" />
-                <span>{task.comments}</span>
-              </div>
-            )}
           </div>
           
           <div className="flex items-center gap-1 text-luxury-gold">
             <Clock className="h-4 w-4" />
-            <span>
-              {Math.ceil((new Date(task.dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days
-            </span>
+            <span>{daysLeft} days</span>
           </div>
         </div>
+        
+        {task.notes && (
+          <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
+            <strong>Notes:</strong> {task.notes}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

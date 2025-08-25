@@ -28,7 +28,13 @@ export class SupabaseApiService {
     const { data, error } = await supabase
       .from('tasks')
       .insert([{ 
-        ...task,
+        title: task.title || '',
+        description: task.description || '',
+        status: task.status || 'pending',
+        priority: task.priority || 'medium',
+        assigned_to: task.assigned_to,
+        due_date: task.due_date,
+        notes: task.notes,
         assigned_by: user?.id 
       }])
       .select()
@@ -41,7 +47,15 @@ export class SupabaseApiService {
   async updateTask(id: string, task: Partial<Task>): Promise<Task> {
     const { data, error } = await supabase
       .from('tasks')
-      .update(task)
+      .update({
+        title: task.title,
+        description: task.description,
+        status: task.status,
+        priority: task.priority,
+        assigned_to: task.assigned_to,
+        due_date: task.due_date,
+        notes: task.notes
+      })
       .eq('id', id)
       .select()
       .single();

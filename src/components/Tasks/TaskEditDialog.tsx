@@ -18,8 +18,11 @@ interface Task {
   description: string;
   status: 'pending' | 'in-progress' | 'completed' | 'overdue';
   priority: 'low' | 'medium' | 'high' | 'critical';
+  assigned_to: string;
   due_date: string;
   notes?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface TaskEditDialogProps {

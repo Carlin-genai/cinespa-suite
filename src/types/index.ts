@@ -3,12 +3,14 @@ export interface Task {
   id: string;
   title: string;
   description: string;
-  status: 'not-started' | 'in-progress' | 'blocked' | 'completed';
+  status: 'pending' | 'in-progress' | 'completed' | 'overdue';
   priority: 'low' | 'medium' | 'high' | 'critical';
-  assignee: string;
-  dueDate: string;
-  progress: number;
-  comments: number;
+  assigned_to: string;
+  assigned_by: string;
+  due_date: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface User {
