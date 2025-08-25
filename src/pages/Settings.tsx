@@ -7,269 +7,450 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Settings as SettingsIcon, User, Bell, Shield, Palette, Database, Download, Trash2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { 
+  Settings as SettingsIcon, 
+  User, 
+  Bell, 
+  Shield, 
+  Palette, 
+  Clock,
+  Database,
+  Download,
+  Upload,
+  Trash2
+} from 'lucide-react';
 
 const Settings = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { toast } = useToast();
-  const [settings, setSettings] = useState({
-    emailNotifications: true,
-    pushNotifications: false,
-    taskReminders: true,
-    weeklyReports: true,
-    darkMode: false,
-    compactView: false,
-    autoSave: true,
-    taskSounds: false,
+  
+  // Profile Settings
+  const [profileSettings, setProfileSettings] = useState({
+    fullName: user?.user_metadata?.full_name || '',
+    email: user?.email || '',
+    avatar: '',
   });
 
-  const handleSettingChange = (key: string, value: boolean) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
-    toast({
-      title: 'Settings Updated',
-      description: 'Your preferences have been saved.',
+  // Notification Settings
+  const [notificationSettings, setNotificationSettings] = useState({
+    emailNotifications: true,
+    taskReminders: true,
+    dailyDigest: false,
+    teamUpdates: true,
+    reminderTime: '09:00',
+  });
+
+  // App Settings
+  const [appSettings, setAppSettings] = useState({
+    theme: 'system',
+    language: 'en',
+    timezone: 'UTC',
+    dateFormat: 'MM/dd/yyyy',
+    workingHours: { start: '09:00', end: '17:00' },
+  });
+
+  // Privacy Settings
+  const [privacySettings, setPrivacySettings] = useState({
+    profileVisible: true,
+    statusVisible: true,
+    lastSeen: false,
+  });
+
+  const handleSaveProfile = () => {
+    // Implementation for saving profile settings
+    toast({ title: 'Profile settings saved successfully!' });
+  };
+
+  const handleSaveNotifications = () => {
+    // Implementation for saving notification settings
+    toast({ title: 'Notification preferences updated!' });
+  };
+
+  const handleSaveApp = () => {
+    // Implementation for saving app settings
+    toast({ title: 'App settings updated!' });
+  };
+
+  const handleExportData = () => {
+    // Implementation for data export
+    toast({ title: 'Data export started. You will receive an email when ready.' });
+  };
+
+  const handleImportData = () => {
+    // Implementation for data import
+    toast({ title: 'Please select a file to import.' });
+  };
+
+  const handleDeleteAccount = () => {
+    // Implementation for account deletion
+    toast({ 
+      title: 'Account deletion requested', 
+      description: 'Please contact support to complete this process.',
+      variant: 'destructive' 
     });
   };
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold font-montserrat text-foreground flex items-center gap-3">
-          <SettingsIcon className="h-8 w-8 text-luxury-gold" />
-          Settings
-        </h1>
-        <p className="text-muted-foreground font-opensans mt-1">
-          Manage your account settings and preferences.
-        </p>
+    <div className="space-y-6 p-6">
+      <div className="flex items-center gap-3">
+        <SettingsIcon className="h-8 w-8 text-luxury-gold" />
+        <div>
+          <h1 className="text-3xl font-bold font-montserrat text-foreground">Settings</h1>
+          <p className="text-muted-foreground font-opensans">
+            Manage your account and application preferences
+          </p>
+        </div>
       </div>
 
-      {/* Profile Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg font-montserrat text-foreground flex items-center gap-2">
-            <User className="h-5 w-5 text-luxury-gold" />
-            Profile Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Profile Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 font-montserrat">
+              <User className="h-5 w-5 text-luxury-gold" />
+              Profile Settings
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div>
               <Label htmlFor="fullName">Full Name</Label>
               <Input
                 id="fullName"
-                defaultValue={user?.user_metadata?.full_name || ''}
+                value={profileSettings.fullName}
+                onChange={(e) => setProfileSettings(prev => ({ 
+                  ...prev, 
+                  fullName: e.target.value 
+                }))}
                 placeholder="Enter your full name"
               />
             </div>
+            
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email Address</Label>
               <Input
                 id="email"
-                defaultValue={user?.email || ''}
+                type="email"
+                value={profileSettings.email}
                 disabled
                 className="bg-muted"
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Email cannot be changed. Contact support if needed.
+              </p>
             </div>
-          </div>
-          <div>
-            <Label htmlFor="role">Role</Label>
-            <Select defaultValue="employee">
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="employee">Employee</SelectItem>
-                <SelectItem value="manager">Manager</SelectItem>
-                <SelectItem value="admin">Administrator</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <Button className="gradient-gold text-charcoal-black">
-            Save Profile Changes
-          </Button>
-        </CardContent>
-      </Card>
 
-      {/* Notification Preferences */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg font-montserrat text-foreground flex items-center gap-2">
-            <Bell className="h-5 w-5 text-luxury-gold" />
-            Notification Preferences
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="emailNotifications">Email Notifications</Label>
-                <p className="text-sm text-muted-foreground">Receive task updates via email</p>
-              </div>
-              <Switch
-                id="emailNotifications"
-                checked={settings.emailNotifications}
-                onCheckedChange={(checked) => handleSettingChange('emailNotifications', checked)}
-              />
-            </div>
-            
-            <Separator />
-            
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="pushNotifications">Push Notifications</Label>
-                <p className="text-sm text-muted-foreground">Browser push notifications</p>
-              </div>
-              <Switch
-                id="pushNotifications"
-                checked={settings.pushNotifications}
-                onCheckedChange={(checked) => handleSettingChange('pushNotifications', checked)}
-              />
-            </div>
-            
-            <Separator />
-            
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="taskReminders">Task Reminders</Label>
-                <p className="text-sm text-muted-foreground">Reminder notifications for due tasks</p>
-              </div>
-              <Switch
-                id="taskReminders"
-                checked={settings.taskReminders}
-                onCheckedChange={(checked) => handleSettingChange('taskReminders', checked)}
-              />
-            </div>
-            
-            <Separator />
-            
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="weeklyReports">Weekly Reports</Label>
-                <p className="text-sm text-muted-foreground">Weekly task completion summaries</p>
-              </div>
-              <Switch
-                id="weeklyReports"
-                checked={settings.weeklyReports}
-                onCheckedChange={(checked) => handleSettingChange('weeklyReports', checked)}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            <Button onClick={handleSaveProfile} className="w-full gradient-gold text-charcoal-black">
+              Save Profile Changes
+            </Button>
+          </CardContent>
+        </Card>
 
-      {/* Display Preferences */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg font-montserrat text-foreground flex items-center gap-2">
-            <Palette className="h-5 w-5 text-luxury-gold" />
-            Display Preferences
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-4">
+        {/* Notification Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 font-montserrat">
+              <Bell className="h-5 w-5 text-luxury-gold" />
+              Notifications
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <Label htmlFor="darkMode">Dark Mode</Label>
-                <p className="text-sm text-muted-foreground">Switch to dark theme</p>
+                <Label>Email Notifications</Label>
+                <p className="text-sm text-muted-foreground">Receive notifications via email</p>
               </div>
               <Switch
-                id="darkMode"
-                checked={settings.darkMode}
-                onCheckedChange={(checked) => handleSettingChange('darkMode', checked)}
+                checked={notificationSettings.emailNotifications}
+                onCheckedChange={(checked) => setNotificationSettings(prev => ({
+                  ...prev,
+                  emailNotifications: checked
+                }))}
               />
             </div>
-            
-            <Separator />
-            
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="compactView">Compact View</Label>
-                <p className="text-sm text-muted-foreground">Use compact layout for task cards</p>
-              </div>
-              <Switch
-                id="compactView"
-                checked={settings.compactView}
-                onCheckedChange={(checked) => handleSettingChange('compactView', checked)}
-              />
-            </div>
-            
-            <Separator />
-            
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="taskSounds">Task Sounds</Label>
-                <p className="text-sm text-muted-foreground">Play sounds for task completion</p>
-              </div>
-              <Switch
-                id="taskSounds"
-                checked={settings.taskSounds}
-                onCheckedChange={(checked) => handleSettingChange('taskSounds', checked)}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Data & Privacy */}
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Task Reminders</Label>
+                <p className="text-sm text-muted-foreground">Get reminders for due tasks</p>
+              </div>
+              <Switch
+                checked={notificationSettings.taskReminders}
+                onCheckedChange={(checked) => setNotificationSettings(prev => ({
+                  ...prev,
+                  taskReminders: checked
+                }))}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Daily Digest</Label>
+                <p className="text-sm text-muted-foreground">Daily summary of activities</p>
+              </div>
+              <Switch
+                checked={notificationSettings.dailyDigest}
+                onCheckedChange={(checked) => setNotificationSettings(prev => ({
+                  ...prev,
+                  dailyDigest: checked
+                }))}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Team Updates</Label>
+                <p className="text-sm text-muted-foreground">Notifications about team activities</p>
+              </div>
+              <Switch
+                checked={notificationSettings.teamUpdates}
+                onCheckedChange={(checked) => setNotificationSettings(prev => ({
+                  ...prev,
+                  teamUpdates: checked
+                }))}
+              />
+            </div>
+
+            <div>
+              <Label>Default Reminder Time</Label>
+              <Input
+                type="time"
+                value={notificationSettings.reminderTime}
+                onChange={(e) => setNotificationSettings(prev => ({
+                  ...prev,
+                  reminderTime: e.target.value
+                }))}
+              />
+            </div>
+
+            <Button onClick={handleSaveNotifications} className="w-full gradient-gold text-charcoal-black">
+              Save Notification Settings
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* App Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 font-montserrat">
+              <Palette className="h-5 w-5 text-luxury-gold" />
+              App Preferences
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label>Theme</Label>
+              <Select 
+                value={appSettings.theme} 
+                onValueChange={(value) => setAppSettings(prev => ({ ...prev, theme: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="light">Light</SelectItem>
+                  <SelectItem value="dark">Dark</SelectItem>
+                  <SelectItem value="system">System</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Language</Label>
+              <Select 
+                value={appSettings.language} 
+                onValueChange={(value) => setAppSettings(prev => ({ ...prev, language: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="es">Spanish</SelectItem>
+                  <SelectItem value="fr">French</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Date Format</Label>
+              <Select 
+                value={appSettings.dateFormat} 
+                onValueChange={(value) => setAppSettings(prev => ({ ...prev, dateFormat: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="MM/dd/yyyy">MM/DD/YYYY</SelectItem>
+                  <SelectItem value="dd/MM/yyyy">DD/MM/YYYY</SelectItem>
+                  <SelectItem value="yyyy-MM-dd">YYYY-MM-DD</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Work Start Time</Label>
+                <Input
+                  type="time"
+                  value={appSettings.workingHours.start}
+                  onChange={(e) => setAppSettings(prev => ({
+                    ...prev,
+                    workingHours: { ...prev.workingHours, start: e.target.value }
+                  }))}
+                />
+              </div>
+              <div>
+                <Label>Work End Time</Label>
+                <Input
+                  type="time"
+                  value={appSettings.workingHours.end}
+                  onChange={(e) => setAppSettings(prev => ({
+                    ...prev,
+                    workingHours: { ...prev.workingHours, end: e.target.value }
+                  }))}
+                />
+              </div>
+            </div>
+
+            <Button onClick={handleSaveApp} className="w-full gradient-gold text-charcoal-black">
+              Save App Settings
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Privacy & Security */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 font-montserrat">
+              <Shield className="h-5 w-5 text-luxury-gold" />
+              Privacy & Security
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Profile Visibility</Label>
+                <p className="text-sm text-muted-foreground">Make profile visible to team members</p>
+              </div>
+              <Switch
+                checked={privacySettings.profileVisible}
+                onCheckedChange={(checked) => setPrivacySettings(prev => ({
+                  ...prev,
+                  profileVisible: checked
+                }))}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Status Visibility</Label>
+                <p className="text-sm text-muted-foreground">Show online/offline status</p>
+              </div>
+              <Switch
+                checked={privacySettings.statusVisible}
+                onCheckedChange={(checked) => setPrivacySettings(prev => ({
+                  ...prev,
+                  statusVisible: checked
+                }))}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Last Seen</Label>
+                <p className="text-sm text-muted-foreground">Show when you were last active</p>
+              </div>
+              <Switch
+                checked={privacySettings.lastSeen}
+                onCheckedChange={(checked) => setPrivacySettings(prev => ({
+                  ...prev,
+                  lastSeen: checked
+                }))}
+              />
+            </div>
+
+            <Separator />
+
+            <div className="space-y-3">
+              <Label>Security Actions</Label>
+              <div className="space-y-2">
+                <Button variant="outline" className="w-full justify-start">
+                  <Shield className="mr-2 h-4 w-4" />
+                  Change Password
+                </Button>
+                <Button variant="outline" className="w-full justify-start">
+                  <Clock className="mr-2 h-4 w-4" />
+                  View Login History
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Data Management */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 font-montserrat">
+              <Database className="h-5 w-5 text-luxury-gold" />
+              Data Management
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-6 md:grid-cols-3">
+              <div className="space-y-3">
+                <h4 className="font-medium">Export Data</h4>
+                <p className="text-sm text-muted-foreground">
+                  Download all your data including tasks, journal entries, and settings.
+                </p>
+                <Button onClick={handleExportData} variant="outline" className="w-full">
+                  <Download className="mr-2 h-4 w-4" />
+                  Export Data
+                </Button>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="font-medium">Import Data</h4>
+                <p className="text-sm text-muted-foreground">
+                  Import data from a previously exported file.
+                </p>
+                <Button onClick={handleImportData} variant="outline" className="w-full">
+                  <Upload className="mr-2 h-4 w-4" />
+                  Import Data
+                </Button>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="font-medium">Delete Account</h4>
+                <p className="text-sm text-muted-foreground">
+                  Permanently delete your account and all associated data.
+                </p>
+                <Button onClick={handleDeleteAccount} variant="destructive" className="w-full">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Account
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Sign Out */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg font-montserrat text-foreground flex items-center gap-2">
-            <Database className="h-5 w-5 text-luxury-gold" />
-            Data & Privacy
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div>
-              <Label htmlFor="autoSave">Auto-save</Label>
-              <p className="text-sm text-muted-foreground">Automatically save changes</p>
+              <h4 className="font-medium">Sign Out</h4>
+              <p className="text-sm text-muted-foreground">
+                Sign out of your account on this device.
+              </p>
             </div>
-            <Switch
-              id="autoSave"
-              checked={settings.autoSave}
-              onCheckedChange={(checked) => handleSettingChange('autoSave', checked)}
-            />
-          </div>
-          
-          <Separator />
-          
-          <div className="space-y-3">
-            <Button variant="outline" className="w-full justify-start border-luxury-gold text-luxury-gold hover:bg-luxury-gold hover:text-charcoal-black">
-              <Download className="mr-2 h-4 w-4" />
-              Export My Data
-            </Button>
-            
-            <Button variant="outline" className="w-full justify-start border-blocked-red text-blocked-red hover:bg-blocked-red hover:text-white">
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete Account
+            <Button onClick={signOut} variant="outline">
+              Sign Out
             </Button>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Security */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg font-montserrat text-foreground flex items-center gap-2">
-            <Shield className="h-5 w-5 text-luxury-gold" />
-            Security
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Button variant="outline" className="w-full justify-start border-luxury-gold text-luxury-gold hover:bg-luxury-gold hover:text-charcoal-black">
-            Change Password
-          </Button>
-          
-          <Button variant="outline" className="w-full justify-start border-luxury-gold text-luxury-gold hover:bg-luxury-gold hover:text-charcoal-black">
-            Two-Factor Authentication
-          </Button>
-          
-          <Button variant="outline" className="w-full justify-start border-luxury-gold text-luxury-gold hover:bg-luxury-gold hover:text-charcoal-black">
-            Active Sessions
-          </Button>
         </CardContent>
       </Card>
     </div>

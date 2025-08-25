@@ -1,298 +1,443 @@
 
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
-import { Calendar } from '@/components/ui/calendar';
-import { Badge } from '@/components/ui/badge';
-import { BookOpen, Calendar as CalendarIcon, Plus, Save, Edit, Trash2 } from 'lucide-react';
-import { supabaseApi } from '@/lib/supabaseApi';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Task } from '@/types';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { supabaseApi } from '@/lib/supabaseApi';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-
-interface JournalEntry {
-  id: string;
-  date: string;
-  content: string;
-  task_updates: any[];
-  created_at: string;
-}
+import { cn } from '@/lib/utils';
+import { 
+  BookOpen, 
+  Plus, 
+  CalendarIcon, 
+  Save, 
+  Edit, 
+  Trash2, 
+  Clock,
+  CheckSquare,
+  AlertCircle,
+  Bell,
+  RotateCcw,
+  RefreshCw
+} from 'lucide-react';
+import TaskEditDialog from '@/components/Tasks/TaskEditDialog';
+import ReminderDialog from '@/components/Tasks/ReminderDialog';
 
 const DailyJournal = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [content, setContent] = useState('');
-  const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
-  const [taskUpdates, setTaskUpdates] = useState<any[]>([]);
-
+  const [newEntry, setNewEntry] = useState('');
+  const [editingEntry, setEditingEntry] = useState<any>(null);
+  const [showTaskDialog, setShowTaskDialog] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [showReminderDialog, setShowReminderDialog] = useState(false);
+  const [reminderTask, setReminderTask] = useState<any>(null);
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch journal entries
-  const { data: journalEntries = [] } = useQuery<JournalEntry[]>({
+  const { data: journalEntries = [], isLoading } = useQuery({
     queryKey: ['journal-entries'],
     queryFn: supabaseApi.getDailyJournalEntries,
   });
 
-  // Fetch user tasks for task updates
-  const { data: tasks = [] } = useQuery<Task[]>({
-    queryKey: ['user-tasks-journal'],
+  const { data: tasks = [] } = useQuery({
+    queryKey: ['tasks-for-journal'],
     queryFn: supabaseApi.getTasks,
   });
 
-  // Mutations
   const createEntryMutation = useMutation({
-    mutationFn: (entry: { date: string; content: string; task_updates?: any[] }) =>
-      supabaseApi.createJournalEntry(entry),
+    mutationFn: supabaseApi.createJournalEntry,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
-      toast({ title: 'Success', description: 'Journal entry saved!' });
-      setContent('');
-      setTaskUpdates([]);
+      setNewEntry('');
+      toast({ title: 'Journal entry created successfully!' });
     },
-    onError: () => {
-      toast({ title: 'Error', description: 'Failed to save journal entry', variant: 'destructive' });
-    }
+    onError: (error) => {
+      toast({ 
+        title: 'Error creating entry', 
+        description: error.message,
+        variant: 'destructive' 
+      });
+    },
   });
 
   const updateEntryMutation = useMutation({
-    mutationFn: ({ id, entry }: { id: string; entry: { content: string; task_updates?: any[] } }) =>
+    mutationFn: ({ id, entry }: { id: string; entry: any }) => 
       supabaseApi.updateJournalEntry(id, entry),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
-      toast({ title: 'Success', description: 'Journal entry updated!' });
       setEditingEntry(null);
-      setContent('');
+      toast({ title: 'Journal entry updated successfully!' });
     },
-    onError: () => {
-      toast({ title: 'Error', description: 'Failed to update journal entry', variant: 'destructive' });
-    }
   });
 
-  // Get entry for selected date
-  const selectedDateEntry = journalEntries.find(
-    entry => format(new Date(entry.date), 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
+  const updateTaskMutation = useMutation({
+    mutationFn: ({ id, task }: { id: string; task: any }) => 
+      supabaseApi.updateTask(id, task),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks-for-journal'] });
+      toast({ title: 'Task updated successfully!' });
+    },
+  });
+
+  const deleteTaskMutation = useMutation({
+    mutationFn: supabaseApi.deleteTask,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks-for-journal'] });
+      toast({ title: 'Task deleted successfully!' });
+    },
+  });
+
+  const createReminderMutation = useMutation({
+    mutationFn: (reminder: any) => supabaseApi.createReminder({
+      ...reminder,
+      task_id: reminderTask?.id
+    }),
+    onSuccess: () => {
+      toast({ title: 'Reminder set successfully!' });
+      setShowReminderDialog(false);
+      setReminderTask(null);
+    },
+  });
+
+  const handleCreateEntry = () => {
+    if (!newEntry.trim()) return;
+    
+    createEntryMutation.mutate({
+      date: format(selectedDate, 'yyyy-MM-dd'),
+      content: newEntry,
+      task_updates: tasks.map(task => ({
+        task_id: task.id,
+        status: task.status,
+        progress: task.status === 'completed' ? 100 : 
+                 task.status === 'in-progress' ? 50 : 0
+      }))
+    });
+  };
+
+  const handleUpdateEntry = (entry: any) => {
+    updateEntryMutation.mutate({
+      id: entry.id,
+      entry: {
+        content: entry.content,
+        task_updates: entry.task_updates
+      }
+    });
+  };
+
+  const handleTaskAction = (task: any, action: string) => {
+    let updates: any = {};
+    
+    switch (action) {
+      case 'reset':
+        updates = { status: 'pending' };
+        break;
+      case 'restart':
+        updates = { status: 'in-progress' };
+        break;
+      case 'complete':
+        updates = { status: 'completed' };
+        break;
+      default:
+        return;
+    }
+    
+    updateTaskMutation.mutate({ id: task.id, task: updates });
+  };
+
+  const todayEntries = journalEntries.filter(entry => 
+    entry.date === format(selectedDate, 'yyyy-MM-dd')
   );
 
-  useEffect(() => {
-    if (selectedDateEntry && !editingEntry) {
-      setContent(selectedDateEntry.content || '');
-      setTaskUpdates(selectedDateEntry.task_updates || []);
-    } else if (!selectedDateEntry) {
-      setContent('');
-      setTaskUpdates([]);
-    }
-  }, [selectedDate, selectedDateEntry, editingEntry]);
+  const todayTasks = tasks.filter(task => {
+    if (!task.due_date) return false;
+    return format(new Date(task.due_date), 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
+  });
 
-  const handleSave = () => {
-    const dateString = format(selectedDate, 'yyyy-MM-dd');
-    
-    if (selectedDateEntry) {
-      updateEntryMutation.mutate({
-        id: selectedDateEntry.id,
-        entry: { content, task_updates: taskUpdates }
-      });
-    } else {
-      createEntryMutation.mutate({
-        date: dateString,
-        content,
-        task_updates: taskUpdates
-      });
-    }
-  };
-
-  const addTaskUpdate = (task: Task, status: string, notes: string) => {
-    const update = {
-      task_id: task.id,
-      task_title: task.title,
-      status_change: status,
-      notes,
-      timestamp: new Date().toISOString()
-    };
-    setTaskUpdates([...taskUpdates, update]);
-  };
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-luxury-gold"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold font-montserrat text-foreground flex items-center gap-3">
             <BookOpen className="h-8 w-8 text-luxury-gold" />
             Daily Journal
           </h1>
-          <p className="text-muted-foreground font-opensans mt-1">
-            Document your daily work progress and task updates.
+          <p className="text-muted-foreground font-opensans">
+            Track your daily progress and task updates
           </p>
         </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Calendar */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg font-montserrat text-foreground flex items-center gap-2">
-              <CalendarIcon className="h-5 w-5 text-luxury-gold" />
-              Select Date
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={(date) => date && setSelectedDate(date)}
-              className="rounded-md border"
-            />
-          </CardContent>
-        </Card>
-
-        {/* Journal Entry */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-lg font-montserrat text-foreground">
-              Journal Entry - {format(selectedDate, 'MMMM d, yyyy')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Main Content */}
-            <div>
-              <label className="text-sm font-medium text-foreground mb-2 block">
-                Daily Summary
-              </label>
-              <Textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Write about your daily work, accomplishments, challenges, and thoughts..."
-                className="min-h-[200px]"
+        {/* Calendar and New Entry */}
+        <div className="lg:col-span-1 space-y-6">
+          {/* Date Picker */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg font-montserrat">Select Date</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => date && setSelectedDate(date)}
+                className="rounded-md border"
               />
-            </div>
+            </CardContent>
+          </Card>
 
-            {/* Task Updates */}
-            <div>
-              <label className="text-sm font-medium text-foreground mb-2 block">
-                Task Updates
-              </label>
-              <div className="space-y-2">
-                {taskUpdates.map((update, index) => (
-                  <Card key={index} className="p-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="font-medium text-foreground">{update.task_title}</h4>
-                        <Badge variant="outline" className="mt-1">{update.status_change}</Badge>
-                        {update.notes && (
-                          <p className="text-sm text-muted-foreground mt-2">{update.notes}</p>
+          {/* New Entry Form */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg font-montserrat">New Entry</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label>Entry for {format(selectedDate, 'PPP')}</Label>
+                <Textarea
+                  value={newEntry}
+                  onChange={(e) => setNewEntry(e.target.value)}
+                  placeholder="Write about your daily progress, thoughts, and task updates..."
+                  rows={6}
+                />
+              </div>
+              <Button 
+                onClick={handleCreateEntry}
+                disabled={!newEntry.trim() || createEntryMutation.isPending}
+                className="w-full gradient-gold text-charcoal-black"
+              >
+                <Save className="mr-2 h-4 w-4" />
+                Save Entry
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Journal Entries and Tasks */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Today's Tasks */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg font-montserrat flex items-center gap-2">
+                <CheckSquare className="h-5 w-5 text-luxury-gold" />
+                Tasks for {format(selectedDate, 'PPP')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {todayTasks.map((task) => (
+                  <div key={task.id} className="border rounded-lg p-4 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-medium">{task.title}</h4>
+                        <p className="text-sm text-muted-foreground">{task.description}</p>
+                        {task.notes && (
+                          <p className="text-sm bg-muted p-2 rounded mt-2">
+                            <strong>Notes:</strong> {task.notes}
+                          </p>
                         )}
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Badge variant={
+                          task.status === 'completed' ? 'default' :
+                          task.status === 'in-progress' ? 'secondary' :
+                          task.status === 'overdue' ? 'destructive' : 'outline'
+                        }>
+                          {task.status}
+                        </Badge>
+                        <Badge variant="outline">{task.priority}</Badge>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2 flex-wrap">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedTask(task);
+                          setShowTaskDialog(true);
+                        }}
+                      >
+                        <Edit className="h-3 w-3 mr-1" />
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setReminderTask(task);
+                          setShowReminderDialog(true);
+                        }}
+                      >
+                        <Bell className="h-3 w-3 mr-1" />
+                        Reminder
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleTaskAction(task, 'reset')}
+                      >
+                        <RotateCcw className="h-3 w-3 mr-1" />
+                        Reset
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleTaskAction(task, 'restart')}
+                      >
+                        <RefreshCw className="h-3 w-3 mr-1" />
+                        Restart
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => deleteTaskMutation.mutate(task.id)}
+                      >
+                        <Trash2 className="h-3 w-3 mr-1" />
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                {todayTasks.length === 0 && (
+                  <p className="text-center text-muted-foreground py-6">
+                    No tasks scheduled for this date
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Journal Entries */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg font-montserrat">
+                Journal Entries for {format(selectedDate, 'PPP')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {todayEntries.map((entry) => (
+                  <div key={entry.id} className="border rounded-lg p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Clock className="h-4 w-4" />
+                        {new Date(entry.created_at).toLocaleTimeString()}
                       </div>
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => setTaskUpdates(taskUpdates.filter((_, i) => i !== index))}
+                        onClick={() => setEditingEntry(entry)}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Edit className="h-4 w-4" />
                       </Button>
                     </div>
-                  </Card>
-                ))}
-              </div>
-            </div>
-
-            {/* Quick Task Status Updates */}
-            <div>
-              <label className="text-sm font-medium text-foreground mb-2 block">
-                Quick Task Updates
-              </label>
-              <div className="grid gap-2 md:grid-cols-2">
-                {tasks.slice(0, 4).map((task) => (
-                  <Card key={task.id} className="p-3">
-                    <h4 className="font-medium text-foreground text-sm">{task.title}</h4>
-                    <div className="flex gap-1 mt-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => addTaskUpdate(task, 'Started', 'Began working on this task')}
-                        className="text-xs"
-                      >
-                        Started
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => addTaskUpdate(task, 'Progress', 'Made significant progress')}
-                        className="text-xs"
-                      >
-                        Progress
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => addTaskUpdate(task, 'Completed', 'Finished this task')}
-                        className="text-xs"
-                      >
-                        Done
-                      </Button>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </div>
-
-            {/* Save Button */}
-            <div className="flex justify-end">
-              <Button onClick={handleSave} className="gradient-gold text-charcoal-black">
-                <Save className="mr-2 h-4 w-4" />
-                Save Entry
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Entries */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg font-montserrat text-foreground">
-            Recent Entries
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {journalEntries.slice(0, 5).map((entry) => (
-              <Card key={entry.id} className="p-4">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h4 className="font-medium text-foreground">
-                      {format(new Date(entry.date), 'MMMM d, yyyy')}
-                    </h4>
-                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                      {entry.content}
-                    </p>
+                    <p className="whitespace-pre-wrap">{entry.content}</p>
+                    
                     {entry.task_updates && entry.task_updates.length > 0 && (
-                      <div className="flex gap-1 mt-2">
-                        {entry.task_updates.slice(0, 3).map((update, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
-                            {update.task_title}
-                          </Badge>
-                        ))}
+                      <div className="mt-4 pt-4 border-t">
+                        <h5 className="text-sm font-medium mb-2">Task Updates:</h5>
+                        <div className="space-y-1">
+                          {entry.task_updates.map((update: any, index: number) => (
+                            <div key={index} className="text-sm text-muted-foreground">
+                              Task {update.task_id}: {update.status} ({update.progress}%)
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      setSelectedDate(new Date(entry.date));
-                      setEditingEntry(entry);
-                    }}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+                ))}
+                {todayEntries.length === 0 && (
+                  <p className="text-center text-muted-foreground py-6">
+                    No journal entries for this date
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Edit Entry Dialog */}
+      {editingEntry && (
+        <Dialog open={!!editingEntry} onOpenChange={() => setEditingEntry(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Journal Entry</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Textarea
+                value={editingEntry.content}
+                onChange={(e) => setEditingEntry({
+                  ...editingEntry,
+                  content: e.target.value
+                })}
+                rows={6}
+              />
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={() => setEditingEntry(null)}>
+                  Cancel
+                </Button>
+                <Button onClick={() => handleUpdateEntry(editingEntry)}>
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Task Edit Dialog */}
+      <TaskEditDialog
+        task={selectedTask}
+        open={showTaskDialog}
+        onOpenChange={setShowTaskDialog}
+        onSave={(updatedTask) => {
+          updateTaskMutation.mutate({ id: updatedTask.id, task: updatedTask });
+          setShowTaskDialog(false);
+        }}
+        onDelete={(taskId) => {
+          deleteTaskMutation.mutate(taskId);
+          setShowTaskDialog(false);
+        }}
+        onReset={(taskId) => {
+          const task = tasks.find(t => t.id === taskId);
+          if (task) handleTaskAction(task, 'reset');
+          setShowTaskDialog(false);
+        }}
+        onRestart={(taskId) => {
+          const task = tasks.find(t => t.id === taskId);
+          if (task) handleTaskAction(task, 'restart');
+          setShowTaskDialog(false);
+        }}
+      />
+
+      {/* Reminder Dialog */}
+      <ReminderDialog
+        open={showReminderDialog}
+        onOpenChange={setShowReminderDialog}
+        onSave={(reminder) => createReminderMutation.mutate(reminder)}
+        taskId={reminderTask?.id || ''}
+        taskTitle={reminderTask?.title || ''}
+      />
     </div>
   );
 };

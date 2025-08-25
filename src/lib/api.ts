@@ -13,6 +13,7 @@ class ApiService {
     const url = `${currentBaseUrl}${endpoint}`;
     
     try {
+      console.log(`Making request to: ${url}`);
       const response = await fetch(url, {
         headers: {
           'Content-Type': 'application/json',
@@ -25,8 +26,12 @@ class ApiService {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      return await response.json();
+      const data = await response.json();
+      console.log(`Response from ${url}:`, data);
+      return data;
     } catch (error) {
+      console.error(`Request to ${url} failed:`, error);
+      
       // Try alternative URL if primary fails
       if (currentBaseUrl === BASE_URLS[0]) {
         currentBaseUrl = BASE_URLS[1];
@@ -34,7 +39,7 @@ class ApiService {
         return this.makeRequest<T>(endpoint, options);
       }
       
-      console.error('API request failed:', error);
+      console.error('All backend URLs failed:', error);
       throw error;
     }
   }
@@ -131,6 +136,11 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify(entry),
     });
+  }
+
+  // Health check
+  async healthCheck(): Promise<{ status: string; backend_url: string }> {
+    return this.makeRequest<{ status: string; backend_url: string }>('/api/health');
   }
 }
 

@@ -1,181 +1,205 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import StatsCard from '@/components/Dashboard/StatsCard';
-import TaskCard from '@/components/Tasks/TaskCard';
-import { Button } from '@/components/ui/button';
-import {
-  CheckSquare,
-  Clock,
-  Users,
-  TrendingUp,
-  Plus,
-  Calendar,
-  Bell
-} from 'lucide-react';
-import { supabaseApi } from '@/lib/supabaseApi';
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Task } from '@/types';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import StatsCard from '@/components/Dashboard/StatsCard';
+import { supabaseApi } from '@/lib/supabaseApi';
+import { CheckSquare, Clock, AlertCircle, Users, Calendar, TrendingUp } from 'lucide-react';
 
 const Dashboard = () => {
-  const [tasks, setTasks] = useState<Task[]>([]);
-
-  // Fetch tasks data with proper error handling
-  const { data: tasksData, isLoading: tasksLoading, error } = useQuery<Task[]>({
-    queryKey: ['user-tasks'],
+  const { data: tasks = [], isLoading } = useQuery({
+    queryKey: ['dashboard-tasks'],
     queryFn: supabaseApi.getTasks,
   });
 
-  useEffect(() => {
-    if (tasksData && Array.isArray(tasksData)) {
-      setTasks(tasksData);
-    } else if (error) {
-      console.log('Error fetching tasks:', error);
-      setTasks([]);
-    }
-  }, [tasksData, error]);
+  const { data: notifications = [] } = useQuery({
+    queryKey: ['dashboard-notifications'],
+    queryFn: supabaseApi.getNotifications,
+  });
 
-  const stats = [
-    { 
-      title: 'Total Tasks', 
-      value: tasks.length, 
-      change: `${tasks.length} assigned to you`, 
-      icon: CheckSquare, 
-      trend: 'up' as const 
-    },
-    { 
-      title: 'In Progress', 
-      value: tasks.filter(t => t.status === 'in-progress').length, 
-      change: 'Active tasks', 
-      icon: Clock, 
-      trend: 'up' as const 
-    },
-    { 
-      title: 'Completed', 
-      value: tasks.filter(t => t.status === 'completed').length, 
-      change: 'Tasks finished', 
-      icon: CheckSquare, 
-      trend: 'up' as const 
-    },
-    { 
-      title: 'Pending', 
-      value: tasks.filter(t => t.status === 'pending').length, 
-      change: 'Awaiting start', 
-      icon: Clock, 
-      trend: 'neutral' as const 
-    }
-  ];
+  const pendingTasks = tasks.filter(task => task.status === 'pending').length;
+  const inProgressTasks = tasks.filter(task => task.status === 'in-progress').length;
+  const completedTasks = tasks.filter(task => task.status === 'completed').length;
+  const overdueTasks = tasks.filter(task => {
+    if (!task.due_date) return false;
+    return new Date(task.due_date) < new Date() && task.status !== 'completed';
+  }).length;
+
+  const totalTasks = tasks.length;
+  const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-luxury-gold"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold font-montserrat text-foreground">
-            CINESPA - LUXURY HOME THEATRES AND AUTOMATIONS
-          </h1>
-          <p className="text-muted-foreground font-opensans mt-1">
-            Welcome back! Here's what's happening with your projects today.
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <Button size="sm" variant="outline" className="border-luxury-gold text-luxury-gold hover:bg-luxury-gold hover:text-charcoal-black">
-            <Calendar className="mr-2 h-4 w-4" />
-            Calendar
-          </Button>
-          <Button size="sm" variant="outline" className="border-luxury-gold text-luxury-gold hover:bg-luxury-gold hover:text-charcoal-black">
-            <Bell className="mr-2 h-4 w-4" />
-            Notifications
-          </Button>
-          <Button size="sm" className="gradient-gold text-charcoal-black hover:opacity-90">
-            <Plus className="mr-2 h-4 w-4" />
-            New Task
-          </Button>
-        </div>
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold font-montserrat text-foreground">
+          CINESPA - LUXURY HOME THEATRES AND AUTOMATIONS
+        </h1>
+        <p className="text-muted-foreground font-opensans">
+          Your comprehensive task management dashboard
+        </p>
       </div>
 
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat, index) => (
-          <StatsCard key={index} {...stat} />
-        ))}
+        <StatsCard
+          title="Total Tasks"
+          value={totalTasks}
+          description="All assigned tasks"
+          icon={CheckSquare}
+          trend="neutral"
+        />
+        <StatsCard
+          title="In Progress"
+          value={inProgressTasks}
+          description="Currently active"
+          icon={Clock}
+          trend="up"
+        />
+        <StatsCard
+          title="Completed"
+          value={completedTasks}
+          description="Successfully finished"
+          icon={CheckSquare}
+          trend="up"
+        />
+        <StatsCard
+          title="Overdue"
+          value={overdueTasks}
+          description="Past due date"
+          icon={AlertCircle}
+          trend={overdueTasks > 0 ? "down" : "neutral"}
+        />
       </div>
 
-      {/* Recent Tasks */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="lg:col-span-2">
+      {/* Recent Tasks & Notifications */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Recent Tasks */}
+        <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xl font-montserrat text-foreground">
-                Recent Tasks
-              </CardTitle>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="text-luxury-gold hover:bg-luxury-gold hover:text-charcoal-black"
-              >
-                View All
-              </Button>
-            </div>
+            <CardTitle className="flex items-center gap-2 font-montserrat">
+              <CheckSquare className="h-5 w-5 text-luxury-gold" />
+              Recent Tasks
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {tasks.slice(0, 6).map((task) => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  onEdit={(task) => console.log('Edit task:', task)}
-                  onDelete={(taskId) => console.log('Delete task:', taskId)}
-                />
+            <div className="space-y-3">
+              {tasks.slice(0, 5).map((task) => (
+                <div key={task.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-sm">{task.title}</h4>
+                    <p className="text-xs text-muted-foreground">{task.description}</p>
+                    {task.due_date && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                        <Calendar className="h-3 w-3" />
+                        Due: {new Date(task.due_date).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Badge 
+                      variant={
+                        task.status === 'completed' ? 'default' :
+                        task.status === 'in-progress' ? 'secondary' :
+                        task.status === 'overdue' ? 'destructive' : 'outline'
+                      }
+                    >
+                      {task.status}
+                    </Badge>
+                    <Badge variant="outline" className="text-xs">
+                      {task.priority}
+                    </Badge>
+                  </div>
+                </div>
               ))}
+              {tasks.length === 0 && (
+                <p className="text-center text-muted-foreground py-4">No tasks assigned yet</p>
+              )}
             </div>
-            {tasks.length === 0 && !tasksLoading && (
-              <div className="text-center py-8 text-muted-foreground">
-                <CheckSquare className="mx-auto h-12 w-12 mb-4 text-luxury-gold" />
-                <p className="font-opensans">No tasks assigned yet. Tasks will appear here when assigned to you!</p>
-              </div>
-            )}
+          </CardContent>
+        </Card>
+
+        {/* Recent Notifications */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 font-montserrat">
+              <AlertCircle className="h-5 w-5 text-luxury-gold" />
+              Recent Notifications
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {notifications.slice(0, 5).map((notification) => (
+                <div key={notification.id} className="p-3 border rounded-lg">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-sm">{notification.title}</h4>
+                      <p className="text-xs text-muted-foreground">{notification.message}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {new Date(notification.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    {!notification.read && (
+                      <div className="w-2 h-2 bg-luxury-gold rounded-full"></div>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {notifications.length === 0 && (
+                <p className="text-center text-muted-foreground py-4">No notifications yet</p>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Quick Actions */}
+      {/* Progress Overview */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl font-montserrat text-foreground">
-            Quick Actions
+          <CardTitle className="flex items-center gap-2 font-montserrat">
+            <TrendingUp className="h-5 w-5 text-luxury-gold" />
+            Progress Overview
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Button 
-              variant="outline" 
-              className="h-20 flex-col gap-2 border-luxury-gold text-luxury-gold hover:bg-luxury-gold hover:text-charcoal-black"
-            >
-              <Plus className="h-6 w-6" />
-              Create Task
-            </Button>
-            <Button 
-              variant="outline" 
-              className="h-20 flex-col gap-2 border-luxury-gold text-luxury-gold hover:bg-luxury-gold hover:text-charcoal-black"
-            >
-              <Users className="h-6 w-6" />
-              Manage Team
-            </Button>
-            <Button 
-              variant="outline" 
-              className="h-20 flex-col gap-2 border-luxury-gold text-luxury-gold hover:bg-luxury-gold hover:text-charcoal-black"
-            >
-              <TrendingUp className="h-6 w-6" />
-              View Analytics
-            </Button>
-            <Button 
-              variant="outline" 
-              className="h-20 flex-col gap-2 border-luxury-gold text-luxury-gold hover:bg-luxury-gold hover:text-charcoal-black"
-            >
-              <Calendar className="h-6 w-6" />
-              Schedule Review
-            </Button>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Overall Completion Rate</span>
+              <span className="text-sm text-muted-foreground">{completionRate}%</span>
+            </div>
+            <div className="w-full bg-muted rounded-full h-2">
+              <div 
+                className="bg-luxury-gold h-2 rounded-full transition-all duration-300" 
+                style={{ width: `${completionRate}%` }}
+              ></div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div className="text-center">
+                <div className="font-medium text-blue-600">{pendingTasks}</div>
+                <div className="text-muted-foreground">Pending</div>
+              </div>
+              <div className="text-center">
+                <div className="font-medium text-yellow-600">{inProgressTasks}</div>
+                <div className="text-muted-foreground">In Progress</div>
+              </div>
+              <div className="text-center">
+                <div className="font-medium text-green-600">{completedTasks}</div>
+                <div className="text-muted-foreground">Completed</div>
+              </div>
+              <div className="text-center">
+                <div className="font-medium text-red-600">{overdueTasks}</div>
+                <div className="text-muted-foreground">Overdue</div>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
