@@ -2,203 +2,171 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { CheckCircle2, Clock, AlertTriangle, Users, Calendar, Bell } from 'lucide-react';
 import StatsCard from '@/components/Dashboard/StatsCard';
-import { supabaseApi } from '@/lib/supabaseApi';
-import { CheckSquare, Clock, AlertCircle, Users, Calendar, TrendingUp } from 'lucide-react';
+import TaskCard from '@/components/Tasks/TaskCard';
+import { apiService } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { Task } from '@/types';
 
 const Dashboard = () => {
+  const { user } = useAuth();
+
+  // Fetch tasks from backend API
   const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ['dashboard-tasks'],
-    queryFn: supabaseApi.getTasks,
+    queryKey: ['tasks'],
+    queryFn: () => apiService.getTasks(),
   });
 
-  const { data: notifications = [] } = useQuery({
-    queryKey: ['dashboard-notifications'],
-    queryFn: supabaseApi.getNotifications,
+  // Fetch analytics from backend
+  const { data: analytics } = useQuery({
+    queryKey: ['analytics'],
+    queryFn: () => apiService.getAnalytics(),
   });
 
-  const pendingTasks = tasks.filter(task => task.status === 'pending').length;
-  const inProgressTasks = tasks.filter(task => task.status === 'in-progress').length;
-  const completedTasks = tasks.filter(task => task.status === 'completed').length;
-  const overdueTasks = tasks.filter(task => {
-    if (!task.due_date) return false;
-    return new Date(task.due_date) < new Date() && task.status !== 'completed';
-  }).length;
+  // Filter user's own tasks
+  const userTasks = tasks.filter((task: Task) => task.assigned_to === user?.id);
+  
+  // Calculate stats from user's tasks
+  const completedTasks = userTasks.filter((task: Task) => task.status === 'completed').length;
+  const pendingTasks = userTasks.filter((task: Task) => task.status === 'pending').length;
+  const inProgressTasks = userTasks.filter((task: Task) => task.status === 'in-progress').length;
+  const overdueTasks = userTasks.filter((task: Task) => task.status === 'overdue').length;
 
-  const totalTasks = tasks.length;
-  const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  // Get recent tasks (last 5)
+  const recentTasks = userTasks
+    .sort((a: Task, b: Task) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 5);
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-luxury-gold"></div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-luxury-gold"></div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold font-montserrat text-foreground">
+    <div className="space-y-6">
+      {/* Header with Company Name */}
+      <div className="text-center mb-8">
+        <h1 className="text-4xl font-bold font-montserrat text-foreground mb-2">
           CINESPA - LUXURY HOME THEATRES AND AUTOMATIONS
         </h1>
         <p className="text-muted-foreground font-opensans">
-          Your comprehensive task management dashboard
+          Welcome back, {user?.user_metadata?.full_name || user?.email}
         </p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
           title="Total Tasks"
-          value={totalTasks}
-          icon={CheckSquare}
-          trend="neutral"
+          value={userTasks.length}
+          icon={Calendar}
+          className="bg-gradient-to-br from-background to-muted"
+        />
+        <StatsCard
+          title="Completed"
+          value={completedTasks}
+          change={`${userTasks.length > 0 ? Math.round((completedTasks / userTasks.length) * 100) : 0}% completion rate`}
+          icon={CheckCircle2}
+          trend="up"
+          className="bg-gradient-to-br from-completed-green/10 to-completed-green/5"
         />
         <StatsCard
           title="In Progress"
           value={inProgressTasks}
           icon={Clock}
-          trend="up"
-        />
-        <StatsCard
-          title="Completed"
-          value={completedTasks}
-          icon={CheckSquare}
-          trend="up"
+          className="bg-gradient-to-br from-progress-blue/10 to-progress-blue/5"
         />
         <StatsCard
           title="Overdue"
           value={overdueTasks}
-          icon={AlertCircle}
+          icon={AlertTriangle}
           trend={overdueTasks > 0 ? "down" : "neutral"}
+          className="bg-gradient-to-br from-blocked-red/10 to-blocked-red/5"
         />
       </div>
 
-      {/* Recent Tasks & Notifications */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Recent Tasks */}
-        <Card>
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="hover:shadow-lg hover:shadow-luxury-gold/20 transition-all duration-300">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 font-montserrat">
-              <CheckSquare className="h-5 w-5 text-luxury-gold" />
+            <CardTitle className="font-montserrat flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-luxury-gold" />
               Recent Tasks
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {tasks.slice(0, 5).map((task) => (
-                <div key={task.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex-1">
-                    <h4 className="font-medium text-sm">{task.title}</h4>
-                    <p className="text-xs text-muted-foreground">{task.description}</p>
+            {recentTasks.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="font-opensans">No tasks assigned yet</p>
+                <p className="text-sm mt-2">Tasks will appear here once they are assigned to you</p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {recentTasks.map((task: Task) => (
+                  <div key={task.id} className="border rounded-lg p-3 hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium font-opensans text-sm">{task.title}</h4>
+                      <span className={`text-xs px-2 py-1 rounded ${
+                        task.status === 'completed' ? 'bg-completed-green text-white' :
+                        task.status === 'in-progress' ? 'bg-progress-blue text-white' :
+                        task.status === 'overdue' ? 'bg-blocked-red text-white' :
+                        'bg-not-started-beige text-charcoal-black'
+                      }`}>
+                        {task.status.replace('-', ' ').toUpperCase()}
+                      </span>
+                    </div>
                     {task.due_date && (
-                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                        <Calendar className="h-3 w-3" />
+                      <p className="text-xs text-muted-foreground mt-1">
                         Due: {new Date(task.due_date).toLocaleDateString()}
                       </p>
                     )}
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <Badge 
-                      variant={
-                        task.status === 'completed' ? 'default' :
-                        task.status === 'in-progress' ? 'secondary' :
-                        task.status === 'overdue' ? 'destructive' : 'outline'
-                      }
-                    >
-                      {task.status}
-                    </Badge>
-                    <Badge variant="outline" className="text-xs">
-                      {task.priority}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-              {tasks.length === 0 && (
-                <p className="text-center text-muted-foreground py-4">No tasks assigned yet</p>
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Recent Notifications */}
-        <Card>
+        <Card className="hover:shadow-lg hover:shadow-luxury-gold/20 transition-all duration-300">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 font-montserrat">
-              <AlertCircle className="h-5 w-5 text-luxury-gold" />
-              Recent Notifications
+            <CardTitle className="font-montserrat flex items-center gap-2">
+              <Bell className="h-5 w-5 text-luxury-gold" />
+              Quick Stats
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {notifications.slice(0, 5).map((notification) => (
-                <div key={notification.id} className="p-3 border rounded-lg">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-sm">{notification.title}</h4>
-                      <p className="text-xs text-muted-foreground">{notification.message}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {new Date(notification.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    {!notification.read && (
-                      <div className="w-2 h-2 bg-luxury-gold rounded-full"></div>
-                    )}
-                  </div>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-opensans text-muted-foreground">Completion Rate</span>
+                <span className="font-semibold text-completed-green">
+                  {userTasks.length > 0 ? Math.round((completedTasks / userTasks.length) * 100) : 0}%
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-opensans text-muted-foreground">Active Tasks</span>
+                <span className="font-semibold text-progress-blue">{inProgressTasks + pendingTasks}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-opensans text-muted-foreground">Priority Tasks</span>
+                <span className="font-semibold text-high-priority">
+                  {userTasks.filter((task: Task) => task.priority === 'high' || task.priority === 'critical').length}
+                </span>
+              </div>
+              {overdueTasks > 0 && (
+                <div className="flex items-center justify-between border-t pt-4">
+                  <span className="text-sm font-opensans text-blocked-red">Needs Attention</span>
+                  <span className="font-semibold text-blocked-red">{overdueTasks} overdue</span>
                 </div>
-              ))}
-              {notifications.length === 0 && (
-                <p className="text-center text-muted-foreground py-4">No notifications yet</p>
               )}
             </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Progress Overview */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 font-montserrat">
-            <TrendingUp className="h-5 w-5 text-luxury-gold" />
-            Progress Overview
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Overall Completion Rate</span>
-              <span className="text-sm text-muted-foreground">{completionRate}%</span>
-            </div>
-            <div className="w-full bg-muted rounded-full h-2">
-              <div 
-                className="bg-luxury-gold h-2 rounded-full transition-all duration-300" 
-                style={{ width: `${completionRate}%` }}
-              ></div>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div className="text-center">
-                <div className="font-medium text-blue-600">{pendingTasks}</div>
-                <div className="text-muted-foreground">Pending</div>
-              </div>
-              <div className="text-center">
-                <div className="font-medium text-yellow-600">{inProgressTasks}</div>
-                <div className="text-muted-foreground">In Progress</div>
-              </div>
-              <div className="text-center">
-                <div className="font-medium text-green-600">{completedTasks}</div>
-                <div className="text-muted-foreground">Completed</div>
-              </div>
-              <div className="text-center">
-                <div className="font-medium text-red-600">{overdueTasks}</div>
-                <div className="text-muted-foreground">Overdue</div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };
