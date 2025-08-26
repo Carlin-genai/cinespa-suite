@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +22,31 @@ const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Prefill remembered credentials (user opted-in previously)
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('remembered_email');
+    const savedPassword = localStorage.getItem('remembered_password');
+    if (savedEmail) setEmail(savedEmail);
+    if (savedPassword) {
+      try {
+        setPassword(atob(savedPassword));
+      } catch {
+        // ignore decode errors
+      }
+    }
+  }, []);
+
+  const persistCredentials = () => {
+    if (rememberMe) {
+      localStorage.setItem('remembered_email', email);
+      // Store password only if user opts in. This is for convenience in this environment.
+      localStorage.setItem('remembered_password', btoa(password));
+    } else {
+      localStorage.removeItem('remembered_email');
+      localStorage.removeItem('remembered_password');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -30,12 +55,23 @@ const Auth = () => {
       if (isSignUp) {
         const { error } = await signUp(email, password, fullName);
         if (error) {
-          toast({
-            title: 'Sign Up Error',
-            description: error.message,
-            variant: 'destructive',
-          });
+          const msg = String(error.message || '');
+          // Give a clearer hint if project still requires confirmation
+          if (msg.toLowerCase().includes('email not confirmed')) {
+            toast({
+              title: 'Sign Up Error',
+              description: 'Your Supabase project currently requires email confirmation. Disable it in Auth > Providers > Email to allow instant login.',
+              variant: 'destructive',
+            });
+          } else {
+            toast({
+              title: 'Sign Up Error',
+              description: msg || 'Something went wrong.',
+              variant: 'destructive',
+            });
+          }
         } else {
+          persistCredentials();
           toast({
             title: 'Welcome!',
             description: 'Account created successfully! You are now signed in.',
@@ -45,21 +81,28 @@ const Auth = () => {
       } else {
         const { error } = await signIn(email, password);
         if (error) {
-          // If sign in fails, suggest they may need to sign up first
-          if (error.message?.includes('Invalid login credentials')) {
+          const msg = String(error.message || '');
+          if (msg.toLowerCase().includes('invalid login credentials')) {
             toast({
               title: 'Sign In Error',
-              description: 'Invalid credentials. Please check your email and password or sign up if you don\'t have an account.',
+              description: 'Invalid credentials. Check your email and password or sign up if you don’t have an account.',
+              variant: 'destructive',
+            });
+          } else if (msg.toLowerCase().includes('email not confirmed')) {
+            toast({
+              title: 'Sign In Error',
+              description: 'Email confirmation is enabled in Supabase. Turn it off in Auth > Providers > Email to sign in instantly.',
               variant: 'destructive',
             });
           } else {
             toast({
               title: 'Sign In Error',
-              description: error.message,
+              description: msg || 'Something went wrong.',
               variant: 'destructive',
             });
           }
         } else {
+          persistCredentials();
           toast({
             title: 'Welcome back!',
             description: 'Successfully signed in.',

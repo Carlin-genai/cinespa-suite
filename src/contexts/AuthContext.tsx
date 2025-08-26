@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -59,36 +58,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string, fullName: string) => {
     console.log('Attempting sign up for:', email);
-    
-    // First try to sign up with email confirmation disabled
+
+    // IMPORTANT: You cannot disable email confirmation from client code.
+    // Provide a valid redirect URL; if confirmation is disabled in Supabase settings,
+    // Supabase will return an active session immediately.
+    const redirectUrl = `${window.location.origin}/`;
+
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: {
-          full_name: fullName,
-        },
-        emailRedirectTo: undefined // Disable email confirmation
-      }
+        data: { full_name: fullName },
+        emailRedirectTo: redirectUrl,
+      },
     });
-    
-    console.log('Sign up result:', { user: signUpData?.user?.email, error: signUpError });
-    
-    // If signup succeeded, immediately try to sign in regardless of confirmation status
-    if (!signUpError && signUpData?.user) {
-      console.log('Sign up successful, attempting immediate sign in...');
-      const signInResult = await signIn(email, password);
-      
-      // If sign in fails due to email not confirmed, that's okay - user was still created
-      if (signInResult.error && signInResult.error.message?.includes('Email not confirmed')) {
-        console.log('User created but email confirmation required by Supabase settings');
-        return { error: null }; // Return success since user was created
-      }
-      
-      return signInResult;
+
+    console.log('Sign up result:', { user: signUpData?.user?.email, session: !!signUpData?.session, error: signUpError });
+
+    if (signUpError) {
+      return { error: signUpError };
     }
-    
-    return { error: signUpError };
+
+    // If email confirmations are disabled, Supabase returns a session right away.
+    if (signUpData?.session) {
+      console.log('Sign up returned active session, user is logged in.');
+      return { error: null };
+    }
+
+    // Otherwise, try immediate password sign-in (works if project allows it).
+    console.log('No active session from sign up, attempting immediate sign in...');
+    const signInResult = await signIn(email, password);
+
+    // If sign in fails due to email not confirmed, this is due to project settings.
+    if (signInResult.error && String(signInResult.error.message || '').toLowerCase().includes('email not confirmed')) {
+      console.log('Email confirmation required by Supabase project settings.');
+    }
+
+    return signInResult;
   };
 
   const signOut = async () => {
