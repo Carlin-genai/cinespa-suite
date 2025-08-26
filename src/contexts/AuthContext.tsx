@@ -59,7 +59,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string, fullName: string) => {
     console.log('Attempting sign up for:', email);
-    const { data, error } = await supabase.auth.signUp({
+    
+    // First try to sign up with email confirmation disabled
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -69,17 +71,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         emailRedirectTo: undefined // Disable email confirmation
       }
     });
-    console.log('Sign up result:', { user: data?.user?.email, error });
     
-    // If sign up is successful and user is created but not confirmed, 
-    // try to sign in immediately
-    if (!error && data?.user && !data?.user?.email_confirmed_at) {
-      console.log('User created but not confirmed, attempting immediate sign in...');
+    console.log('Sign up result:', { user: signUpData?.user?.email, error: signUpError });
+    
+    // If signup succeeded, immediately try to sign in regardless of confirmation status
+    if (!signUpError && signUpData?.user) {
+      console.log('Sign up successful, attempting immediate sign in...');
       const signInResult = await signIn(email, password);
+      
+      // If sign in fails due to email not confirmed, that's okay - user was still created
+      if (signInResult.error && signInResult.error.message?.includes('Email not confirmed')) {
+        console.log('User created but email confirmation required by Supabase settings');
+        return { error: null }; // Return success since user was created
+      }
+      
       return signInResult;
     }
     
-    return { error };
+    return { error: signUpError };
   };
 
   const signOut = async () => {

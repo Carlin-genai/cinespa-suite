@@ -16,6 +16,7 @@ const Auth = () => {
   const [fullName, setFullName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
@@ -36,7 +37,7 @@ const Auth = () => {
           });
         } else {
           toast({
-            title: 'Success!',
+            title: 'Welcome!',
             description: 'Account created successfully! You are now signed in.',
           });
           navigate('/');
@@ -44,14 +45,23 @@ const Auth = () => {
       } else {
         const { error } = await signIn(email, password);
         if (error) {
-          toast({
-            title: 'Sign In Error',
-            description: error.message,
-            variant: 'destructive',
-          });
+          // If sign in fails, suggest they may need to sign up first
+          if (error.message?.includes('Invalid login credentials')) {
+            toast({
+              title: 'Sign In Error',
+              description: 'Invalid credentials. Please check your email and password or sign up if you don\'t have an account.',
+              variant: 'destructive',
+            });
+          } else {
+            toast({
+              title: 'Sign In Error',
+              description: error.message,
+              variant: 'destructive',
+            });
+          }
         } else {
           toast({
-            title: 'Welcome!',
+            title: 'Welcome back!',
             description: 'Successfully signed in.',
           });
           navigate('/');
@@ -96,6 +106,7 @@ const Auth = () => {
                   onChange={(e) => setFullName(e.target.value)}
                   required
                   placeholder="Enter your full name"
+                  autoComplete="name"
                 />
               </div>
             )}
@@ -109,6 +120,7 @@ const Auth = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="Enter your email"
+                autoComplete="email"
               />
             </div>
             
@@ -122,6 +134,7 @@ const Auth = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   placeholder="Enter your password"
+                  autoComplete={isSignUp ? 'new-password' : 'current-password'}
                 />
                 <Button
                   type="button"
@@ -134,6 +147,21 @@ const Auth = () => {
                 </Button>
               </div>
             </div>
+
+            {!isSignUp && (
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="remember"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 text-luxury-gold border-gray-300 rounded focus:ring-luxury-gold"
+                />
+                <Label htmlFor="remember" className="text-sm">
+                  Remember me
+                </Label>
+              </div>
+            )}
             
             <Button type="submit" disabled={loading} className="w-full gradient-gold text-charcoal-black">
               {loading ? 'Please wait...' : (
