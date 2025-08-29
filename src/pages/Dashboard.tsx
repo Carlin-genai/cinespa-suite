@@ -1,16 +1,21 @@
-
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle2, Clock, AlertTriangle, Users, Calendar, Bell } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { CheckCircle2, Clock, AlertTriangle, Users, Calendar, Bell, Plus } from 'lucide-react';
 import StatsCard from '@/components/Dashboard/StatsCard';
 import TaskCard from '@/components/Tasks/TaskCard';
+import TaskCreateDialog from '@/components/Tasks/TaskCreateDialog';
 import { apiService } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Task } from '@/types';
+import { useToast } from '@/hooks/use-toast';
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   // Fetch tasks from backend API
   const { data: tasks = [], isLoading } = useQuery({
@@ -22,6 +27,27 @@ const Dashboard = () => {
   const { data: analytics } = useQuery({
     queryKey: ['analytics'],
     queryFn: () => apiService.getAnalytics(),
+  });
+
+  // Create task mutation
+  const createTaskMutation = useMutation({
+    mutationFn: (task: Partial<Task>) => apiService.createTask(task),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      toast({
+        title: "Success",
+        description: "Task created successfully",
+      });
+      setCreateDialogOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to create task",
+        variant: "destructive",
+      });
+      console.error('Create task error:', error);
+    },
   });
 
   // Filter user's own tasks
@@ -38,6 +64,13 @@ const Dashboard = () => {
     .sort((a: Task, b: Task) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 5);
 
+  const handleCreateTask = (task: Partial<Task>) => {
+    createTaskMutation.mutate({
+      ...task,
+      assigned_by: user?.id,
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -48,14 +81,23 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header with Company Name */}
-      <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold font-montserrat text-foreground mb-2">
-          CINESPA - LUXURY HOME THEATRES AND AUTOMATIONS
-        </h1>
-        <p className="text-muted-foreground font-opensans">
-          Welcome back, {user?.user_metadata?.full_name || user?.email}
-        </p>
+      {/* Header with Company Name and Add Task Button */}
+      <div className="flex items-center justify-between mb-8">
+        <div className="text-center flex-1">
+          <h1 className="text-4xl font-bold font-montserrat text-foreground mb-2">
+            CINESPA - LUXURY HOME THEATRES AND AUTOMATIONS
+          </h1>
+          <p className="text-muted-foreground font-opensans">
+            Welcome back, {user?.user_metadata?.full_name || user?.email}
+          </p>
+        </div>
+        <Button
+          onClick={() => setCreateDialogOpen(true)}
+          className="gradient-gold text-charcoal-black hover:shadow-lg hover:shadow-luxury-gold/20 ml-4"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Add Task
+        </Button>
       </div>
 
       {/* Stats Grid */}
@@ -167,6 +209,12 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      <TaskCreateDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onSave={handleCreateTask}
+      />
     </div>
   );
 };

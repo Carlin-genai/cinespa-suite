@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Calendar, Clock, User, MessageSquare, Edit, Trash2 } from 'lucide-react';
+import { Calendar, Clock, User, MessageSquare, Edit, Trash2, Star, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Task {
@@ -18,6 +18,8 @@ interface Task {
   notes?: string;
   created_at: string;
   updated_at: string;
+  admin_rating?: number;
+  admin_comment?: string;
 }
 
 interface TaskCardProps {
@@ -25,6 +27,8 @@ interface TaskCardProps {
   onEdit?: (task: Task) => void;
   onDelete?: (taskId: string) => void;
   onStatusChange?: (taskId: string, status: Task['status']) => void;
+  showAdminFeatures?: boolean;
+  onSetRating?: (taskId: string, rating: number, comment: string) => void;
 }
 
 const statusColors = {
@@ -41,7 +45,7 @@ const priorityColors = {
   'critical': 'bg-high-priority text-white'
 };
 
-const TaskCard = ({ task, onEdit, onDelete, onStatusChange }: TaskCardProps) => {
+const TaskCard = ({ task, onEdit, onDelete, onStatusChange, showAdminFeatures, onSetRating }: TaskCardProps) => {
   const daysLeft = Math.ceil((new Date(task.due_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
   
   return (
@@ -108,6 +112,51 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange }: TaskCardProps) => 
             <span>{daysLeft} days</span>
           </div>
         </div>
+
+        {/* Admin Rating and Comment (visible to assigned user) */}
+        {(task.admin_rating || task.admin_comment) && (
+          <div className="bg-muted/50 p-3 rounded-lg border-l-4 border-luxury-gold">
+            {task.admin_rating && (
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-sm font-medium">Admin Rating:</span>
+                <div className="flex items-center">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      className={cn(
+                        "h-4 w-4",
+                        star <= task.admin_rating! 
+                          ? "text-luxury-gold fill-luxury-gold" 
+                          : "text-gray-300"
+                      )}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+            {task.admin_comment && (
+              <div className="flex items-start gap-2">
+                <MessageCircle className="h-4 w-4 text-luxury-gold mt-0.5" />
+                <p className="text-sm text-foreground">{task.admin_comment}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Admin Features (visible to admins) */}
+        {showAdminFeatures && onSetRating && (
+          <div className="border-t pt-3">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onSetRating(task.id, task.admin_rating || 0, task.admin_comment || '')}
+              className="w-full border-luxury-gold text-luxury-gold hover:bg-luxury-gold hover:text-charcoal-black"
+            >
+              <Star className="mr-2 h-4 w-4" />
+              Rate & Comment
+            </Button>
+          </div>
+        )}
         
         {task.notes && (
           <div className="text-xs text-muted-foreground bg-muted p-2 rounded">

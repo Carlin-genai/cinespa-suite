@@ -81,6 +81,26 @@ class ApiService {
     });
   }
 
+  async loginUser(credentials: { email: string; password: string }): Promise<{ user: User; token: string }> {
+    return this.makeRequest<{ user: User; token: string }>('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    });
+  }
+
+  async signupUser(userData: { name: string; email: string; password: string; role?: string }): Promise<{ user: User; token: string }> {
+    return this.makeRequest<{ user: User; token: string }>('/api/auth/signup', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async logoutUser(): Promise<void> {
+    return this.makeRequest<void>('/api/auth/logout', {
+      method: 'POST',
+    });
+  }
+
   // Projects
   async getProjects(): Promise<Project[]> {
     return this.makeRequest<Project[]>('/api/projects');
@@ -135,6 +155,19 @@ class ApiService {
     return this.makeRequest<any>('/api/journal', {
       method: 'POST',
       body: JSON.stringify(entry),
+    });
+  }
+
+  async updateJournalEntry(id: string, entry: any): Promise<any> {
+    return this.makeRequest<any>(`/api/journal/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(entry),
+    });
+  }
+
+  async deleteJournalEntry(id: string): Promise<void> {
+    return this.makeRequest<void>(`/api/journal/${id}`, {
+      method: 'DELETE',
     });
   }
 

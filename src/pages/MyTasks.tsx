@@ -6,6 +6,7 @@ import { Plus, Bell } from 'lucide-react';
 import TaskCard from '@/components/Tasks/TaskCard';
 import TaskEditDialog from '@/components/Tasks/TaskEditDialog';
 import ReminderDialog from '@/components/Tasks/ReminderDialog';
+import AdminRatingDialog from '@/components/Tasks/AdminRatingDialog';
 import { apiService } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Task } from '@/types';
@@ -19,8 +20,10 @@ const MyTasks = () => {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
+  const [ratingDialogOpen, setRatingDialogOpen] = useState(false);
   const [reminderTaskId, setReminderTaskId] = useState<string>('');
   const [reminderTaskTitle, setReminderTaskTitle] = useState<string>('');
+  const [ratingTask, setRatingTask] = useState<{ id: string; title: string; rating?: number; comment?: string } | null>(null);
 
   // Fetch user's tasks from backend
   const { data: allTasks = [], isLoading, error } = useQuery({
@@ -30,6 +33,9 @@ const MyTasks = () => {
 
   // Filter to show only user's tasks
   const tasks = allTasks.filter((task: Task) => task.assigned_to === user?.id);
+
+  // Check if user is admin (you may need to adjust this based on your user role system)
+  const isAdmin = user?.user_metadata?.role === 'admin' || user?.email?.includes('admin');
 
   // Update task mutation
   const updateTaskMutation = useMutation({
@@ -133,6 +139,33 @@ const MyTasks = () => {
     });
   };
 
+  const handleSetRating = (taskId: string, currentRating: number, currentComment: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (task) {
+      setRatingTask({
+        id: taskId,
+        title: task.title,
+        rating: currentRating,
+        comment: currentComment
+      });
+      setRatingDialogOpen(true);
+    }
+  };
+
+  const handleSaveRating = (rating: number, comment: string) => {
+    if (ratingTask) {
+      updateTaskMutation.mutate({
+        id: ratingTask.id,
+        task: {
+          admin_rating: rating,
+          admin_comment: comment
+        }
+      });
+      setRatingDialogOpen(false);
+      setRatingTask(null);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -182,6 +215,8 @@ const MyTasks = () => {
                 onStatusChange={(taskId, status) => 
                   updateTaskMutation.mutate({ id: taskId, task: { status } })
                 }
+                showAdminFeatures={isAdmin}
+                onSetRating={handleSetRating}
               />
               <Button
                 size="sm"
@@ -212,6 +247,15 @@ const MyTasks = () => {
         onSave={handleSaveReminder}
         taskId={reminderTaskId}
         taskTitle={reminderTaskTitle}
+      />
+
+      <AdminRatingDialog
+        open={ratingDialogOpen}
+        onOpenChange={setRatingDialogOpen}
+        onSave={handleSaveRating}
+        taskTitle={ratingTask?.title || ''}
+        currentRating={ratingTask?.rating}
+        currentComment={ratingTask?.comment}
       />
     </div>
   );

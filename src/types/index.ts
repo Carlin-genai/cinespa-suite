@@ -9,6 +9,8 @@ export interface Task {
   assigned_by: string;
   due_date: string;
   notes?: string;
+  admin_rating?: number;
+  admin_comment?: string;
   created_at: string;
   updated_at: string;
 }
