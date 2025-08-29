@@ -1,4 +1,3 @@
-
 import { Task, User, Project } from '@/types';
 
 const BASE_URLS = [
@@ -57,10 +56,28 @@ class ApiService {
   }
 
   async updateTask(id: string, task: Partial<Task>): Promise<Task> {
-    return this.makeRequest<Task>(`/api/tasks/${id}`, {
+    const result = await this.makeRequest<Task>(`/api/tasks/${id}`, {
       method: 'PUT',
       body: JSON.stringify(task),
     });
+
+    // If task is being marked as completed, notify admin
+    if (task.status === 'completed') {
+      try {
+        await this.createNotification({
+          type: 'task_completion',
+          title: 'Task Completed',
+          message: `Task "${result.title}" has been completed by ${result.assigned_to}`,
+          recipient_type: 'admin',
+          task_id: id
+        });
+      } catch (error) {
+        console.log('Failed to send completion notification:', error);
+        // Don't throw error for notification failure
+      }
+    }
+
+    return result;
   }
 
   async deleteTask(id: string): Promise<void> {
@@ -174,6 +191,20 @@ class ApiService {
   // Health check
   async healthCheck(): Promise<{ status: string; backend_url: string }> {
     return this.makeRequest<{ status: string; backend_url: string }>('/api/health');
+  }
+
+  // Create notification
+  async createNotification(notification: {
+    type: string;
+    title: string;
+    message: string;
+    recipient_type?: string;
+    task_id?: string;
+  }): Promise<any> {
+    return this.makeRequest<any>('/api/notifications', {
+      method: 'POST',
+      body: JSON.stringify(notification),
+    });
   }
 }
 

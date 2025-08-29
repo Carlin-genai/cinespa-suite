@@ -12,6 +12,8 @@ import Dashboard from "./pages/Dashboard";
 import MyTasks from "./pages/MyTasks";
 import TeamTasks from "./pages/TeamTasks";
 import DailyJournal from "./pages/DailyJournal";
+import Analytics from "./pages/Analytics";
+import Calendar from "./pages/Calendar";
 import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
@@ -36,8 +38,8 @@ const App = () => (
                     <Route path="/my-tasks" element={<MyTasks />} />
                     <Route path="/team-tasks" element={<TeamTasks />} />
                     <Route path="/daily-journal" element={<DailyJournal />} />
-                    <Route path="/analytics" element={<div className="p-8 text-center text-luxury-gold">Analytics - Coming Soon</div>} />
-                    <Route path="/calendar" element={<div className="p-8 text-center text-luxury-gold">Calendar - Coming Soon</div>} />
+                    <Route path="/analytics" element={<Analytics />} />
+                    <Route path="/calendar" element={<Calendar />} />
                     <Route path="/notifications" element={<Notifications />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="*" element={<NotFound />} />
