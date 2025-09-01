@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -31,8 +30,13 @@ const MyTasks = () => {
     queryFn: () => apiService.getTasks(),
   });
 
-  // Filter to show only user's tasks
-  const tasks = allTasks.filter((task: Task) => task.assigned_to === user?.id);
+  // Filter to show only user's tasks - in local mode, tasks are assigned to 'current-user'
+  const useLocalMode = import.meta.env.VITE_DATA_MODE === 'local' || 
+                      import.meta.env.VITE_DATA_MODE === undefined;
+  
+  const tasks = allTasks.filter((task: Task) => 
+    useLocalMode ? task.assigned_to === 'current-user' : task.assigned_to === user?.id
+  );
 
   // Check if user is admin (you may need to adjust this based on your user role system)
   const isAdmin = user?.user_metadata?.role === 'admin' || user?.email?.includes('admin');
@@ -177,7 +181,12 @@ const MyTasks = () => {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen text-center">
-        <p className="text-blocked-red mb-4">Failed to load tasks. Please check your backend connection.</p>
+        <p className="text-blocked-red mb-4">
+          {useLocalMode 
+            ? "Failed to load tasks from local storage." 
+            : "Failed to load tasks. Please check your backend connection."
+          }
+        </p>
         <Button onClick={() => window.location.reload()}>Retry</Button>
       </div>
     );
@@ -190,6 +199,11 @@ const MyTasks = () => {
           <h1 className="text-3xl font-bold font-montserrat text-foreground">My Tasks</h1>
           <p className="text-muted-foreground font-opensans">
             Manage your assigned tasks and set reminders
+            {useLocalMode && (
+              <span className="ml-2 text-xs bg-luxury-gold/20 text-luxury-gold px-2 py-1 rounded">
+                Local Mode
+              </span>
+            )}
           </p>
         </div>
       </div>

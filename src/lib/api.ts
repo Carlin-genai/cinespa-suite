@@ -1,4 +1,6 @@
+
 import { Task, User, Project } from '@/types';
+import { localApi } from './localApi';
 
 const BASE_URLS = [
   'http://127.0.0.1:5000',
@@ -7,8 +9,18 @@ const BASE_URLS = [
 
 let currentBaseUrl = BASE_URLS[0];
 
+// Check if we should use local mode
+const useLocalMode = import.meta.env.VITE_DATA_MODE === 'local' || 
+                    import.meta.env.VITE_DATA_MODE === undefined;
+
 class ApiService {
   private async makeRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    // If in local mode, delegate to local API
+    if (useLocalMode) {
+      console.log('Using local storage mode');
+      throw new Error('Should use local API service');
+    }
+
     const url = `${currentBaseUrl}${endpoint}`;
     
     try {
@@ -45,10 +57,12 @@ class ApiService {
 
   // Task Management
   async getTasks(): Promise<Task[]> {
+    if (useLocalMode) return localApi.getTasks();
     return this.makeRequest<Task[]>('/api/tasks');
   }
 
   async createTask(task: Partial<Task>): Promise<Task> {
+    if (useLocalMode) return localApi.createTask(task);
     return this.makeRequest<Task>('/api/tasks', {
       method: 'POST',
       body: JSON.stringify(task),
@@ -56,6 +70,8 @@ class ApiService {
   }
 
   async updateTask(id: string, task: Partial<Task>): Promise<Task> {
+    if (useLocalMode) return localApi.updateTask(id, task);
+    
     const result = await this.makeRequest<Task>(`/api/tasks/${id}`, {
       method: 'PUT',
       body: JSON.stringify(task),
@@ -73,7 +89,6 @@ class ApiService {
         });
       } catch (error) {
         console.log('Failed to send completion notification:', error);
-        // Don't throw error for notification failure
       }
     }
 
@@ -81,6 +96,7 @@ class ApiService {
   }
 
   async deleteTask(id: string): Promise<void> {
+    if (useLocalMode) return localApi.deleteTask(id);
     return this.makeRequest<void>(`/api/tasks/${id}`, {
       method: 'DELETE',
     });
@@ -88,10 +104,12 @@ class ApiService {
 
   // User Management
   async getUsers(): Promise<User[]> {
+    if (useLocalMode) return localApi.getUsers();
     return this.makeRequest<User[]>('/api/users');
   }
 
   async createUser(user: Partial<User>): Promise<User> {
+    if (useLocalMode) return localApi.createUser(user);
     return this.makeRequest<User>('/api/users', {
       method: 'POST',
       body: JSON.stringify(user),
@@ -99,6 +117,7 @@ class ApiService {
   }
 
   async loginUser(credentials: { email: string; password: string }): Promise<{ user: User; token: string }> {
+    if (useLocalMode) return localApi.loginUser(credentials);
     return this.makeRequest<{ user: User; token: string }>('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
@@ -106,6 +125,7 @@ class ApiService {
   }
 
   async signupUser(userData: { name: string; email: string; password: string; role?: string }): Promise<{ user: User; token: string }> {
+    if (useLocalMode) return localApi.signupUser(userData);
     return this.makeRequest<{ user: User; token: string }>('/api/auth/signup', {
       method: 'POST',
       body: JSON.stringify(userData),
@@ -113,6 +133,7 @@ class ApiService {
   }
 
   async logoutUser(): Promise<void> {
+    if (useLocalMode) return localApi.logoutUser();
     return this.makeRequest<void>('/api/auth/logout', {
       method: 'POST',
     });
@@ -120,10 +141,12 @@ class ApiService {
 
   // Projects
   async getProjects(): Promise<Project[]> {
+    if (useLocalMode) return localApi.getProjects();
     return this.makeRequest<Project[]>('/api/projects');
   }
 
   async createProject(project: Partial<Project>): Promise<Project> {
+    if (useLocalMode) return localApi.createProject(project);
     return this.makeRequest<Project>('/api/projects', {
       method: 'POST',
       body: JSON.stringify(project),
@@ -132,19 +155,23 @@ class ApiService {
 
   // Analytics
   async getAnalytics(): Promise<any> {
+    if (useLocalMode) return localApi.getAnalytics();
     return this.makeRequest<any>('/api/analytics');
   }
 
   async getReports(): Promise<any> {
+    if (useLocalMode) return localApi.getReports();
     return this.makeRequest<any>('/api/reports');
   }
 
   // Notifications
   async getNotifications(): Promise<any[]> {
+    if (useLocalMode) return localApi.getNotifications();
     return this.makeRequest<any[]>('/api/notifications');
   }
 
   async markNotificationRead(id: string): Promise<void> {
+    if (useLocalMode) return localApi.markNotificationRead(id);
     return this.makeRequest<void>(`/api/notifications/${id}`, {
       method: 'PUT',
       body: JSON.stringify({ read: true }),
@@ -153,10 +180,12 @@ class ApiService {
 
   // Reminders
   async getReminders(): Promise<any[]> {
+    if (useLocalMode) return localApi.getReminders();
     return this.makeRequest<any[]>('/api/reminders');
   }
 
   async createReminder(reminder: any): Promise<any> {
+    if (useLocalMode) return localApi.createReminder(reminder);
     return this.makeRequest<any>('/api/reminders', {
       method: 'POST',
       body: JSON.stringify(reminder),
@@ -165,10 +194,12 @@ class ApiService {
 
   // Daily Journal
   async getJournalEntries(): Promise<any[]> {
+    if (useLocalMode) return localApi.getJournalEntries();
     return this.makeRequest<any[]>('/api/journal');
   }
 
   async createJournalEntry(entry: any): Promise<any> {
+    if (useLocalMode) return localApi.createJournalEntry(entry);
     return this.makeRequest<any>('/api/journal', {
       method: 'POST',
       body: JSON.stringify(entry),
@@ -176,6 +207,7 @@ class ApiService {
   }
 
   async updateJournalEntry(id: string, entry: any): Promise<any> {
+    if (useLocalMode) return localApi.updateJournalEntry(id, entry);
     return this.makeRequest<any>(`/api/journal/${id}`, {
       method: 'PUT',
       body: JSON.stringify(entry),
@@ -183,6 +215,7 @@ class ApiService {
   }
 
   async deleteJournalEntry(id: string): Promise<void> {
+    if (useLocalMode) return localApi.deleteJournalEntry(id);
     return this.makeRequest<void>(`/api/journal/${id}`, {
       method: 'DELETE',
     });
@@ -190,6 +223,7 @@ class ApiService {
 
   // Health check
   async healthCheck(): Promise<{ status: string; backend_url: string }> {
+    if (useLocalMode) return localApi.healthCheck();
     return this.makeRequest<{ status: string; backend_url: string }>('/api/health');
   }
 
@@ -201,6 +235,7 @@ class ApiService {
     recipient_type?: string;
     task_id?: string;
   }): Promise<any> {
+    if (useLocalMode) return localApi.createNotification(notification);
     return this.makeRequest<any>('/api/notifications', {
       method: 'POST',
       body: JSON.stringify(notification),
