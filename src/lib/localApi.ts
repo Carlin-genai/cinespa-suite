@@ -4,6 +4,31 @@ import { Task, User, Project } from '@/types';
 // Generate unique IDs
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
+// Additional type definitions for local storage
+interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  recipient_type?: string;
+  task_id?: string;
+  read: boolean;
+  created_at: string;
+}
+
+interface Reminder {
+  id: string;
+  is_sent: boolean;
+  created_at: string;
+  [key: string]: any;
+}
+
+interface JournalEntry {
+  id: string;
+  created_at: string;
+  [key: string]: any;
+}
+
 // Storage keys
 const STORAGE_KEYS = {
   TASKS: 'cinespa_tasks',
@@ -201,12 +226,12 @@ export class LocalApiService {
   }
 
   // Notifications
-  async getNotifications(): Promise<any[]> {
-    return this.getFromStorage(STORAGE_KEYS.NOTIFICATIONS);
+  async getNotifications(): Promise<Notification[]> {
+    return this.getFromStorage<Notification>(STORAGE_KEYS.NOTIFICATIONS);
   }
 
   async markNotificationRead(id: string): Promise<void> {
-    const notifications = this.getFromStorage(STORAGE_KEYS.NOTIFICATIONS);
+    const notifications = this.getFromStorage<Notification>(STORAGE_KEYS.NOTIFICATIONS);
     const notificationIndex = notifications.findIndex(n => n.id === id);
     
     if (notificationIndex !== -1) {
@@ -221,9 +246,9 @@ export class LocalApiService {
     message: string;
     recipient_type?: string;
     task_id?: string;
-  }): Promise<any> {
-    const notifications = this.getFromStorage(STORAGE_KEYS.NOTIFICATIONS);
-    const newNotification = {
+  }): Promise<Notification> {
+    const notifications = this.getFromStorage<Notification>(STORAGE_KEYS.NOTIFICATIONS);
+    const newNotification: Notification = {
       id: generateId(),
       ...notification,
       read: false,
@@ -236,13 +261,13 @@ export class LocalApiService {
   }
 
   // Reminders
-  async getReminders(): Promise<any[]> {
-    return this.getFromStorage(STORAGE_KEYS.REMINDERS);
+  async getReminders(): Promise<Reminder[]> {
+    return this.getFromStorage<Reminder>(STORAGE_KEYS.REMINDERS);
   }
 
-  async createReminder(reminder: any): Promise<any> {
-    const reminders = this.getFromStorage(STORAGE_KEYS.REMINDERS);
-    const newReminder = {
+  async createReminder(reminder: Partial<Reminder>): Promise<Reminder> {
+    const reminders = this.getFromStorage<Reminder>(STORAGE_KEYS.REMINDERS);
+    const newReminder: Reminder = {
       id: generateId(),
       ...reminder,
       is_sent: false,
@@ -255,13 +280,13 @@ export class LocalApiService {
   }
 
   // Daily Journal
-  async getJournalEntries(): Promise<any[]> {
-    return this.getFromStorage(STORAGE_KEYS.JOURNAL);
+  async getJournalEntries(): Promise<JournalEntry[]> {
+    return this.getFromStorage<JournalEntry>(STORAGE_KEYS.JOURNAL);
   }
 
-  async createJournalEntry(entry: any): Promise<any> {
-    const entries = this.getFromStorage(STORAGE_KEYS.JOURNAL);
-    const newEntry = {
+  async createJournalEntry(entry: Partial<JournalEntry>): Promise<JournalEntry> {
+    const entries = this.getFromStorage<JournalEntry>(STORAGE_KEYS.JOURNAL);
+    const newEntry: JournalEntry = {
       id: generateId(),
       ...entry,
       created_at: new Date().toISOString()
@@ -272,8 +297,8 @@ export class LocalApiService {
     return newEntry;
   }
 
-  async updateJournalEntry(id: string, entry: any): Promise<any> {
-    const entries = this.getFromStorage(STORAGE_KEYS.JOURNAL);
+  async updateJournalEntry(id: string, entry: Partial<JournalEntry>): Promise<JournalEntry> {
+    const entries = this.getFromStorage<JournalEntry>(STORAGE_KEYS.JOURNAL);
     const entryIndex = entries.findIndex(e => e.id === id);
     
     if (entryIndex !== -1) {
@@ -285,7 +310,7 @@ export class LocalApiService {
   }
 
   async deleteJournalEntry(id: string): Promise<void> {
-    const entries = this.getFromStorage(STORAGE_KEYS.JOURNAL);
+    const entries = this.getFromStorage<JournalEntry>(STORAGE_KEYS.JOURNAL);
     const filteredEntries = entries.filter(e => e.id !== id);
     this.saveToStorage(STORAGE_KEYS.JOURNAL, filteredEntries);
   }
