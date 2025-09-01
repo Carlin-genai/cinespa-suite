@@ -490,7 +490,9 @@ const MyTasks = () => {
       <AdminRatingDialog
         open={ratingDialogOpen}
         onOpenChange={setRatingDialogOpen}
-        task={selectedTask}
+        taskTitle={selectedTask?.title || ''}
+        currentRating={selectedTask?.admin_rating}
+        currentComment={selectedTask?.admin_comment}
         onSave={(rating, comment) => {
           if (selectedTask) {
             updateTaskMutation.mutate({
