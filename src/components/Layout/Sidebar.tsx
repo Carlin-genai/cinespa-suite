@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -48,29 +48,27 @@ const Sidebar = () => {
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 px-3 py-4">
-        {navigation.map((item) => {
-          const isActive = location.pathname === item.href;
-          return (
-            <Link
-              key={item.name}
-              to={item.href}
-              className={cn(
+        {navigation.map((item) => (
+          <NavLink
+            key={item.name}
+            to={item.href}
+            end={item.href === '/'}
+            className={({ isActive }) =>
+              cn(
                 'group flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200',
                 isActive
                   ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-lg animate-gold-glow'
                   : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-              )}
-            >
-              <item.icon
-                className={cn(
-                  'mr-3 h-5 w-5 transition-colors',
-                  isActive ? 'text-sidebar-primary-foreground' : 'text-sidebar-foreground'
-                )}
-              />
-              {item.name}
-            </Link>
-          );
-        })}
+              )
+            }
+            onClick={() => console.log(`Navigating to: ${item.href}`)}
+          >
+            <item.icon
+              className="mr-3 h-5 w-5 transition-colors"
+            />
+            {item.name}
+          </NavLink>
+        ))}
       </nav>
 
       {/* User Profile */}

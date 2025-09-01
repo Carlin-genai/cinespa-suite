@@ -30,23 +30,24 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/auth" element={<Auth />} />
-            <Route path="/*" element={
-              <ProtectedRoute>
-                <Layout>
-                  <Routes>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/my-tasks" element={<MyTasks />} />
-                    <Route path="/team-tasks" element={<TeamTasks />} />
-                    <Route path="/daily-journal" element={<DailyJournal />} />
-                    <Route path="/analytics" element={<Analytics />} />
-                    <Route path="/calendar" element={<Calendar />} />
-                    <Route path="/notifications" element={<Notifications />} />
-                    <Route path="/settings" element={<Settings />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </Layout>
-              </ProtectedRoute>
-            } />
+            <Route 
+              path="/" 
+              element={
+                <ProtectedRoute>
+                  <Layout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<Dashboard />} />
+              <Route path="my-tasks" element={<MyTasks />} />
+              <Route path="team-tasks" element={<TeamTasks />} />
+              <Route path="daily-journal" element={<DailyJournal />} />
+              <Route path="analytics" element={<Analytics />} />
+              <Route path="calendar" element={<Calendar />} />
+              <Route path="notifications" element={<Notifications />} />
+              <Route path="settings" element={<Settings />} />
+              <Route path="*" element={<NotFound />} />
+            </Route>
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
