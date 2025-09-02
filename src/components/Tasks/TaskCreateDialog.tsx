@@ -39,7 +39,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   onSave,
   isPersonalTask = false,
 }) => {
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<Task['status']>('pending');
@@ -49,29 +49,48 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   const [selectedTime, setSelectedTime] = useState('');
   const [notes, setNotes] = useState('');
 
-  // Check if we're in local mode
+  // Check if we're in local mode or admin
   const isLocalMode = import.meta.env.VITE_DATA_MODE === 'local' || 
                      import.meta.env.VITE_DATA_MODE === undefined;
+  const isAdmin = userRole?.role === 'admin';
 
-  // Get current user ID (handle both Supabase and local mode)
+  // Get current user ID
   const currentUserId = isLocalMode ? 'current-user' : user?.id;
 
-  // Fetch users for assignment dropdown (only for admin tasks)
-  const { data: users = [] } = useQuery({
+  // Sample employees for local mode
+  const localEmployees = [
+    { id: 'current-user', name: 'Current User', email: 'user@example.com' },
+    { id: 'employee-1', name: 'John Doe', email: 'john@marktech.com' },
+    { id: 'employee-2', name: 'Jane Smith', email: 'jane@marktech.com' },
+    { id: 'employee-3', name: 'Mike Johnson', email: 'mike@marktech.com' },
+    { id: 'employee-4', name: 'Sarah Wilson', email: 'sarah@marktech.com' },
+  ];
+
+  // Fetch users for assignment dropdown (only for admin tasks in Supabase mode)
+  const { data: supabaseUsers = [] } = useQuery({
     queryKey: ['users'],
     queryFn: () => apiService.getUsers(),
-    enabled: open && !isPersonalTask && !isLocalMode,
+    enabled: open && !isPersonalTask && !isLocalMode && isAdmin,
   });
+
+  // Use local employees in local mode or Supabase users in Supabase mode
+  const availableUsers = isLocalMode ? localEmployees : supabaseUsers;
 
   // Set default assignee for personal tasks
   React.useEffect(() => {
     if (isPersonalTask && currentUserId) {
       setAssignedTo(currentUserId);
+    } else if (!isPersonalTask && isLocalMode && availableUsers.length > 0) {
+      // For admin tasks in local mode, don't auto-assign
+      setAssignedTo('');
     }
-  }, [isPersonalTask, currentUserId]);
+  }, [isPersonalTask, currentUserId, isLocalMode, availableUsers]);
 
   const handleSave = () => {
-    if (!title || (!isPersonalTask && !assignedTo) || !selectedDate) return;
+    // Validation: require title, assignee (for non-personal tasks), and due date
+    if (!title) return;
+    if (!isPersonalTask && !assignedTo) return;
+    if (!selectedDate) return;
 
     // Combine date and time if time is provided
     let dueDateTime = selectedDate;
@@ -114,6 +133,9 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
     'high': 'text-rose-gold-contrast',
     'critical': 'text-destructive'
   };
+
+  // Check if form is valid
+  const isFormValid = title && (!isPersonalTask ? assignedTo : true) && selectedDate;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -191,7 +213,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
             </div>
           </div>
 
-          {!isPersonalTask && !isLocalMode && (
+          {!isPersonalTask && (
             <div>
               <Label htmlFor="assignedTo" className="text-rose-gold-contrast">Assign to Employee *</Label>
               <Select value={assignedTo} onValueChange={setAssignedTo}>
@@ -199,13 +221,16 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
                   <SelectValue placeholder="Select employee to assign" />
                 </SelectTrigger>
                 <SelectContent>
-                  {users.map((user: any) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {user.name} ({user.email})
+                  {availableUsers.map((employee: any) => (
+                    <SelectItem key={employee.id} value={employee.id}>
+                      {employee.name} ({employee.email})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Choose which employee should work on this task
+              </p>
             </div>
           )}
           
@@ -269,7 +294,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
             </Button>
             <Button 
               onClick={handleSave} 
-              disabled={!title || (!isPersonalTask && !assignedTo) || !selectedDate}
+              disabled={!isFormValid}
               className="bg-rose-gold hover:bg-rose-gold-dark text-white"
             >
               <Save className="mr-2 h-4 w-4" />

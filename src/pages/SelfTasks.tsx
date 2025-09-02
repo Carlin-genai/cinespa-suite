@@ -252,7 +252,7 @@ const SelfTasks = () => {
                 <p className="text-sm font-medium text-muted-foreground">In Progress</p>
                 <p className="text-2xl font-bold">{tasksByStatus['in-progress'].length}</p>
               </div>
-              <AlertCircle className="h-8 w-8 text-blue-500" />
+              <AlertCircle className="h-8 w-8" style={{ color: '#2196F3' }} />
             </div>
           </CardContent>
         </Card>
@@ -264,7 +264,7 @@ const SelfTasks = () => {
                 <p className="text-sm font-medium text-muted-foreground">Completed</p>
                 <p className="text-2xl font-bold">{tasksByStatus.completed.length}</p>
               </div>
-              <CheckCircle className="h-8 w-8 text-green-500" />
+              <CheckCircle className="h-8 w-8" style={{ color: '#000400' }} />
             </div>
           </CardContent>
         </Card>
@@ -276,7 +276,7 @@ const SelfTasks = () => {
                 <p className="text-sm font-medium text-muted-foreground">Overdue</p>
                 <p className="text-2xl font-bold">{tasksByStatus.overdue.length}</p>
               </div>
-              <XCircle className="h-8 w-8 text-red-500" />
+              <XCircle className="h-8 w-8" style={{ color: '#FF2800' }} />
             </div>
           </CardContent>
         </Card>

@@ -46,14 +46,15 @@
     --text-grey: 0 0% 30%; /* Main text grey */
     --text-grey-muted: 0 0% 50%; /* Muted text grey */
 
-    /* Sidebar colors with updated Rose Gold theme */
-    --sidebar: 20 14.3% 4.1%;
-    --sidebar-foreground: 60 9.1% 97.8%;
+    /* Sidebar colors with grey text */
+    --sidebar-background: 20 14.3% 4.1%;
+    --sidebar-foreground: 0 0% 70%; /* Grey text for sidebar */
     --sidebar-primary: 350 23% 57%; /* Updated Rose Gold */
-    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-primary-foreground: 0 0% 70%; /* Grey text */
     --sidebar-accent: 350 23% 42%; /* Darker Rose Gold */
-    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-accent-foreground: 0 0% 70%; /* Grey text */
     --sidebar-border: 20 5.9% 90%;
+    --sidebar-ring: 350 23% 57%;
   }
 
   .dark {
@@ -96,14 +97,15 @@
     --text-grey: 0 0% 70%; /* Main text grey for dark theme */
     --text-grey-muted: 0 0% 50%; /* Muted text grey for dark theme */
 
-    /* Sidebar colors with updated Rose Gold theme for dark mode */
-    --sidebar: 20 14.3% 4.1%;
-    --sidebar-foreground: 60 9.1% 97.8%;
+    /* Sidebar colors with grey text for dark mode */
+    --sidebar-background: 20 14.3% 4.1%;
+    --sidebar-foreground: 0 0% 70%; /* Grey text for sidebar */
     --sidebar-primary: 350 23% 62%; /* Lighter Rose Gold for dark theme */
-    --sidebar-primary-foreground: 20 14.3% 4.1%;
+    --sidebar-primary-foreground: 0 0% 70%; /* Grey text */
     --sidebar-accent: 350 23% 52%; /* Darker Rose Gold for dark theme */
-    --sidebar-accent-foreground: 60 9.1% 97.8%;
+    --sidebar-accent-foreground: 0 0% 70%; /* Grey text */
     --sidebar-border: 12 6.5% 15.1%;
+    --sidebar-ring: 350 23% 62%;
   }
 }
 

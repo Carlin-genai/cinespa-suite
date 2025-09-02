@@ -179,12 +179,17 @@ const Dashboard = () => {
                   <div key={task.id} className="border rounded-lg p-3 hover:bg-muted/50 transition-colors">
                     <div className="flex items-center justify-between">
                       <h4 className="font-medium text-sm text-rose-gold-contrast">{task.title}</h4>
-                      <span className={`text-xs px-2 py-1 rounded text-white ${
-                        task.status === 'completed' ? 'bg-completed-green' :
-                        task.status === 'in-progress' ? 'bg-progress-blue' :
-                        task.status === 'overdue' ? 'bg-blocked-red' :
-                        'bg-not-started-beige text-charcoal-black'
-                      }`}>
+                      <span 
+                        className={`text-xs px-2 py-1 rounded text-white`}
+                        style={{ 
+                          backgroundColor: 
+                            task.status === 'completed' ? '#000400' :
+                            task.status === 'in-progress' ? '#2196F3' :
+                            task.status === 'overdue' ? '#FF2800' :
+                            '#d4b106',
+                          color: task.status === 'pending' ? '#4a4a4a' : 'white'
+                        }}
+                      >
                         {task.status.replace('-', ' ').toUpperCase()}
                       </span>
                     </div>

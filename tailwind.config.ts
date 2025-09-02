@@ -82,12 +82,13 @@ export default {
 				'charcoal-black': 'hsl(var(--text-grey))',
 				'elegant-grey': 'hsl(var(--text-grey-muted))',
 				'ivory': 'hsl(var(--background))',
-				// Fixed status colors - same for both themes
-				'completed-green': '120 100% 0.8%', // #000400
-				'progress-blue': '207 100% 57%', // #2196F3
+				// Fixed status colors - same for both themes with specific hex values
+				'completed-green': '#000400',
+				'progress-blue': '#2196F3',
 				'not-started-beige': 'hsl(45 93% 47%)',
-				'blocked-red': '8 100% 50%', // #FF2800 (overdue)
-				'high-priority': '8 100% 50%' // #FF2800
+				'blocked-red': '#FF2800',
+				'overdue-red': '#FF2800',
+				'high-priority': '#FF2800'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
