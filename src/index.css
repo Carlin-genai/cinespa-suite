@@ -7,11 +7,11 @@
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 0 0% 30%; /* Grey instead of black */
+    --foreground: 0 0% 20%; /* Dark grey text */
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 30%; /* Grey instead of black */
+    --card-foreground: 0 0% 20%; /* Dark grey text */
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 30%; /* Grey instead of black */
+    --popover-foreground: 0 0% 20%; /* Dark grey text */
     --primary: 350 23% 57%; /* Updated Rose Gold #B86B77 */
     --primary-foreground: 0 0% 98%;
     --secondary: 60 4.8% 95.9%;
@@ -43,18 +43,25 @@
     --rose-gold-muted: 350 13% 75%; /* Muted version */
 
     /* Grey text colors for better theme compatibility */
-    --text-grey: 0 0% 30%; /* Main text grey */
-    --text-grey-muted: 0 0% 50%; /* Muted text grey */
+    --text-grey: 0 0% 20%; /* Main text grey */
+    --text-grey-muted: 0 0% 45%; /* Muted text grey */
 
-    /* Sidebar colors with grey text */
-    --sidebar-background: 20 14.3% 4.1%;
-    --sidebar-foreground: 0 0% 70%; /* Grey text for sidebar */
-    --sidebar-primary: 350 23% 57%; /* Updated Rose Gold */
-    --sidebar-primary-foreground: 0 0% 70%; /* Grey text */
-    --sidebar-accent: 350 23% 42%; /* Darker Rose Gold */
-    --sidebar-accent-foreground: 0 0% 70%; /* Grey text */
-    --sidebar-border: 20 5.9% 90%;
+    /* Sidebar colors for light theme */
+    --sidebar: 0 0% 100%; /* Pure white sidebar */
+    --sidebar-foreground: 0 0% 20%; /* Dark grey text */
+    --sidebar-primary: 350 23% 57%; /* Rose Gold */
+    --sidebar-primary-foreground: 0 0% 100%; /* White text on rose gold */
+    --sidebar-accent: 0 0% 96%; /* Light grey hover */
+    --sidebar-accent-foreground: 0 0% 20%; /* Dark grey text on hover */
+    --sidebar-border: 0 0% 90%; /* Light border */
     --sidebar-ring: 350 23% 57%;
+
+    /* Status colors for consistent UI */
+    --completed-green: 120 100% 25%; /* #008000 */
+    --progress-blue: 207 90% 54%; /* #2196F3 */
+    --overdue-red: 9 100% 64%; /* #FF2800 */
+    --pending-yellow: 45 93% 47%; /* #F57C00 */
+    --not-started-beige: 39 77% 83%; /* #F5DEB3 */
   }
 
   .dark {
@@ -97,15 +104,22 @@
     --text-grey: 0 0% 70%; /* Main text grey for dark theme */
     --text-grey-muted: 0 0% 50%; /* Muted text grey for dark theme */
 
-    /* Sidebar colors with grey text for dark mode */
-    --sidebar-background: 20 14.3% 4.1%;
+    /* Sidebar colors for dark theme */
+    --sidebar: 20 14.3% 4.1%;
     --sidebar-foreground: 0 0% 70%; /* Grey text for sidebar */
     --sidebar-primary: 350 23% 62%; /* Lighter Rose Gold for dark theme */
-    --sidebar-primary-foreground: 0 0% 70%; /* Grey text */
+    --sidebar-primary-foreground: 0 0% 100%; /* White text on rose gold */
     --sidebar-accent: 350 23% 52%; /* Darker Rose Gold for dark theme */
     --sidebar-accent-foreground: 0 0% 70%; /* Grey text */
     --sidebar-border: 12 6.5% 15.1%;
     --sidebar-ring: 350 23% 62%;
+
+    /* Status colors for dark theme */
+    --completed-green: 120 100% 35%; /* Lighter green for dark theme */
+    --progress-blue: 207 90% 64%; /* Lighter blue for dark theme */
+    --overdue-red: 9 100% 74%; /* Lighter red for dark theme */
+    --pending-yellow: 45 93% 57%; /* Lighter yellow for dark theme */
+    --not-started-beige: 39 77% 73%; /* Lighter beige for dark theme */
   }
 }
 

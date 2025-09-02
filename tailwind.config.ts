@@ -58,7 +58,7 @@ export default {
 					foreground: 'hsl(var(--card-foreground))'
 				},
 				sidebar: {
-					DEFAULT: 'hsl(var(--sidebar-background))',
+					DEFAULT: 'hsl(var(--sidebar))',
 					foreground: 'hsl(var(--sidebar-foreground))',
 					primary: 'hsl(var(--sidebar-primary))',
 					'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
@@ -82,13 +82,12 @@ export default {
 				'charcoal-black': 'hsl(var(--text-grey))',
 				'elegant-grey': 'hsl(var(--text-grey-muted))',
 				'ivory': 'hsl(var(--background))',
-				// Fixed status colors - same for both themes with specific hex values
-				'completed-green': '#000400',
-				'progress-blue': '#2196F3',
-				'not-started-beige': 'hsl(45 93% 47%)',
-				'blocked-red': '#FF2800',
-				'overdue-red': '#FF2800',
-				'high-priority': '#FF2800'
+				// Status colors using CSS variables for theme consistency
+				'completed-green': 'hsl(var(--completed-green))',
+				'progress-blue': 'hsl(var(--progress-blue))',
+				'overdue-red': 'hsl(var(--overdue-red))',
+				'pending-yellow': 'hsl(var(--pending-yellow))',
+				'not-started-beige': 'hsl(var(--not-started-beige))',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

@@ -49,7 +49,7 @@ const Sidebar = () => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 px-3 py-4">
+      <nav className="flex-1 space-y-2 px-3 py-4">
         {navigation.map((item) => (
           <NavLink
             key={item.name}
@@ -57,16 +57,16 @@ const Sidebar = () => {
             end={item.href === '/'}
             className={({ isActive }) =>
               cn(
-                'group flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200',
+                'group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200',
                 isActive
-                  ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-lg animate-rose-gold-glow'
+                  ? 'bg-sidebar-primary text-sidebar-primary-foreground'
                   : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
               )
             }
             onClick={() => console.log(`Navigating to: ${item.href}`)}
           >
             <item.icon
-              className="mr-3 h-5 w-5 transition-colors"
+              className="mr-3 h-4 w-4 flex-shrink-0 transition-colors"
             />
             {item.name}
           </NavLink>
