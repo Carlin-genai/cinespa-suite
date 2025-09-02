@@ -81,7 +81,7 @@ export default {
 				'charcoal-black': 'hsl(var(--foreground))',
 				'elegant-grey': 'hsl(var(--muted-foreground))',
 				'ivory': 'hsl(var(--background))',
-				'completed-green': 'hsl(142 76% 36%)',
+				'completed-green': '120 100% 0.8%', // Updated to #000400
 				'progress-blue': 'hsl(217 91% 60%)',
 				'not-started-beige': 'hsl(45 93% 47%)',
 				'blocked-red': 'hsl(0 84% 60%)',
