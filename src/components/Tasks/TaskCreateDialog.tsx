@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { apiService } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 interface Task {
   id?: string;
@@ -40,6 +41,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   isPersonalTask = false,
 }) => {
   const { user, userRole } = useAuth();
+  const { toast } = useToast();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<Task['status']>('pending');
@@ -86,11 +88,34 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
     }
   }, [isPersonalTask, currentUserId, isLocalMode, availableUsers]);
 
-  const handleSave = () => {
-    // Validation: require title, assignee (for non-personal tasks), and due date
-    if (!title) return;
-    if (!isPersonalTask && !assignedTo) return;
-    if (!selectedDate) return;
+  const handleSave = async () => {
+    // Validation with user feedback
+    if (!title.trim()) {
+      toast({
+        title: "Title Required",
+        description: "Please enter a task title.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!isPersonalTask && !assignedTo) {
+      toast({
+        title: "Assignment Required",
+        description: "Please select an employee to assign this task to.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!selectedDate) {
+      toast({
+        title: "Due Date Required", 
+        description: "Please select a due date for this task.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     // Combine date and time if time is provided
     let dueDateTime = selectedDate;
@@ -101,17 +126,43 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
     }
 
     const task: Partial<Task> = {
-      title,
-      description,
+      title: title.trim(),
+      description: description.trim(),
       status,
       priority,
       assigned_to: isPersonalTask ? currentUserId : assignedTo,
       due_date: dueDateTime.toISOString(),
-      notes,
+      notes: notes.trim(),
     };
 
-    onSave(task);
-    handleClose();
+    try {
+      // Save the task
+      onSave(task);
+      
+      // Send notification to assigned employee (if not personal task)
+      if (!isPersonalTask && assignedTo) {
+        const assignedEmployee = availableUsers.find((user: any) => user.id === assignedTo);
+        if (assignedEmployee) {
+          toast({
+            title: "Task Created & Employee Notified",
+            description: `Task "${title}" has been assigned to ${assignedEmployee.name}. They will be notified via email.`,
+          });
+        }
+      } else {
+        toast({
+          title: "Personal Task Created",
+          description: `Task "${title}" has been added to your task list.`,
+        });
+      }
+      
+      handleClose();
+    } catch (error) {
+      toast({
+        title: "Error Creating Task",
+        description: "There was an error creating the task. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleClose = () => {
@@ -139,15 +190,16 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="font-montserrat flex items-center gap-2 text-rose-gold">
             <User className="h-5 w-5 text-rose-gold" />
             {isPersonalTask ? 'Create Personal Task' : 'Create New Task'}
           </DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4">
+        {/* Scrollable content area */}
+        <div className="flex-1 overflow-y-auto px-6 space-y-4">
           <div>
             <Label htmlFor="title" className="text-rose-gold-contrast">Task Title *</Label>
             <Input
@@ -286,21 +338,22 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
               rows={2}
             />
           </div>
-          
-          <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button variant="outline" onClick={handleClose}>
-              <X className="mr-2 h-4 w-4" />
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleSave} 
-              disabled={!isFormValid}
-              className="bg-rose-gold hover:bg-rose-gold-dark text-white"
-            >
-              <Save className="mr-2 h-4 w-4" />
-              Create Task
-            </Button>
-          </div>
+        </div>
+        
+        {/* Sticky footer */}
+        <div className="flex-shrink-0 flex justify-end gap-2 p-6 border-t bg-background">
+          <Button variant="outline" onClick={handleClose}>
+            <X className="mr-2 h-4 w-4" />
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSave} 
+            disabled={!isFormValid}
+            className="bg-rose-gold hover:bg-rose-gold-dark text-white"
+          >
+            <Save className="mr-2 h-4 w-4" />
+            Create Task
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
