@@ -1,14 +1,26 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
+interface UserProfile {
+  id: string;
+  email: string;
+  full_name: string;
+  role: 'admin' | 'employee';
+  avatar_url?: string;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
+  profile: UserProfile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signInWithGoogle: () => Promise<{ error: any }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,22 +36,61 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Fetch user profile
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      return null;
+    }
+  };
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
+
+        if (session?.user) {
+          // Defer profile fetch to avoid recursion
+          setTimeout(async () => {
+            const userProfile = await fetchUserProfile(session.user.id);
+            setProfile(userProfile);
+          }, 0);
+        } else {
+          setProfile(null);
+        }
+        
         setLoading(false);
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       console.log('Current session:', session?.user?.email);
       setSession(session);
       setUser(session?.user ?? null);
+
+      if (session?.user) {
+        const userProfile = await fetchUserProfile(session.user.id);
+        setProfile(userProfile);
+      }
+      
       setLoading(false);
     });
 
@@ -56,12 +107,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { error };
   };
 
+  const signInWithGoogle = async () => {
+    console.log('Attempting Google sign in');
+    const redirectUrl = `${window.location.origin}/`;
+    
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: redirectUrl,
+      },
+    });
+    
+    console.log('Google sign in result:', { error });
+    return { error };
+  };
+
   const signUp = async (email: string, password: string, fullName: string) => {
     console.log('Attempting sign up for:', email);
 
-    // IMPORTANT: You cannot disable email confirmation from client code.
-    // Provide a valid redirect URL; if confirmation is disabled in Supabase settings,
-    // Supabase will return an active session immediately.
     const redirectUrl = `${window.location.origin}/`;
 
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
@@ -79,22 +142,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { error: signUpError };
     }
 
-    // If email confirmations are disabled, Supabase returns a session right away.
     if (signUpData?.session) {
       console.log('Sign up returned active session, user is logged in.');
       return { error: null };
     }
 
-    // Otherwise, try immediate password sign-in (works if project allows it).
     console.log('No active session from sign up, attempting immediate sign in...');
     const signInResult = await signIn(email, password);
 
-    // If sign in fails due to email not confirmed, this is due to project settings.
     if (signInResult.error && String(signInResult.error.message || '').toLowerCase().includes('email not confirmed')) {
       console.log('Email confirmation required by Supabase project settings.');
     }
 
     return signInResult;
+  };
+
+  const updateProfile = async (updates: Partial<UserProfile>) => {
+    if (!user) return { error: 'No user logged in' };
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('id', user.id)
+      .select()
+      .single();
+
+    if (!error && data) {
+      setProfile(data);
+    }
+
+    return { error };
   };
 
   const signOut = async () => {
@@ -105,10 +182,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const value = {
     user,
     session,
+    profile,
     loading,
     signIn,
+    signInWithGoogle,
     signUp,
     signOut,
+    updateProfile,
   };
 
   return (

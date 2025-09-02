@@ -1,8 +1,9 @@
+
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Clock, AlertTriangle, Users, Calendar, Bell, Plus } from 'lucide-react';
+import { CheckCircle2, Clock, AlertTriangle, Users, Calendar, Bell, Plus, Shield, User } from 'lucide-react';
 import StatsCard from '@/components/Dashboard/StatsCard';
 import TaskCard from '@/components/Tasks/TaskCard';
 import TaskCreateDialog from '@/components/Tasks/TaskCreateDialog';
@@ -12,10 +13,12 @@ import { Task } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+
+  const isAdmin = profile?.role === 'admin';
 
   // Fetch tasks from backend API
   const { data: tasks = [], isLoading } = useQuery({
@@ -50,8 +53,12 @@ const Dashboard = () => {
     },
   });
 
-  // Filter user's own tasks
-  const userTasks = tasks.filter((task: Task) => task.assigned_to === user?.id);
+  // Filter tasks based on user role
+  const userTasks = isAdmin 
+    ? tasks // Admins see all tasks
+    : tasks.filter((task: Task) => 
+        task.assigned_to === user?.id || task.assigned_by === user?.id
+      );
   
   // Calculate stats from user's tasks
   const completedTasks = userTasks.filter((task: Task) => task.status === 'completed').length;
@@ -74,7 +81,7 @@ const Dashboard = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-luxury-gold"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-400"></div>
       </div>
     );
   }
@@ -84,20 +91,35 @@ const Dashboard = () => {
       {/* Header with Company Name and Add Task Button */}
       <div className="flex items-center justify-between mb-8">
         <div className="text-center flex-1">
-          <h1 className="text-4xl font-bold font-montserrat text-foreground mb-2">
-            CINESPA - LUXURY HOME THEATRES AND AUTOMATIONS
+          <h1 className="text-4xl font-bold text-foreground mb-2">
+            Mark Technologies
           </h1>
-          <p className="text-muted-foreground font-opensans">
-            Welcome back, {user?.user_metadata?.full_name || user?.email}
+          <p className="text-muted-foreground">
+            Welcome back, {profile?.full_name || user?.email}
           </p>
+          <div className="flex items-center justify-center gap-2 mt-2">
+            {isAdmin ? (
+              <div className="flex items-center gap-1 px-3 py-1 bg-rose-100 dark:bg-rose-900 text-rose-700 dark:text-rose-300 rounded-full text-sm">
+                <Shield className="h-4 w-4" />
+                Administrator
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full text-sm">
+                <User className="h-4 w-4" />
+                Employee
+              </div>
+            )}
+          </div>
         </div>
-        <Button
-          onClick={() => setCreateDialogOpen(true)}
-          className="gradient-gold text-charcoal-black hover:shadow-lg hover:shadow-luxury-gold/20 ml-4"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Add Task
-        </Button>
+        {isAdmin && (
+          <Button
+            onClick={() => setCreateDialogOpen(true)}
+            className="bg-rose-400 hover:bg-rose-500 text-white ml-4"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add Task
+          </Button>
+        )}
       </div>
 
       {/* Stats Grid */}
@@ -114,29 +136,29 @@ const Dashboard = () => {
           change={`${userTasks.length > 0 ? Math.round((completedTasks / userTasks.length) * 100) : 0}% completion rate`}
           icon={CheckCircle2}
           trend="up"
-          className="bg-gradient-to-br from-completed-green/10 to-completed-green/5"
+          className="bg-gradient-to-br from-green-50 to-green-25 dark:from-green-950 dark:to-green-900"
         />
         <StatsCard
           title="In Progress"
           value={inProgressTasks}
           icon={Clock}
-          className="bg-gradient-to-br from-progress-blue/10 to-progress-blue/5"
+          className="bg-gradient-to-br from-blue-50 to-blue-25 dark:from-blue-950 dark:to-blue-900"
         />
         <StatsCard
           title="Overdue"
           value={overdueTasks}
           icon={AlertTriangle}
           trend={overdueTasks > 0 ? "down" : "neutral"}
-          className="bg-gradient-to-br from-blocked-red/10 to-blocked-red/5"
+          className="bg-gradient-to-br from-red-50 to-red-25 dark:from-red-950 dark:to-red-900"
         />
       </div>
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="hover:shadow-lg hover:shadow-luxury-gold/20 transition-all duration-300">
+        <Card className="hover:shadow-lg hover:shadow-rose-400/20 transition-all duration-300">
           <CardHeader>
-            <CardTitle className="font-montserrat flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-luxury-gold" />
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-rose-400" />
               Recent Tasks
             </CardTitle>
           </CardHeader>
@@ -144,20 +166,25 @@ const Dashboard = () => {
             {recentTasks.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p className="font-opensans">No tasks assigned yet</p>
-                <p className="text-sm mt-2">Tasks will appear here once they are assigned to you</p>
+                <p>No tasks found</p>
+                <p className="text-sm mt-2">
+                  {isAdmin 
+                    ? "Create tasks to assign to team members" 
+                    : "Tasks will appear here once they are assigned to you"
+                  }
+                </p>
               </div>
             ) : (
               <div className="space-y-3 max-h-96 overflow-y-auto">
                 {recentTasks.map((task: Task) => (
                   <div key={task.id} className="border rounded-lg p-3 hover:bg-muted/50 transition-colors">
                     <div className="flex items-center justify-between">
-                      <h4 className="font-medium font-opensans text-sm">{task.title}</h4>
+                      <h4 className="font-medium text-sm">{task.title}</h4>
                       <span className={`text-xs px-2 py-1 rounded ${
-                        task.status === 'completed' ? 'bg-completed-green text-white' :
-                        task.status === 'in-progress' ? 'bg-progress-blue text-white' :
-                        task.status === 'overdue' ? 'bg-blocked-red text-white' :
-                        'bg-not-started-beige text-charcoal-black'
+                        task.status === 'completed' ? 'bg-green-500 text-white' :
+                        task.status === 'in-progress' ? 'bg-blue-500 text-white' :
+                        task.status === 'overdue' ? 'bg-red-500 text-white' :
+                        'bg-yellow-500 text-black'
                       }`}>
                         {task.status.replace('-', ' ').toUpperCase()}
                       </span>
@@ -174,35 +201,35 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg hover:shadow-luxury-gold/20 transition-all duration-300">
+        <Card className="hover:shadow-lg hover:shadow-rose-400/20 transition-all duration-300">
           <CardHeader>
-            <CardTitle className="font-montserrat flex items-center gap-2">
-              <Bell className="h-5 w-5 text-luxury-gold" />
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5 text-rose-400" />
               Quick Stats
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-opensans text-muted-foreground">Completion Rate</span>
-                <span className="font-semibold text-completed-green">
+                <span className="text-sm text-muted-foreground">Completion Rate</span>
+                <span className="font-semibold text-green-600">
                   {userTasks.length > 0 ? Math.round((completedTasks / userTasks.length) * 100) : 0}%
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-opensans text-muted-foreground">Active Tasks</span>
-                <span className="font-semibold text-progress-blue">{inProgressTasks + pendingTasks}</span>
+                <span className="text-sm text-muted-foreground">Active Tasks</span>
+                <span className="font-semibold text-blue-600">{inProgressTasks + pendingTasks}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-opensans text-muted-foreground">Priority Tasks</span>
-                <span className="font-semibold text-high-priority">
+                <span className="text-sm text-muted-foreground">Priority Tasks</span>
+                <span className="font-semibold text-rose-600">
                   {userTasks.filter((task: Task) => task.priority === 'high' || task.priority === 'critical').length}
                 </span>
               </div>
               {overdueTasks > 0 && (
                 <div className="flex items-center justify-between border-t pt-4">
-                  <span className="text-sm font-opensans text-blocked-red">Needs Attention</span>
-                  <span className="font-semibold text-blocked-red">{overdueTasks} overdue</span>
+                  <span className="text-sm text-red-600">Needs Attention</span>
+                  <span className="font-semibold text-red-600">{overdueTasks} overdue</span>
                 </div>
               )}
             </div>
