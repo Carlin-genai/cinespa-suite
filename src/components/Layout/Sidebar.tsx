@@ -32,7 +32,7 @@ const navigation = [
 
 const Sidebar = () => {
   const location = useLocation();
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, userRole, signOut } = useAuth();
 
   return (
     <div className="flex h-screen w-64 flex-col bg-sidebar border-r border-sidebar-border">
@@ -59,7 +59,7 @@ const Sidebar = () => {
               cn(
                 'group flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200',
                 isActive
-                  ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-lg animate-gold-glow'
+                  ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-lg animate-rose-gold-glow'
                   : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
               )
             }
@@ -84,7 +84,7 @@ const Sidebar = () => {
               {profile?.full_name || user?.user_metadata?.full_name || user?.email || 'User'}
             </p>
             <p className="text-xs text-sidebar-foreground/70 truncate capitalize">
-              {profile?.role || 'Employee'}
+              {userRole?.role || 'Employee'}
             </p>
           </div>
           <Button 

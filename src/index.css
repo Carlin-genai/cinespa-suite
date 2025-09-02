@@ -1,5 +1,5 @@
 
-@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&family=Open+Sans:wght@300;400;500;600;700;800&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Open+Sans:wght@300;400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -7,101 +7,87 @@
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
+    --foreground: 20 14.3% 4.1%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
+    --card-foreground: 20 14.3% 4.1%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 347 77% 49%;
-    --primary-foreground: 355 7% 97%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
+    --popover-foreground: 20 14.3% 4.1%;
+    --primary: 349 26% 57%; /* Rose Gold primary */
+    --primary-foreground: 0 0% 98%;
+    --secondary: 60 4.8% 95.9%;
+    --secondary-foreground: 24 9.8% 10%;
+    --muted: 60 4.8% 95.9%;
+    --muted-foreground: 25 5.3% 44.7%;
+    --accent: 60 4.8% 95.9%;
+    --accent-foreground: 24 9.8% 10%;
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 347 77% 49%;
+    --destructive-foreground: 60 9.1% 97.8%;
+    --border: 20 5.9% 90%;
+    --input: 20 5.9% 90%;
+    --ring: 349 26% 57%; /* Rose Gold ring */
     --radius: 0.5rem;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    
-    /* Sidebar colors */
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 0 0% 45.1%;
-    --sidebar-primary: 347 77% 49%;
-    --sidebar-primary-foreground: 355 7% 97%;
-    --sidebar-accent: 0 0% 96.1%;
-    --sidebar-accent-foreground: 0 0% 9%;
-    --sidebar-border: 0 0% 89.8%;
-    --sidebar-ring: 347 77% 49%;
 
-    /* Mark Technologies Brand Colors */
-    --luxury-gold: 43 72% 52%;
-    --bronze-gold: 30 45% 45%;
-    --charcoal-black: 0 0% 15%;
-    --elegant-grey: 0 0% 50%;
-    --ivory: 48 30% 96%;
-    --completed-green: 142 71% 45%;
-    --progress-blue: 213 94% 68%;
-    --not-started-beige: 43 30% 85%;
-    --blocked-red: 0 84% 60%;
-    --high-priority: 347 77% 49%;
+    /* Custom Rose Gold variables */
+    --rose-gold: 349 26% 57%;
+    --rose-gold-light: 349 26% 67%;
+    --rose-gold-dark: 349 26% 47%;
+    --rose-gold-foreground: 0 0% 98%;
+
+    /* Sidebar colors with Rose Gold theme */
+    --sidebar: 20 14.3% 4.1%;
+    --sidebar-foreground: 60 9.1% 97.8%;
+    --sidebar-primary: 349 26% 57%; /* Rose Gold */
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 349 26% 47%; /* Darker Rose Gold */
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 20 5.9% 90%;
   }
 
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 347 77% 49%;
-    --primary-foreground: 355 7% 97%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 347 77% 49%;
+    --background: 20 14.3% 4.1%;
+    --foreground: 60 9.1% 97.8%;
+    --card: 20 14.3% 4.1%;
+    --card-foreground: 60 9.1% 97.8%;
+    --popover: 20 14.3% 4.1%;
+    --popover-foreground: 60 9.1% 97.8%;
+    --primary: 349 26% 57%; /* Rose Gold primary */
+    --primary-foreground: 20 14.3% 4.1%;
+    --secondary: 12 6.5% 15.1%;
+    --secondary-foreground: 60 9.1% 97.8%;
+    --muted: 12 6.5% 15.1%;
+    --muted-foreground: 24 5.4% 63.9%;
+    --accent: 12 6.5% 15.1%;
+    --accent-foreground: 60 9.1% 97.8%;
+    --destructive: 0 72.2% 50.6%;
+    --destructive-foreground: 60 9.1% 97.8%;
+    --border: 12 6.5% 15.1%;
+    --input: 12 6.5% 15.1%;
+    --ring: 349 26% 57%; /* Rose Gold ring */
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
-    
-    /* Sidebar colors - dark mode */
-    --sidebar-background: 0 0% 7%;
-    --sidebar-foreground: 0 0% 63.9%;
-    --sidebar-primary: 347 77% 49%;
-    --sidebar-primary-foreground: 355 7% 97%;
-    --sidebar-accent: 0 0% 14.9%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 0 0% 14.9%;
-    --sidebar-ring: 347 77% 49%;
 
-    /* Mark Technologies Brand Colors - Dark Mode */
-    --luxury-gold: 43 72% 52%;
-    --bronze-gold: 30 45% 55%;
-    --charcoal-black: 0 0% 85%;
-    --elegant-grey: 0 0% 70%;
-    --ivory: 48 15% 10%;
-    --completed-green: 142 71% 55%;
-    --progress-blue: 213 94% 78%;
-    --not-started-beige: 43 20% 25%;
-    --blocked-red: 0 84% 70%;
-    --high-priority: 347 77% 59%;
+    /* Custom Rose Gold variables for dark mode */
+    --rose-gold: 349 26% 57%;
+    --rose-gold-light: 349 26% 67%;
+    --rose-gold-dark: 349 26% 47%;
+    --rose-gold-foreground: 20 14.3% 4.1%;
+
+    /* Sidebar colors with Rose Gold theme for dark mode */
+    --sidebar: 20 14.3% 4.1%;
+    --sidebar-foreground: 60 9.1% 97.8%;
+    --sidebar-primary: 349 26% 57%; /* Rose Gold */
+    --sidebar-primary-foreground: 20 14.3% 4.1%;
+    --sidebar-accent: 349 26% 47%; /* Darker Rose Gold */
+    --sidebar-accent-foreground: 60 9.1% 97.8%;
+    --sidebar-border: 12 6.5% 15.1%;
   }
 }
 
@@ -111,5 +97,41 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Open Sans', sans-serif;
   }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Montserrat', sans-serif;
+  }
+}
+
+/* Rose Gold animations and utilities */
+@keyframes rose-gold-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px hsl(var(--rose-gold) / 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px hsl(var(--rose-gold) / 0.8), 0 0 30px hsl(var(--rose-gold) / 0.6);
+  }
+}
+
+.animate-rose-gold-glow {
+  animation: rose-gold-glow 2s ease-in-out infinite;
+}
+
+/* Custom scrollbar with Rose Gold theme */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--rose-gold));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--rose-gold-dark));
 }

@@ -7,20 +7,29 @@ interface UserProfile {
   id: string;
   email: string;
   full_name: string;
-  role: 'admin' | 'employee';
   avatar_url?: string;
+}
+
+interface UserRole {
+  id: string;
+  user_id: string;
+  role: 'admin' | 'employee';
+  created_at: string;
+  updated_at: string;
 }
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: UserProfile | null;
+  userRole: UserRole | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signInWithGoogle: () => Promise<{ error: any }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: any }>;
+  updateUserRole: (role: 'admin' | 'employee') => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -37,6 +46,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Fetch user profile
@@ -53,18 +63,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return null;
       }
 
-      // Type-safe role casting
       const profileData: UserProfile = {
         id: data.id,
         email: data.email,
         full_name: data.full_name || '',
-        role: (data.role === 'admin' || data.role === 'employee') ? data.role : 'employee',
         avatar_url: data.avatar_url
       };
 
       return profileData;
     } catch (error) {
       console.error('Error fetching profile:', error);
+      return null;
+    }
+  };
+
+  // Fetch user role
+  const fetchUserRole = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching user role:', error);
+        return null;
+      }
+
+      return data as UserRole;
+    } catch (error) {
+      console.error('Error fetching user role:', error);
       return null;
     }
   };
@@ -77,15 +106,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Defer profile fetch to avoid recursion
+          // Defer profile and role fetch to avoid recursion
           setTimeout(async () => {
             const userProfile = await fetchUserProfile(session.user.id);
+            const userRoleData = await fetchUserRole(session.user.id);
             if (userProfile) {
               setProfile(userProfile);
+            }
+            if (userRoleData) {
+              setUserRole(userRoleData);
             }
           }, 0);
         } else {
           setProfile(null);
+          setUserRole(null);
         }
         
         setLoading(false);
@@ -99,8 +133,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (session?.user) {
         const userProfile = await fetchUserProfile(session.user.id);
+        const userRoleData = await fetchUserRole(session.user.id);
         if (userProfile) {
           setProfile(userProfile);
+        }
+        if (userRoleData) {
+          setUserRole(userRoleData);
         }
       }
       
@@ -181,15 +219,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .single();
 
     if (!error && data) {
-      // Type-safe profile update
       const updatedProfile: UserProfile = {
         id: data.id,
         email: data.email,
         full_name: data.full_name || '',
-        role: (data.role === 'admin' || data.role === 'employee') ? data.role : 'employee',
         avatar_url: data.avatar_url
       };
       setProfile(updatedProfile);
+    }
+
+    return { error };
+  };
+
+  const updateUserRole = async (role: 'admin' | 'employee') => {
+    if (!user) return { error: 'No user logged in' };
+
+    const { data, error } = await supabase
+      .from('user_roles')
+      .update({ role, updated_at: new Date().toISOString() })
+      .eq('user_id', user.id)
+      .select()
+      .single();
+
+    if (!error && data) {
+      setUserRole(data as UserRole);
     }
 
     return { error };
@@ -204,12 +257,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     session,
     profile,
+    userRole,
     loading,
     signIn,
     signInWithGoogle,
     signUp,
     signOut,
     updateProfile,
+    updateUserRole,
   };
 
   return (

@@ -6,12 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useAuth } from '@/contexts/AuthContext';
-import { Moon, Sun, User, Settings as SettingsIcon } from 'lucide-react';
+import { Moon, Sun, Settings as SettingsIcon } from 'lucide-react';
+import EditableProfile from '@/components/EditableProfile';
 
 const Settings = () => {
   const { theme, toggleTheme } = useTheme();
-  const { profile, user } = useAuth();
 
   return (
     <div className="space-y-6">
@@ -21,43 +20,8 @@ const Settings = () => {
       </div>
 
       <div className="grid gap-6">
-        {/* Profile Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              Profile Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="text-sm font-medium">Full Name</Label>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {profile?.full_name || user?.user_metadata?.full_name || 'Not set'}
-                </p>
-              </div>
-              <div>
-                <Label className="text-sm font-medium">Email</Label>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {profile?.email || user?.email || 'Not set'}
-                </p>
-              </div>
-              <div>
-                <Label className="text-sm font-medium">Role</Label>
-                <p className="text-sm text-muted-foreground mt-1 capitalize">
-                  {profile?.role || 'Employee'}
-                </p>
-              </div>
-              <div>
-                <Label className="text-sm font-medium">Account Type</Label>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Mark Technologies User
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Editable Profile Information */}
+        <EditableProfile />
 
         {/* Appearance Settings */}
         <Card>

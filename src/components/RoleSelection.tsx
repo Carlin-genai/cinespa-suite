@@ -14,7 +14,7 @@ interface RoleSelectionProps {
 const RoleSelection: React.FC<RoleSelectionProps> = ({ onRoleSelected }) => {
   const [selectedRole, setSelectedRole] = useState<'admin' | 'employee' | null>(null);
   const [loading, setLoading] = useState(false);
-  const { updateProfile, user } = useAuth();
+  const { updateUserRole, user } = useAuth();
   const { toast } = useToast();
 
   const handleRoleSelection = async () => {
@@ -22,11 +22,7 @@ const RoleSelection: React.FC<RoleSelectionProps> = ({ onRoleSelected }) => {
 
     setLoading(true);
     try {
-      const { error } = await updateProfile({
-        role: selectedRole,
-        full_name: user.user_metadata?.full_name || user.email || '',
-        email: user.email || '',
-      });
+      const { error } = await updateUserRole(selectedRole);
 
       if (error) {
         toast({

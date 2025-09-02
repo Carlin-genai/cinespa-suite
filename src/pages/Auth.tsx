@@ -19,18 +19,18 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [showRoleSelection, setShowRoleSelection] = useState(false);
   
-  const { signIn, signInWithGoogle, signUp, user, profile } = useAuth();
+  const { signIn, signInWithGoogle, signUp, user, userRole } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   // Check if user needs role selection
   useEffect(() => {
-    if (user && !profile?.role) {
+    if (user && !userRole) {
       setShowRoleSelection(true);
-    } else if (user && profile?.role) {
+    } else if (user && userRole) {
       navigate('/');
     }
-  }, [user, profile, navigate]);
+  }, [user, userRole, navigate]);
 
   // Show role selection if needed
   if (showRoleSelection) {
@@ -201,7 +201,7 @@ const Auth = () => {
             <Button 
               type="submit" 
               disabled={loading} 
-              className="w-full bg-rose-400 hover:bg-rose-500 text-white"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               {loading ? 'Please wait...' : (
                 <>
@@ -255,7 +255,7 @@ const Auth = () => {
               <Button
                 variant="link"
                 onClick={() => setIsSignUp(!isSignUp)}
-                className="p-0 ml-1 h-auto font-normal text-rose-400"
+                className="p-0 ml-1 h-auto font-normal text-primary"
               >
                 {isSignUp ? 'Sign in' : 'Sign up'}
               </Button>
