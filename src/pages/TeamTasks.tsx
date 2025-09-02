@@ -145,7 +145,7 @@ const TeamTasks = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-luxury-gold"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-gold"></div>
       </div>
     );
   }
@@ -153,7 +153,7 @@ const TeamTasks = () => {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen text-center">
-        <p className="text-blocked-red mb-4">Failed to load team tasks. Please check your backend connection.</p>
+        <p className="text-overdue-red mb-4">Failed to load team tasks. Please check your backend connection.</p>
         <Button onClick={() => window.location.reload()}>Retry</Button>
       </div>
     );
@@ -195,7 +195,7 @@ const TeamTasks = () => {
           {/* Overdue Tasks */}
           {overdueTasks.length > 0 && (
             <div>
-              <h2 className="text-xl font-semibold text-blocked-red mb-4 flex items-center gap-2">
+              <h2 className="text-xl font-semibold text-overdue-red mb-4 flex items-center gap-2">
                 Overdue Tasks ({overdueTasks.length})
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -205,14 +205,11 @@ const TeamTasks = () => {
                       task={task}
                       onEdit={handleEditTask}
                       onDelete={handleDeleteTask}
-                      onStatusChange={(taskId, status) => 
-                        updateTaskMutation.mutate({ id: taskId, task: { status } })
-                      }
                     />
                     <Button
                       size="sm"
                       variant="outline"
-                      className="absolute top-2 right-16 opacity-0 group-hover:opacity-100 transition-opacity border-luxury-gold text-luxury-gold hover:bg-luxury-gold hover:text-charcoal-black"
+                      className="absolute top-2 right-16 opacity-0 group-hover:opacity-100 transition-opacity border-rose-gold text-rose-gold hover:bg-rose-gold hover:text-charcoal-black"
                       onClick={() => handleSetReminder(task.id, task.title)}
                     >
                       <Bell className="h-4 w-4" />
@@ -236,14 +233,11 @@ const TeamTasks = () => {
                       task={task}
                       onEdit={handleEditTask}
                       onDelete={handleDeleteTask}
-                      onStatusChange={(taskId, status) => 
-                        updateTaskMutation.mutate({ id: taskId, task: { status } })
-                      }
                     />
                     <Button
                       size="sm"
                       variant="outline"
-                      className="absolute top-2 right-16 opacity-0 group-hover:opacity-100 transition-opacity border-luxury-gold text-luxury-gold hover:bg-luxury-gold hover:text-charcoal-black"
+                      className="absolute top-2 right-16 opacity-0 group-hover:opacity-100 transition-opacity border-rose-gold text-rose-gold hover:bg-rose-gold hover:text-charcoal-black"
                       onClick={() => handleSetReminder(task.id, task.title)}
                     >
                       <Bell className="h-4 w-4" />
@@ -267,14 +261,11 @@ const TeamTasks = () => {
                       task={task}
                       onEdit={handleEditTask}
                       onDelete={handleDeleteTask}
-                      onStatusChange={(taskId, status) => 
-                        updateTaskMutation.mutate({ id: taskId, task: { status } })
-                      }
                     />
                     <Button
                       size="sm"
                       variant="outline"
-                      className="absolute top-2 right-16 opacity-0 group-hover:opacity-100 transition-opacity border-luxury-gold text-luxury-gold hover:bg-luxury-gold hover:text-charcoal-black"
+                      className="absolute top-2 right-16 opacity-0 group-hover:opacity-100 transition-opacity border-rose-gold text-rose-gold hover:bg-rose-gold hover:text-charcoal-black"
                       onClick={() => handleSetReminder(task.id, task.title)}
                     >
                       <Bell className="h-4 w-4" />
@@ -298,14 +289,11 @@ const TeamTasks = () => {
                       task={task}
                       onEdit={handleEditTask}
                       onDelete={handleDeleteTask}
-                      onStatusChange={(taskId, status) => 
-                        updateTaskMutation.mutate({ id: taskId, task: { status } })
-                      }
                     />
                     <Button
                       size="sm"
                       variant="outline"
-                      className="absolute top-2 right-16 opacity-0 group-hover:opacity-100 transition-opacity border-luxury-gold text-luxury-gold hover:bg-luxury-gold hover:text-charcoal-black"
+                      className="absolute top-2 right-16 opacity-0 group-hover:opacity-100 transition-opacity border-rose-gold text-rose-gold hover:bg-rose-gold hover:text-charcoal-black"
                       onClick={() => handleSetReminder(task.id, task.title)}
                     >
                       <Bell className="h-4 w-4" />
