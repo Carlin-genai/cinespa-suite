@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -67,18 +66,26 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Mark Technologies Brand Colors (Rose Gold Theme)
-				'rose-gold': 'hsl(var(--primary))',
-				'luxury-gold': 'hsl(var(--luxury-gold))',
-				'bronze-gold': 'hsl(var(--bronze-gold))',
-				'charcoal-black': 'hsl(var(--charcoal-black))',
-				'elegant-grey': 'hsl(var(--elegant-grey))',
-				'ivory': 'hsl(var(--ivory))',
-				'completed-green': 'hsl(var(--completed-green))',
-				'progress-blue': 'hsl(var(--progress-blue))',
-				'not-started-beige': 'hsl(var(--not-started-beige))',
-				'blocked-red': 'hsl(var(--blocked-red))',
-				'high-priority': 'hsl(var(--high-priority))'
+				// Updated Rose Gold colors with accessibility variants
+				'rose-gold': {
+					DEFAULT: 'hsl(var(--rose-gold))',
+					light: 'hsl(var(--rose-gold-light))',
+					dark: 'hsl(var(--rose-gold-dark))',
+					foreground: 'hsl(var(--rose-gold-foreground))',
+					contrast: 'hsl(var(--rose-gold-contrast))',
+					muted: 'hsl(var(--rose-gold-muted))'
+				},
+				// Legacy brand colors (keeping for backward compatibility)
+				'luxury-gold': 'hsl(var(--primary))',
+				'bronze-gold': 'hsl(var(--rose-gold-dark))',
+				'charcoal-black': 'hsl(var(--foreground))',
+				'elegant-grey': 'hsl(var(--muted-foreground))',
+				'ivory': 'hsl(var(--background))',
+				'completed-green': 'hsl(142 76% 36%)',
+				'progress-blue': 'hsl(217 91% 60%)',
+				'not-started-beige': 'hsl(45 93% 47%)',
+				'blocked-red': 'hsl(0 84% 60%)',
+				'high-priority': 'hsl(0 84% 60%)'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
@@ -103,8 +110,8 @@ export default {
 					'100%': { opacity: '1', transform: 'translateY(0)' }
 				},
 				'rose-glow': {
-					'0%': { boxShadow: '0 0 20px hsla(347, 77%, 49%, 0.3)' },
-					'100%': { boxShadow: '0 0 30px hsla(347, 77%, 49%, 0.6)' }
+					'0%': { boxShadow: '0 0 20px hsl(var(--rose-gold) / 0.3)' },
+					'100%': { boxShadow: '0 0 30px hsl(var(--rose-gold) / 0.6)' }
 				}
 			},
 			animation: {

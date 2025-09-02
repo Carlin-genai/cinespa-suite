@@ -12,7 +12,7 @@
     --card-foreground: 20 14.3% 4.1%;
     --popover: 0 0% 100%;
     --popover-foreground: 20 14.3% 4.1%;
-    --primary: 349 26% 57%; /* Rose Gold primary */
+    --primary: 352 25% 60%; /* Updated Rose Gold #C0838C */
     --primary-foreground: 0 0% 98%;
     --secondary: 60 4.8% 95.9%;
     --secondary-foreground: 24 9.8% 10%;
@@ -24,7 +24,7 @@
     --destructive-foreground: 60 9.1% 97.8%;
     --border: 20 5.9% 90%;
     --input: 20 5.9% 90%;
-    --ring: 349 26% 57%; /* Rose Gold ring */
+    --ring: 352 25% 60%; /* Updated Rose Gold ring */
     --radius: 0.5rem;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
@@ -32,18 +32,22 @@
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
 
-    /* Custom Rose Gold variables */
-    --rose-gold: 349 26% 57%;
-    --rose-gold-light: 349 26% 67%;
-    --rose-gold-dark: 349 26% 47%;
+    /* Custom Rose Gold variables - Updated colors */
+    --rose-gold: 352 25% 60%; /* #C0838C */
+    --rose-gold-light: 352 25% 70%; /* Lighter for accessibility */
+    --rose-gold-dark: 352 25% 45%; /* Darker for better contrast */
     --rose-gold-foreground: 0 0% 98%;
 
-    /* Sidebar colors with Rose Gold theme */
+    /* Additional contrast variants for accessibility */
+    --rose-gold-contrast: 352 25% 35%; /* High contrast for light theme */
+    --rose-gold-muted: 352 15% 75%; /* Muted version */
+
+    /* Sidebar colors with updated Rose Gold theme */
     --sidebar: 20 14.3% 4.1%;
     --sidebar-foreground: 60 9.1% 97.8%;
-    --sidebar-primary: 349 26% 57%; /* Rose Gold */
+    --sidebar-primary: 352 25% 60%; /* Updated Rose Gold */
     --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 349 26% 47%; /* Darker Rose Gold */
+    --sidebar-accent: 352 25% 45%; /* Darker Rose Gold */
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 20 5.9% 90%;
   }
@@ -55,7 +59,7 @@
     --card-foreground: 60 9.1% 97.8%;
     --popover: 20 14.3% 4.1%;
     --popover-foreground: 60 9.1% 97.8%;
-    --primary: 349 26% 57%; /* Rose Gold primary */
+    --primary: 352 25% 65%; /* Lighter Rose Gold for dark theme */
     --primary-foreground: 20 14.3% 4.1%;
     --secondary: 12 6.5% 15.1%;
     --secondary-foreground: 60 9.1% 97.8%;
@@ -67,25 +71,29 @@
     --destructive-foreground: 60 9.1% 97.8%;
     --border: 12 6.5% 15.1%;
     --input: 12 6.5% 15.1%;
-    --ring: 349 26% 57%; /* Rose Gold ring */
+    --ring: 352 25% 65%; /* Lighter Rose Gold ring for dark theme */
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
 
-    /* Custom Rose Gold variables for dark mode */
-    --rose-gold: 349 26% 57%;
-    --rose-gold-light: 349 26% 67%;
-    --rose-gold-dark: 349 26% 47%;
+    /* Custom Rose Gold variables for dark mode - Enhanced contrast */
+    --rose-gold: 352 25% 65%; /* Lighter for dark backgrounds */
+    --rose-gold-light: 352 25% 75%; /* Even lighter for dark theme */
+    --rose-gold-dark: 352 25% 50%; /* Darker variant */
     --rose-gold-foreground: 20 14.3% 4.1%;
 
-    /* Sidebar colors with Rose Gold theme for dark mode */
+    /* Dark theme contrast variants */
+    --rose-gold-contrast: 352 25% 75%; /* High contrast for dark theme */
+    --rose-gold-muted: 352 15% 55%; /* Muted version for dark theme */
+
+    /* Sidebar colors with updated Rose Gold theme for dark mode */
     --sidebar: 20 14.3% 4.1%;
     --sidebar-foreground: 60 9.1% 97.8%;
-    --sidebar-primary: 349 26% 57%; /* Rose Gold */
+    --sidebar-primary: 352 25% 65%; /* Lighter Rose Gold for dark theme */
     --sidebar-primary-foreground: 20 14.3% 4.1%;
-    --sidebar-accent: 349 26% 47%; /* Darker Rose Gold */
+    --sidebar-accent: 352 25% 55%; /* Darker Rose Gold for dark theme */
     --sidebar-accent-foreground: 60 9.1% 97.8%;
     --sidebar-border: 12 6.5% 15.1%;
   }
@@ -104,7 +112,7 @@
   }
 }
 
-/* Rose Gold animations and utilities */
+/* Rose Gold animations and utilities with updated colors */
 @keyframes rose-gold-glow {
   0%, 100% {
     box-shadow: 0 0 5px hsl(var(--rose-gold) / 0.5);
@@ -118,7 +126,7 @@
   animation: rose-gold-glow 2s ease-in-out infinite;
 }
 
-/* Custom scrollbar with Rose Gold theme */
+/* Custom scrollbar with updated Rose Gold theme */
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -134,4 +142,24 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--rose-gold-dark));
+}
+
+/* Accessibility utilities for Rose Gold contrast */
+.rose-gold-text {
+  color: hsl(var(--rose-gold-contrast));
+}
+
+.dark .rose-gold-text {
+  color: hsl(var(--rose-gold-contrast));
+}
+
+/* High contrast utilities for better accessibility */
+.rose-gold-high-contrast {
+  color: hsl(var(--rose-gold-contrast));
+  text-shadow: 0 0 1px hsl(var(--background) / 0.5);
+}
+
+.dark .rose-gold-high-contrast {
+  color: hsl(var(--rose-gold-contrast));
+  text-shadow: 0 0 1px hsl(var(--foreground) / 0.3);
 }
