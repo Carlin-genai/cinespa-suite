@@ -1,8 +1,9 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, FileText, MoreVertical, Edit, Trash2, CheckCircle, AlertTriangle, Hourglass } from 'lucide-react';
+import { Calendar, Clock, FileText, MoreVertical, Edit, Trash2, CheckCircle, AlertTriangle, Hourglass, Star } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -17,13 +18,24 @@ interface TaskCardProps {
     due_date: string;
     notes?: string;
     created_at: string;
+    admin_rating?: number;
+    admin_comment?: string;
   };
   onEdit?: (task: any) => void;
   onDelete?: (taskId: string) => void;
   showActions?: boolean;
+  showAdminFeatures?: boolean;
+  onSetRating?: (taskId: string, rating: number, comment: string) => void;
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, showActions = true }) => {
+const TaskCard: React.FC<TaskCardProps> = ({ 
+  task, 
+  onEdit, 
+  onDelete, 
+  showActions = true, 
+  showAdminFeatures = false,
+  onSetRating 
+}) => {
   const { userRole } = useAuth();
   const [showDetails, setShowDetails] = useState(false);
 
@@ -57,11 +69,11 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, showActions
   const getStatusBackground = (status: string) => {
     switch (status) {
       case 'completed': 
-        return 'completed-green';
+        return '#000400';
       case 'in-progress': 
-        return 'progress-blue';
+        return '#2196F3';
       case 'overdue': 
-        return 'overdue-red';
+        return '#FF2800';
       case 'pending':
       default: 
         return 'not-started-beige';
@@ -129,6 +141,12 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, showActions
                   <Edit className="mr-2 h-4 w-4" />
                   Edit Task
                 </DropdownMenuItem>
+                {showAdminFeatures && onSetRating && (
+                  <DropdownMenuItem onClick={() => onSetRating(task.id, 0, '')} className="cursor-pointer">
+                    <Star className="mr-2 h-4 w-4" />
+                    Rate Task
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
                   onClick={() => onDelete?.(task.id)} 
@@ -165,6 +183,13 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, showActions
             <Clock className="h-4 w-4 text-rose-gold" />
             <span>Created: {formatDate(task.created_at)}</span>
           </div>
+
+          {task.admin_rating && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Star className="h-4 w-4 text-rose-gold" />
+              <span>Rating: {task.admin_rating}/5</span>
+            </div>
+          )}
 
           {task.notes && (
             <div className="pt-2 border-t">

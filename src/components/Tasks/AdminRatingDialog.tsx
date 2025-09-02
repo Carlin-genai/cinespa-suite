@@ -6,34 +6,31 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Star, Save, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Task } from '@/types';
 
 interface AdminRatingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (rating: number, comment: string) => void;
-  taskTitle: string;
-  currentRating?: number;
-  currentComment?: string;
+  task: Task | null;
 }
 
 const AdminRatingDialog: React.FC<AdminRatingDialogProps> = ({
   open,
   onOpenChange,
   onSave,
-  taskTitle,
-  currentRating = 0,
-  currentComment = '',
+  task,
 }) => {
-  const [rating, setRating] = useState(currentRating);
-  const [comment, setComment] = useState(currentComment);
+  const [rating, setRating] = useState(task?.admin_rating || 0);
+  const [comment, setComment] = useState(task?.admin_comment || '');
   const [hoveredStar, setHoveredStar] = useState(0);
 
   React.useEffect(() => {
-    if (open) {
-      setRating(currentRating);
-      setComment(currentComment);
+    if (open && task) {
+      setRating(task.admin_rating || 0);
+      setComment(task.admin_comment || '');
     }
-  }, [open, currentRating, currentComment]);
+  }, [open, task]);
 
   const handleSave = () => {
     onSave(rating, comment);
@@ -52,6 +49,8 @@ const AdminRatingDialog: React.FC<AdminRatingDialogProps> = ({
     setHoveredStar(0);
   };
 
+  if (!task) return null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
@@ -62,7 +61,7 @@ const AdminRatingDialog: React.FC<AdminRatingDialogProps> = ({
         <div className="space-y-4">
           <div>
             <Label>Task</Label>
-            <p className="text-sm text-muted-foreground bg-muted p-2 rounded">{taskTitle}</p>
+            <p className="text-sm text-muted-foreground bg-muted p-2 rounded">{task.title}</p>
           </div>
           
           <div>
