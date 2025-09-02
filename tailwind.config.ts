@@ -86,6 +86,7 @@ export default {
 				'completed-green': 'hsl(var(--completed-green))',
 				'progress-blue': 'hsl(var(--progress-blue))',
 				'overdue-red': 'hsl(var(--overdue-red))',
+				'blocked-red': 'hsl(var(--overdue-red))', // Alias for consistency
 				'pending-yellow': 'hsl(var(--pending-yellow))',
 				'not-started-beige': 'hsl(var(--not-started-beige))',
 			},

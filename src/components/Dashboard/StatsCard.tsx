@@ -30,7 +30,7 @@ const StatsCard = ({ title, value, change, icon: Icon, trend = 'neutral', classN
           <p className={cn(
             "text-xs font-opensans mt-1",
             trend === 'up' ? 'text-completed-green' : 
-            trend === 'down' ? 'text-blocked-red' : 
+            trend === 'down' ? 'text-overdue-red' : 
             'text-muted-foreground'
           )}>
             {change}

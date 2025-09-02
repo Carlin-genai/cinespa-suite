@@ -69,14 +69,14 @@ const TaskCard: React.FC<TaskCardProps> = ({
   const getStatusBackground = (status: string) => {
     switch (status) {
       case 'completed': 
-        return 'completed-green';
+        return 'bg-completed-green';
       case 'in-progress': 
-        return 'progress-blue';
+        return 'bg-progress-blue';
       case 'overdue': 
-        return 'overdue-red';
+        return 'bg-overdue-red';
       case 'pending':
       default: 
-        return 'pending-yellow';
+        return 'bg-pending-yellow';
     }
   };
 
@@ -121,7 +121,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 {task.priority.toUpperCase()}
               </Badge>
               <Badge 
-                className={`text-xs font-medium px-2 py-1 bg-${getStatusBackground(task.status)} text-white`}
+                className={`text-xs font-medium px-2 py-1 ${getStatusBackground(task.status)} text-white`}
               >
                 {getStatusIcon(task.status)}
                 {task.status.replace('-', ' ').toUpperCase()}
