@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,12 +12,12 @@ import { Task } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 
 const Dashboard = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, userRole } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
-  const isAdmin = profile?.role === 'admin';
+  const isAdmin = userRole?.role === 'admin';
 
   // Fetch tasks from backend API
   const { data: tasks = [], isLoading } = useQuery({
@@ -81,7 +80,7 @@ const Dashboard = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-400"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-gold"></div>
       </div>
     );
   }
@@ -99,7 +98,7 @@ const Dashboard = () => {
           </p>
           <div className="flex items-center justify-center gap-2 mt-2">
             {isAdmin ? (
-              <div className="flex items-center gap-1 px-3 py-1 bg-rose-100 dark:bg-rose-900 text-rose-700 dark:text-rose-300 rounded-full text-sm">
+              <div className="flex items-center gap-1 px-3 py-1 bg-rose-gold/10 text-rose-gold rounded-full text-sm">
                 <Shield className="h-4 w-4" />
                 Administrator
               </div>
@@ -114,7 +113,7 @@ const Dashboard = () => {
         {isAdmin && (
           <Button
             onClick={() => setCreateDialogOpen(true)}
-            className="bg-rose-400 hover:bg-rose-500 text-white ml-4"
+            className="bg-rose-gold hover:bg-rose-gold/90 text-white ml-4"
           >
             <Plus className="mr-2 h-4 w-4" />
             Add Task
@@ -155,10 +154,10 @@ const Dashboard = () => {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="hover:shadow-lg hover:shadow-rose-400/20 transition-all duration-300">
+        <Card className="hover:shadow-lg hover:shadow-rose-gold/20 transition-all duration-300">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-rose-400" />
+              <Calendar className="h-5 w-5 text-rose-gold" />
               Recent Tasks
             </CardTitle>
           </CardHeader>
@@ -201,10 +200,10 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg hover:shadow-rose-400/20 transition-all duration-300">
+        <Card className="hover:shadow-lg hover:shadow-rose-gold/20 transition-all duration-300">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5 text-rose-400" />
+              <Bell className="h-5 w-5 text-rose-gold" />
               Quick Stats
             </CardTitle>
           </CardHeader>
@@ -222,7 +221,7 @@ const Dashboard = () => {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Priority Tasks</span>
-                <span className="font-semibold text-rose-600">
+                <span className="font-semibold text-rose-gold">
                   {userTasks.filter((task: Task) => task.priority === 'high' || task.priority === 'critical').length}
                 </span>
               </div>
