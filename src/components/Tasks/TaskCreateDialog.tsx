@@ -109,25 +109,25 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   };
 
   const priorityColors = {
-    'low': 'text-gray-500',
-    'medium': 'text-bronze-gold',
-    'high': 'text-luxury-gold',
-    'critical': 'text-high-priority'
+    'low': 'text-muted-foreground',
+    'medium': 'text-rose-gold',
+    'high': 'text-rose-gold-contrast',
+    'critical': 'text-destructive'
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="font-montserrat flex items-center gap-2">
-            <User className="h-5 w-5 text-luxury-gold" />
+          <DialogTitle className="font-montserrat flex items-center gap-2 text-rose-gold">
+            <User className="h-5 w-5 text-rose-gold" />
             {isPersonalTask ? 'Create Personal Task' : 'Create New Task'}
           </DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4">
           <div>
-            <Label htmlFor="title">Task Title *</Label>
+            <Label htmlFor="title" className="text-rose-gold-contrast">Task Title *</Label>
             <Input
               id="title"
               value={title}
@@ -141,7 +141,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
           </div>
           
           <div>
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description" className="text-rose-gold-contrast">Description</Label>
             <Textarea
               id="description"
               value={description}
@@ -154,7 +154,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
           
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="status">Initial Status</Label>
+              <Label htmlFor="status" className="text-rose-gold-contrast">Initial Status</Label>
               <Select value={status} onValueChange={(value: Task['status']) => setStatus(value)}>
                 <SelectTrigger className="mt-1">
                   <SelectValue />
@@ -168,7 +168,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
             </div>
             
             <div>
-              <Label htmlFor="priority">Priority Level</Label>
+              <Label htmlFor="priority" className="text-rose-gold-contrast">Priority Level</Label>
               <Select value={priority} onValueChange={(value: Task['priority']) => setPriority(value)}>
                 <SelectTrigger className="mt-1">
                   <SelectValue />
@@ -193,10 +193,10 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
 
           {!isPersonalTask && !isLocalMode && (
             <div>
-              <Label htmlFor="assignedTo">Assign To *</Label>
+              <Label htmlFor="assignedTo" className="text-rose-gold-contrast">Assign to Employee *</Label>
               <Select value={assignedTo} onValueChange={setAssignedTo}>
                 <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select user to assign" />
+                  <SelectValue placeholder="Select employee to assign" />
                 </SelectTrigger>
                 <SelectContent>
                   {users.map((user: any) => (
@@ -210,7 +210,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
           )}
           
           <div>
-            <Label>Due Date & Time *</Label>
+            <Label className="text-rose-gold-contrast">Due Date & Time *</Label>
             <div className="flex gap-2 mt-1">
               <Popover>
                 <PopoverTrigger asChild>
@@ -251,7 +251,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
           </div>
           
           <div>
-            <Label htmlFor="notes">Additional Notes</Label>
+            <Label htmlFor="notes" className="text-rose-gold-contrast">Additional Notes</Label>
             <Textarea
               id="notes"
               value={notes}
@@ -270,7 +270,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
             <Button 
               onClick={handleSave} 
               disabled={!title || (!isPersonalTask && !assignedTo) || !selectedDate}
-              className="gradient-gold text-charcoal-black"
+              className="bg-rose-gold hover:bg-rose-gold-dark text-white"
             >
               <Save className="mr-2 h-4 w-4" />
               Create Task

@@ -39,20 +39,20 @@ const statusColors = {
 };
 
 const priorityColors = {
-  'low': 'bg-gray-500 text-white',
-  'medium': 'bg-bronze-gold text-charcoal-black',
-  'high': 'bg-luxury-gold text-charcoal-black',
-  'critical': 'bg-high-priority text-white'
+  'low': 'bg-muted-foreground text-white',
+  'medium': 'bg-rose-gold text-white',
+  'high': 'bg-rose-gold-contrast text-white',
+  'critical': 'bg-destructive text-white'
 };
 
 const TaskCard = ({ task, onEdit, onDelete, onStatusChange, showAdminFeatures, onSetRating }: TaskCardProps) => {
   const daysLeft = Math.ceil((new Date(task.due_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
   
   return (
-    <Card className="transition-all duration-300 hover:shadow-lg hover:shadow-luxury-gold/20 animate-slide-up">
+    <Card className="transition-all duration-300 hover:shadow-lg hover:shadow-rose-gold/20 animate-slide-up">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
-          <CardTitle className="text-lg font-montserrat text-foreground line-clamp-2">
+          <CardTitle className="text-lg font-montserrat text-rose-gold-contrast line-clamp-2">
             {task.title}
           </CardTitle>
           <div className="flex gap-2">
@@ -61,7 +61,7 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange, showAdminFeatures, o
                 size="sm"
                 variant="ghost"
                 onClick={() => onEdit(task)}
-                className="h-8 w-8 p-0 hover:bg-luxury-gold hover:text-charcoal-black"
+                className="h-8 w-8 p-0 hover:bg-rose-gold hover:text-white"
               >
                 <Edit className="h-4 w-4" />
               </Button>
@@ -107,7 +107,7 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange, showAdminFeatures, o
             </div>
           </div>
           
-          <div className="flex items-center gap-1 text-luxury-gold">
+          <div className="flex items-center gap-1 text-rose-gold">
             <Clock className="h-4 w-4" />
             <span>{daysLeft} days</span>
           </div>
@@ -115,10 +115,10 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange, showAdminFeatures, o
 
         {/* Admin Rating and Comment (visible to assigned user) */}
         {(task.admin_rating || task.admin_comment) && (
-          <div className="bg-muted/50 p-3 rounded-lg border-l-4 border-luxury-gold">
+          <div className="bg-muted/50 p-3 rounded-lg border-l-4 border-rose-gold">
             {task.admin_rating && (
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm font-medium">Admin Rating:</span>
+                <span className="text-sm font-medium text-rose-gold-contrast">Admin Rating:</span>
                 <div className="flex items-center">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <Star
@@ -126,7 +126,7 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange, showAdminFeatures, o
                       className={cn(
                         "h-4 w-4",
                         star <= task.admin_rating! 
-                          ? "text-luxury-gold fill-luxury-gold" 
+                          ? "text-rose-gold fill-rose-gold" 
                           : "text-gray-300"
                       )}
                     />
@@ -136,7 +136,7 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange, showAdminFeatures, o
             )}
             {task.admin_comment && (
               <div className="flex items-start gap-2">
-                <MessageCircle className="h-4 w-4 text-luxury-gold mt-0.5" />
+                <MessageCircle className="h-4 w-4 text-rose-gold mt-0.5" />
                 <p className="text-sm text-foreground">{task.admin_comment}</p>
               </div>
             )}
@@ -150,7 +150,7 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange, showAdminFeatures, o
               size="sm"
               variant="outline"
               onClick={() => onSetRating(task.id, task.admin_rating || 0, task.admin_comment || '')}
-              className="w-full border-luxury-gold text-luxury-gold hover:bg-luxury-gold hover:text-charcoal-black"
+              className="w-full border-rose-gold text-rose-gold hover:bg-rose-gold hover:text-white"
             >
               <Star className="mr-2 h-4 w-4" />
               Rate & Comment
@@ -160,7 +160,7 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange, showAdminFeatures, o
         
         {task.notes && (
           <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
-            <strong>Notes:</strong> {task.notes}
+            <strong className="text-rose-gold-contrast">Notes:</strong> {task.notes}
           </div>
         )}
       </CardContent>

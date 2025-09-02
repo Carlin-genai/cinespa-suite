@@ -15,15 +15,15 @@ interface StatsCardProps {
 
 const StatsCard = ({ title, value, change, icon: Icon, trend = 'neutral', className }: StatsCardProps) => {
   return (
-    <Card className={cn("transition-all duration-300 hover:shadow-lg hover:shadow-luxury-gold/20 animate-fade-in", className)}>
+    <Card className={cn("transition-all duration-300 hover:shadow-lg hover:shadow-rose-gold/20 animate-fade-in", className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium font-opensans text-muted-foreground">
           {title}
         </CardTitle>
-        <Icon className="h-4 w-4 text-luxury-gold" />
+        <Icon className="h-4 w-4 text-rose-gold" />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold font-montserrat text-foreground">
+        <div className="text-2xl font-bold font-montserrat text-rose-gold-contrast">
           {value}
         </div>
         {change && (

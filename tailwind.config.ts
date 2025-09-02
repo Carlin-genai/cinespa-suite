@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -66,7 +67,7 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Updated Rose Gold colors with accessibility variants
+				// Updated Rose Gold colors with new primary color #B86B77
 				'rose-gold': {
 					DEFAULT: 'hsl(var(--rose-gold))',
 					light: 'hsl(var(--rose-gold-light))',
@@ -75,17 +76,18 @@ export default {
 					contrast: 'hsl(var(--rose-gold-contrast))',
 					muted: 'hsl(var(--rose-gold-muted))'
 				},
-				// Legacy brand colors (keeping for backward compatibility)
-				'luxury-gold': 'hsl(var(--primary))',
+				// Legacy brand colors updated with new Rose Gold
+				'luxury-gold': 'hsl(var(--rose-gold))',
 				'bronze-gold': 'hsl(var(--rose-gold-dark))',
-				'charcoal-black': 'hsl(var(--foreground))',
-				'elegant-grey': 'hsl(var(--muted-foreground))',
+				'charcoal-black': 'hsl(var(--text-grey))',
+				'elegant-grey': 'hsl(var(--text-grey-muted))',
 				'ivory': 'hsl(var(--background))',
-				'completed-green': '120 100% 0.8%', // Updated to #000400
-				'progress-blue': 'hsl(217 91% 60%)',
+				// Fixed status colors - same for both themes
+				'completed-green': '120 100% 0.8%', // #000400
+				'progress-blue': '207 100% 57%', // #2196F3
 				'not-started-beige': 'hsl(45 93% 47%)',
-				'blocked-red': 'hsl(0 84% 60%)',
-				'high-priority': 'hsl(0 84% 60%)'
+				'blocked-red': '8 100% 50%', // #FF2800 (overdue)
+				'high-priority': '8 100% 50%' // #FF2800
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

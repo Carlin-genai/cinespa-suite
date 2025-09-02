@@ -90,7 +90,7 @@ const Dashboard = () => {
       {/* Header with Company Name and Add Task Button */}
       <div className="flex items-center justify-between mb-8">
         <div className="text-center flex-1">
-          <h1 className="text-4xl font-bold text-foreground mb-2">
+          <h1 className="text-4xl font-bold text-rose-gold-contrast mb-2">
             Mark Technologies
           </h1>
           <p className="text-muted-foreground">
@@ -113,7 +113,7 @@ const Dashboard = () => {
         {isAdmin && (
           <Button
             onClick={() => setCreateDialogOpen(true)}
-            className="bg-rose-gold hover:bg-rose-gold/90 text-white ml-4"
+            className="bg-rose-gold hover:bg-rose-gold-dark text-white ml-4"
           >
             <Plus className="mr-2 h-4 w-4" />
             Add Task
@@ -156,7 +156,7 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="hover:shadow-lg hover:shadow-rose-gold/20 transition-all duration-300">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-rose-gold-contrast">
               <Calendar className="h-5 w-5 text-rose-gold" />
               Recent Tasks
             </CardTitle>
@@ -178,12 +178,12 @@ const Dashboard = () => {
                 {recentTasks.map((task: Task) => (
                   <div key={task.id} className="border rounded-lg p-3 hover:bg-muted/50 transition-colors">
                     <div className="flex items-center justify-between">
-                      <h4 className="font-medium text-sm">{task.title}</h4>
-                      <span className={`text-xs px-2 py-1 rounded ${
-                        task.status === 'completed' ? 'bg-green-500 text-white' :
-                        task.status === 'in-progress' ? 'bg-blue-500 text-white' :
-                        task.status === 'overdue' ? 'bg-red-500 text-white' :
-                        'bg-yellow-500 text-black'
+                      <h4 className="font-medium text-sm text-rose-gold-contrast">{task.title}</h4>
+                      <span className={`text-xs px-2 py-1 rounded text-white ${
+                        task.status === 'completed' ? 'bg-completed-green' :
+                        task.status === 'in-progress' ? 'bg-progress-blue' :
+                        task.status === 'overdue' ? 'bg-blocked-red' :
+                        'bg-not-started-beige text-charcoal-black'
                       }`}>
                         {task.status.replace('-', ' ').toUpperCase()}
                       </span>
@@ -202,7 +202,7 @@ const Dashboard = () => {
 
         <Card className="hover:shadow-lg hover:shadow-rose-gold/20 transition-all duration-300">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-rose-gold-contrast">
               <Bell className="h-5 w-5 text-rose-gold" />
               Quick Stats
             </CardTitle>

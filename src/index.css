@@ -7,12 +7,12 @@
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 20 14.3% 4.1%;
+    --foreground: 0 0% 30%; /* Grey instead of black */
     --card: 0 0% 100%;
-    --card-foreground: 20 14.3% 4.1%;
+    --card-foreground: 0 0% 30%; /* Grey instead of black */
     --popover: 0 0% 100%;
-    --popover-foreground: 20 14.3% 4.1%;
-    --primary: 352 25% 60%; /* Updated Rose Gold #C0838C */
+    --popover-foreground: 0 0% 30%; /* Grey instead of black */
+    --primary: 350 23% 57%; /* Updated Rose Gold #B86B77 */
     --primary-foreground: 0 0% 98%;
     --secondary: 60 4.8% 95.9%;
     --secondary-foreground: 24 9.8% 10%;
@@ -24,7 +24,7 @@
     --destructive-foreground: 60 9.1% 97.8%;
     --border: 20 5.9% 90%;
     --input: 20 5.9% 90%;
-    --ring: 352 25% 60%; /* Updated Rose Gold ring */
+    --ring: 350 23% 57%; /* Updated Rose Gold ring */
     --radius: 0.5rem;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
@@ -32,34 +32,38 @@
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
 
-    /* Custom Rose Gold variables - Updated colors */
-    --rose-gold: 352 25% 60%; /* #C0838C */
-    --rose-gold-light: 352 25% 70%; /* Lighter for accessibility */
-    --rose-gold-dark: 352 25% 45%; /* Darker for better contrast */
+    /* Updated Rose Gold variables with new color #B86B77 */
+    --rose-gold: 350 23% 57%; /* #B86B77 */
+    --rose-gold-light: 350 23% 67%; /* Lighter for accessibility */
+    --rose-gold-dark: 350 23% 42%; /* Darker for better contrast */
     --rose-gold-foreground: 0 0% 98%;
 
     /* Additional contrast variants for accessibility */
-    --rose-gold-contrast: 352 25% 35%; /* High contrast for light theme */
-    --rose-gold-muted: 352 15% 75%; /* Muted version */
+    --rose-gold-contrast: 350 23% 35%; /* High contrast for light theme */
+    --rose-gold-muted: 350 13% 75%; /* Muted version */
+
+    /* Grey text colors for better theme compatibility */
+    --text-grey: 0 0% 30%; /* Main text grey */
+    --text-grey-muted: 0 0% 50%; /* Muted text grey */
 
     /* Sidebar colors with updated Rose Gold theme */
     --sidebar: 20 14.3% 4.1%;
     --sidebar-foreground: 60 9.1% 97.8%;
-    --sidebar-primary: 352 25% 60%; /* Updated Rose Gold */
+    --sidebar-primary: 350 23% 57%; /* Updated Rose Gold */
     --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 352 25% 45%; /* Darker Rose Gold */
+    --sidebar-accent: 350 23% 42%; /* Darker Rose Gold */
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 20 5.9% 90%;
   }
 
   .dark {
     --background: 20 14.3% 4.1%;
-    --foreground: 60 9.1% 97.8%;
+    --foreground: 0 0% 70%; /* Grey instead of white */
     --card: 20 14.3% 4.1%;
-    --card-foreground: 60 9.1% 97.8%;
+    --card-foreground: 0 0% 70%; /* Grey instead of white */
     --popover: 20 14.3% 4.1%;
-    --popover-foreground: 60 9.1% 97.8%;
-    --primary: 352 25% 65%; /* Lighter Rose Gold for dark theme */
+    --popover-foreground: 0 0% 70%; /* Grey instead of white */
+    --primary: 350 23% 62%; /* Lighter Rose Gold for dark theme */
     --primary-foreground: 20 14.3% 4.1%;
     --secondary: 12 6.5% 15.1%;
     --secondary-foreground: 60 9.1% 97.8%;
@@ -71,29 +75,33 @@
     --destructive-foreground: 60 9.1% 97.8%;
     --border: 12 6.5% 15.1%;
     --input: 12 6.5% 15.1%;
-    --ring: 352 25% 65%; /* Lighter Rose Gold ring for dark theme */
+    --ring: 350 23% 62%; /* Lighter Rose Gold ring for dark theme */
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
 
-    /* Custom Rose Gold variables for dark mode - Enhanced contrast */
-    --rose-gold: 352 25% 65%; /* Lighter for dark backgrounds */
-    --rose-gold-light: 352 25% 75%; /* Even lighter for dark theme */
-    --rose-gold-dark: 352 25% 50%; /* Darker variant */
+    /* Updated Rose Gold variables for dark mode */
+    --rose-gold: 350 23% 62%; /* Lighter for dark backgrounds */
+    --rose-gold-light: 350 23% 72%; /* Even lighter for dark theme */
+    --rose-gold-dark: 350 23% 47%; /* Darker variant */
     --rose-gold-foreground: 20 14.3% 4.1%;
 
     /* Dark theme contrast variants */
-    --rose-gold-contrast: 352 25% 75%; /* High contrast for dark theme */
-    --rose-gold-muted: 352 15% 55%; /* Muted version for dark theme */
+    --rose-gold-contrast: 350 23% 72%; /* High contrast for dark theme */
+    --rose-gold-muted: 350 13% 55%; /* Muted version for dark theme */
+
+    /* Grey text colors for dark theme */
+    --text-grey: 0 0% 70%; /* Main text grey for dark theme */
+    --text-grey-muted: 0 0% 50%; /* Muted text grey for dark theme */
 
     /* Sidebar colors with updated Rose Gold theme for dark mode */
     --sidebar: 20 14.3% 4.1%;
     --sidebar-foreground: 60 9.1% 97.8%;
-    --sidebar-primary: 352 25% 65%; /* Lighter Rose Gold for dark theme */
+    --sidebar-primary: 350 23% 62%; /* Lighter Rose Gold for dark theme */
     --sidebar-primary-foreground: 20 14.3% 4.1%;
-    --sidebar-accent: 352 25% 55%; /* Darker Rose Gold for dark theme */
+    --sidebar-accent: 350 23% 52%; /* Darker Rose Gold for dark theme */
     --sidebar-accent-foreground: 60 9.1% 97.8%;
     --sidebar-border: 12 6.5% 15.1%;
   }
