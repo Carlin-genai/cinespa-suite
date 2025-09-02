@@ -14,13 +14,15 @@ import {
   Settings,
   Bell,
   User,
-  LogOut
+  LogOut,
+  UserCheck
 } from 'lucide-react';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'My Tasks', href: '/my-tasks', icon: CheckSquare },
   { name: 'Team Tasks', href: '/team-tasks', icon: Users },
+  { name: 'Self Tasks', href: '/self-tasks', icon: UserCheck },
   { name: 'Daily Journal', href: '/daily-journal', icon: BookOpen },
   { name: 'Analytics', href: '/analytics', icon: BarChart3 },
   { name: 'Calendar', href: '/calendar', icon: Calendar },
@@ -30,7 +32,7 @@ const navigation = [
 
 const Sidebar = () => {
   const location = useLocation();
-  const { user, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
 
   return (
     <div className="flex h-screen w-64 flex-col bg-sidebar border-r border-sidebar-border">
@@ -38,10 +40,10 @@ const Sidebar = () => {
       <div className="flex h-16 items-center justify-center border-b border-sidebar-border px-6">
         <div className="text-center">
           <h1 className="font-montserrat text-xl font-bold text-sidebar-primary">
-            CINESPA
+            MARK TECHNOLOGIES
           </h1>
           <p className="text-xs text-sidebar-foreground font-opensans">
-            LUXURY HOME THEATRES & AUTOMATIONS
+            TASK MANAGEMENT & PERFORMANCE TRACKING
           </p>
         </div>
       </div>
@@ -79,10 +81,10 @@ const Sidebar = () => {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-sidebar-foreground truncate">
-              {user?.user_metadata?.full_name || user?.email || 'User'}
+              {profile?.full_name || user?.user_metadata?.full_name || user?.email || 'User'}
             </p>
-            <p className="text-xs text-sidebar-foreground/70 truncate">
-              Employee
+            <p className="text-xs text-sidebar-foreground/70 truncate capitalize">
+              {profile?.role || 'Employee'}
             </p>
           </div>
           <Button 

@@ -99,8 +99,8 @@ const RoleSelection: React.FC<RoleSelectionProps> = ({ onRoleSelected }) => {
                 key={role.id}
                 className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
                   isSelected 
-                    ? 'ring-2 ring-rose-400 shadow-lg shadow-rose-400/20' 
-                    : 'hover:shadow-rose-400/10'
+                    ? 'ring-2 ring-primary shadow-lg shadow-primary/20' 
+                    : 'hover:shadow-primary/10'
                 }`}
                 onClick={() => setSelectedRole(role.id)}
               >
@@ -108,7 +108,7 @@ const RoleSelection: React.FC<RoleSelectionProps> = ({ onRoleSelected }) => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className={`p-3 rounded-lg ${
-                        isSelected ? 'bg-rose-400 text-white' : 'bg-muted text-muted-foreground'
+                        isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
                       }`}>
                         <Icon className="h-6 w-6" />
                       </div>
@@ -118,7 +118,7 @@ const RoleSelection: React.FC<RoleSelectionProps> = ({ onRoleSelected }) => {
                       </div>
                     </div>
                     {isSelected && (
-                      <CheckCircle className="h-6 w-6 text-rose-400" />
+                      <CheckCircle className="h-6 w-6 text-primary" />
                     )}
                   </div>
                 </CardHeader>
@@ -126,7 +126,7 @@ const RoleSelection: React.FC<RoleSelectionProps> = ({ onRoleSelected }) => {
                   <div className="space-y-2">
                     {role.features.map((feature, index) => (
                       <div key={index} className="flex items-center gap-2">
-                        <div className="h-1.5 w-1.5 bg-rose-400 rounded-full" />
+                        <div className="h-1.5 w-1.5 bg-primary rounded-full" />
                         <span className="text-sm text-muted-foreground">{feature}</span>
                       </div>
                     ))}
@@ -141,13 +141,13 @@ const RoleSelection: React.FC<RoleSelectionProps> = ({ onRoleSelected }) => {
           <Button
             onClick={handleRoleSelection}
             disabled={!selectedRole || loading}
-            className="bg-rose-400 hover:bg-rose-500 text-white px-8 py-2"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-2"
           >
             {loading ? 'Setting up your account...' : 'Continue'}
           </Button>
           {selectedRole && (
             <p className="text-sm text-muted-foreground mt-2">
-              You selected: <Badge variant="secondary" className="bg-rose-100 text-rose-700">{selectedRole}</Badge>
+              You selected: <Badge variant="secondary" className="bg-primary/10 text-primary">{selectedRole}</Badge>
             </p>
           )}
         </div>

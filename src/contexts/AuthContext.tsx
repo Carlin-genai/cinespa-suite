@@ -53,7 +53,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return null;
       }
 
-      return data;
+      // Type-safe role casting
+      const profileData: UserProfile = {
+        id: data.id,
+        email: data.email,
+        full_name: data.full_name || '',
+        role: (data.role === 'admin' || data.role === 'employee') ? data.role : 'employee',
+        avatar_url: data.avatar_url
+      };
+
+      return profileData;
     } catch (error) {
       console.error('Error fetching profile:', error);
       return null;
@@ -71,7 +80,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Defer profile fetch to avoid recursion
           setTimeout(async () => {
             const userProfile = await fetchUserProfile(session.user.id);
-            setProfile(userProfile);
+            if (userProfile) {
+              setProfile(userProfile);
+            }
           }, 0);
         } else {
           setProfile(null);
@@ -88,7 +99,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (session?.user) {
         const userProfile = await fetchUserProfile(session.user.id);
-        setProfile(userProfile);
+        if (userProfile) {
+          setProfile(userProfile);
+        }
       }
       
       setLoading(false);
@@ -168,7 +181,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .single();
 
     if (!error && data) {
-      setProfile(data);
+      // Type-safe profile update
+      const updatedProfile: UserProfile = {
+        id: data.id,
+        email: data.email,
+        full_name: data.full_name || '',
+        role: (data.role === 'admin' || data.role === 'employee') ? data.role : 'employee',
+        avatar_url: data.avatar_url
+      };
+      setProfile(updatedProfile);
     }
 
     return { error };
