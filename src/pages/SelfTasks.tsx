@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Search, Filter, Calendar, Clock, User, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import TaskCard from '@/components/Tasks/TaskCard';
+import TaskCreateDialog from '@/components/Tasks/TaskCreateDialog';
 import TaskEditDialog from '@/components/Tasks/TaskEditDialog';
 import { apiService } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,31 +20,12 @@ const SelfTasks = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
-  const [selectedEmployee, setSelectedEmployee] = useState('');
-  const [taskDetails, setTaskDetails] = useState('');
-  const [employees, setEmployees] = useState([]);
-  const [isCreating, setIsCreating] = useState(false);
-
-  // Fetch employees from backend
-  React.useEffect(() => {
-    const fetchEmployees = async () => {
-      try {
-        const response = await fetch('/api/employees', { method: 'GET' });
-        if (response.ok) {
-          const data = await response.json();
-          setEmployees(data);
-        }
-      } catch (error) {
-        console.error('Failed to fetch employees:', error);
-      }
-    };
-    fetchEmployees();
-  }, []);
 
   // Fetch self-created tasks
   const { data: tasks = [], isLoading } = useQuery({
@@ -70,6 +52,7 @@ const SelfTasks = () => {
         title: "Success",
         description: "Self-task created successfully",
       });
+      setCreateDialogOpen(false);
     },
     onError: (error) => {
       toast({
@@ -140,56 +123,8 @@ const SelfTasks = () => {
     overdue: filteredTasks.filter(task => task.status === 'overdue'),
   };
 
-  const handleCreateTask = async () => {
-    if (!selectedEmployee || !taskDetails.trim()) {
-      toast({
-        title: "Error",
-        description: "Please select an employee and enter task details",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsCreating(true);
-    try {
-      const response = await fetch('/api/tasks', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          employee: selectedEmployee,
-          context: taskDetails
-        }),
-      });
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Task created successfully",
-        });
-        // Clear form
-        setSelectedEmployee('');
-        setTaskDetails('');
-        // Refresh tasks
-        queryClient.invalidateQueries({ queryKey: ['self-tasks'] });
-      } else {
-        const errorText = await response.text();
-        toast({
-          title: "Error",
-          description: errorText || "Failed to create task",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create task",
-        variant: "destructive",
-      });
-    } finally {
-      setIsCreating(false);
-    }
+  const handleCreateTask = (task: Partial<Task>) => {
+    createTaskMutation.mutate(task);
   };
 
   const handleEditTask = (task: Task) => {
@@ -242,54 +177,14 @@ const SelfTasks = () => {
           <h1 className="text-3xl font-bold text-foreground">Self Tasks</h1>
           <p className="text-muted-foreground">Manage your personal tasks and goals</p>
         </div>
+        <Button
+          onClick={() => setCreateDialogOpen(true)}
+          className="bg-rose-400 hover:bg-rose-500 text-white"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Create Self Task
+        </Button>
       </div>
-
-      {/* Create Task Form */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label htmlFor="employeeSelect" className="block text-sm font-medium mb-2">
-                Assign to Employee
-              </label>
-              <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                <SelectTrigger id="employeeSelect">
-                  <SelectValue placeholder="Select employee" />
-                </SelectTrigger>
-                <SelectContent>
-                  {employees.map((employee: any) => (
-                    <SelectItem key={employee.email || employee.id} value={employee.email || employee.id}>
-                      {employee.name || employee.email || employee.id}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Button 
-                onClick={handleCreateTask}
-                disabled={isCreating || !selectedEmployee || !taskDetails.trim()}
-                className="bg-rose-400 hover:bg-rose-500 text-white mt-6"
-              >
-                {isCreating ? 'Creating...' : 'Create Task'}
-              </Button>
-            </div>
-          </div>
-          <div>
-            <label htmlFor="taskContext" className="block text-sm font-medium mb-2">
-              Task Details
-            </label>
-            <textarea
-              id="taskContext"
-              value={taskDetails}
-              onChange={(e) => setTaskDetails(e.target.value)}
-              placeholder="Enter task details..."
-              className="w-full p-3 border border-input rounded-md bg-background text-foreground min-h-[100px] resize-none"
-              rows={4}
-            />
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Filters and Search */}
       <Card>
@@ -402,8 +297,7 @@ const SelfTasks = () => {
               </p>
               {!searchTerm && statusFilter === 'all' && priorityFilter === 'all' && (
                 <Button
-                  onClick={handleCreateTask}
-                  disabled={!selectedEmployee || !taskDetails.trim()}
+                  onClick={() => setCreateDialogOpen(true)}
                   className="bg-rose-400 hover:bg-rose-500 text-white"
                 >
                   <Plus className="mr-2 h-4 w-4" />
@@ -427,6 +321,13 @@ const SelfTasks = () => {
       )}
 
       {/* Dialogs */}
+      <TaskCreateDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onSave={handleCreateTask}
+        isPersonalTask={true}
+      />
+
       <TaskEditDialog
         task={selectedTask}
         open={editDialogOpen}
