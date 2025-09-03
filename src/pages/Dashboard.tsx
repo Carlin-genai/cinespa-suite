@@ -183,9 +183,9 @@ const Dashboard = () => {
                         className={`text-xs px-2 py-1 rounded text-white`}
                         style={{ 
                           backgroundColor: 
-                            task.status === 'completed' ? 'hsl(120.0, 100%, 0.8%)' :
-                            task.status === 'in-progress' ? 'hsl(206.6, 89.7%, 54.1%)' :
-                            task.status === 'overdue' ? 'hsl(9.4, 100%, 50.0%)' :
+                            task.status === 'completed' ? 'hsl(120deg 100% 0.8%)' :
+                            task.status === 'in-progress' ? 'hsl(206.6deg 89.7% 54.1%)' :
+                            task.status === 'overdue' ? 'hsl(9.4deg 100% 50%)' :
                             '#d4b106',
                           color: task.status === 'pending' ? '#4a4a4a' : 'white'
                         }}
