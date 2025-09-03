@@ -55,11 +55,20 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   const { data: employees = [] } = useQuery({
     queryKey: ['employees'],
     queryFn: async () => {
-      const response = await fetch('/api/employees');
+      const response = await fetch('/api/employees', { method: 'GET' });
       if (!response.ok) {
         throw new Error('Failed to fetch employees');
       }
-      return response.json();
+      const raw = await response.json();
+      const list = Array.isArray(raw) ? raw : raw?.employees ?? raw?.data ?? [];
+      // Normalize to a consistent shape
+      return list
+        .map((e: any) => ({
+          id: e.id ?? e.user_id ?? e.uuid ?? e.email,
+          email: e.email ?? e.user_email ?? e.email_address,
+          name: e.name ?? e.full_name ?? e.username ?? e.display_name ?? (e.email ?? 'Unknown')
+        }))
+        .filter((e: any) => !!e.email);
     },
     enabled: open && !isPersonalTask,
   });
@@ -123,13 +132,17 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
       description: description.trim(),
       status,
       priority,
+      // Provide multiple keys for backend compatibility
       employee_email: employeeEmail,
+      email: employeeEmail,
+      assigned_to: employeeEmail,
       due_date: dueDateTime.toISOString(),
       notes: notes.trim(),
     };
 
     try {
       // Send POST request to /api/tasks
+      console.log('[TaskCreate] POST /api/tasks payload', taskData);
       const response = await fetch('/api/tasks', {
         method: 'POST',
         headers: {
@@ -139,8 +152,12 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
       });
 
       if (!response.ok) {
+        const errText = await response.text().catch(() => '');
+        console.error('[TaskCreate] Error creating task', response.status, errText);
         throw new Error('Failed to create task');
       }
+
+      console.log('[TaskCreate] Task created successfully');
 
       // Show success message
       toast({
