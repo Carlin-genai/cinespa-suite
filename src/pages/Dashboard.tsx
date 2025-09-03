@@ -10,6 +10,7 @@ import { apiService } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Task } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 const Dashboard = () => {
   const { user, profile, userRole } = useAuth();
@@ -180,15 +181,13 @@ const Dashboard = () => {
                     <div className="flex items-center justify-between">
                       <h4 className="font-medium text-sm text-rose-gold-contrast">{task.title}</h4>
                       <span 
-                        className={`text-xs px-2 py-1 rounded text-white`}
-                        style={{ 
-                          backgroundColor: 
-                            task.status === 'completed' ? 'hsl(120deg 100% 0.8%)' :
-                            task.status === 'in-progress' ? 'hsl(206.6deg 89.7% 54.1%)' :
-                            task.status === 'overdue' ? 'hsl(9.4deg 100% 50%)' :
-                            '#d4b106',
-                          color: task.status === 'pending' ? '#4a4a4a' : 'white'
-                        }}
+                        className={cn(
+                          "text-xs px-2 py-1 rounded text-white",
+                          task.status === 'completed' && "bg-completed-green",
+                          task.status === 'in-progress' && "bg-progress-blue", 
+                          task.status === 'overdue' && "bg-overdue-red",
+                          task.status === 'pending' && "bg-pending-yellow text-gray-800"
+                        )}
                       >
                         {task.status.replace('-', ' ').toUpperCase()}
                       </span>

@@ -57,9 +57,9 @@
     --sidebar-ring: 350 23% 57%;
 
     /* Status colors for consistent UI */
-    --completed-green: 120 100% 1%; /* #000400 */
-    --progress-blue: 207 90% 54%; /* #2196F3 */
-    --overdue-red: 10 100% 50%; /* #FF2800 */
+    --completed-green: 120 100% 0.8%; /* hsl(120deg 100% 0.8%) */
+    --progress-blue: 206.6 89.7% 54.1%; /* hsl(206.6deg 89.7% 54.1%) */
+    --overdue-red: 9.4 100% 50%; /* hsl(9.4deg 100% 50%) */
     --pending-yellow: 45 93% 47%; /* #F57C00 */
     --not-started-beige: 39 77% 83%; /* #F5DEB3 */
   }
@@ -115,9 +115,9 @@
     --sidebar-ring: 350 23% 62%;
 
     /* Status colors for dark theme - same as light theme for consistency */
-    --completed-green: 120 100% 1%; /* #000400 */
-    --progress-blue: 207 90% 54%; /* #2196F3 */
-    --overdue-red: 10 100% 50%; /* #FF2800 */
+    --completed-green: 120 100% 0.8%; /* hsl(120deg 100% 0.8%) */
+    --progress-blue: 206.6 89.7% 54.1%; /* hsl(206.6deg 89.7% 54.1%) */
+    --overdue-red: 9.4 100% 50%; /* hsl(9.4deg 100% 50%) */
     --pending-yellow: 45 93% 57%; /* Lighter yellow for dark theme */
     --not-started-beige: 39 77% 73%; /* Lighter beige for dark theme */
   }
