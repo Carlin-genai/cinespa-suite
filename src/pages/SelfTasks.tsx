@@ -27,7 +27,6 @@ import { apiService } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Task } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/lib/supabaseClient'; // Ensure you have Supabase client setup
 
 const SelfTasks = () => {
   const { user } = useAuth();
@@ -38,18 +37,19 @@ const SelfTasks = () => {
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [taskContext, setTaskContext] = useState('');
 
-  // Fetch signed-in employees from Supabase
+  // Fetch signed-in employees from Flask backend
   useEffect(() => {
     const fetchEmployees = async () => {
-      const { data, error } = await supabase
-        .from('employees')
-        .select('id, name, email')
-        .eq('is_signed_in', true); // Only show signed-in employees
-
-      if (error) {
+      try {
+        const response = await fetch('/api/employees');
+        if (response.ok) {
+          const data = await response.json();
+          setEmployees(data || []);
+        } else {
+          console.error('Error fetching employees:', response.statusText);
+        }
+      } catch (error) {
         console.error('Error fetching employees:', error);
-      } else {
-        setEmployees(data || []);
       }
     };
 
@@ -87,7 +87,7 @@ const SelfTasks = () => {
         });
         setTaskContext('');
         setSelectedEmployee('');
-        queryClient.invalidateQueries(['tasks']);
+        queryClient.invalidateQueries({ queryKey: ['tasks'] });
       } else {
         throw new Error('Failed to create task');
       }
