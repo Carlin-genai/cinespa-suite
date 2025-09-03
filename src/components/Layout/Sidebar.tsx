@@ -37,12 +37,12 @@ const Sidebar = () => {
   return (
     <div className="flex h-screen w-64 flex-col bg-sidebar border-r border-sidebar-border">
       {/* Logo/Brand */}
-      <div className="flex h-16 items-center justify-center border-b border-sidebar-border px-6">
+      <div className="flex h-20 items-center justify-center border-b border-sidebar-border px-6">
         <div className="text-center">
-          <h1 className="font-montserrat text-xl font-bold text-sidebar-primary">
+          <h1 className="font-montserrat text-xl font-bold text-sidebar-primary leading-tight">
             MARK TECHNOLOGIES
           </h1>
-          <p className="text-xs text-sidebar-foreground font-opensans">
+          <p className="text-xs text-sidebar-foreground font-opensans mt-1 leading-tight">
             TASK MANAGEMENT & PERFORMANCE TRACKING
           </p>
         </div>
