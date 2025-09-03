@@ -12,7 +12,6 @@ import { apiService } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Task } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/lib/supabaseClient'; // ✅ Make sure Supabase client is set up
 
 const SelfTasks = () => {
   const { user } = useAuth();
@@ -29,17 +28,19 @@ const SelfTasks = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
 
-  // ✅ Fetch employees from Supabase
+  // ✅ Fetch employees from API
   useEffect(() => {
     const fetchEmployees = async () => {
-      const { data, error } = await supabase
-        .from('employees')
-        .select('id, name, email');
-
-      if (error) {
+      try {
+        const response = await fetch('/api/employees');
+        if (response.ok) {
+          const data = await response.json();
+          setEmployees(data || []);
+        } else {
+          console.error('Error fetching employees:', response.status);
+        }
+      } catch (error) {
         console.error('Error fetching employees:', error);
-      } else {
-        setEmployees(data || []);
       }
     };
 
@@ -223,6 +224,8 @@ const SelfTasks = () => {
         onOpenChange={setEditDialogOpen}
         onSave={handleUpdateTask}
         onDelete={handleDeleteTask}
+        onReset={() => {}}
+        onRestart={() => {}}
       />
     </div>
   );
