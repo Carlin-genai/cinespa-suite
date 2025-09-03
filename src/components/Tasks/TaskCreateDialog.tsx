@@ -51,42 +51,31 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   const [selectedTime, setSelectedTime] = useState('');
   const [notes, setNotes] = useState('');
 
-  // Check if we're in local mode or admin
-  const isLocalMode = import.meta.env.VITE_DATA_MODE === 'local' || 
-                     import.meta.env.VITE_DATA_MODE === undefined;
-  const isAdmin = userRole?.role === 'admin';
-
-  // Get current user ID
-  const currentUserId = isLocalMode ? 'current-user' : user?.id;
-
-  // Sample employees for local mode
-  const localEmployees = [
-    { id: 'current-user', name: 'Current User', email: 'user@example.com' },
-    { id: 'employee-1', name: 'John Doe', email: 'john@marktech.com' },
-    { id: 'employee-2', name: 'Jane Smith', email: 'jane@marktech.com' },
-    { id: 'employee-3', name: 'Mike Johnson', email: 'mike@marktech.com' },
-    { id: 'employee-4', name: 'Sarah Wilson', email: 'sarah@marktech.com' },
-  ];
-
-  // Fetch users for assignment dropdown (only for admin tasks in Supabase mode)
-  const { data: supabaseUsers = [] } = useQuery({
-    queryKey: ['users'],
-    queryFn: () => apiService.getUsers(),
-    enabled: open && !isPersonalTask && !isLocalMode && isAdmin,
+  // Fetch employees from backend endpoint
+  const { data: employees = [] } = useQuery({
+    queryKey: ['employees'],
+    queryFn: async () => {
+      const response = await fetch('/api/employees');
+      if (!response.ok) {
+        throw new Error('Failed to fetch employees');
+      }
+      return response.json();
+    },
+    enabled: open && !isPersonalTask,
   });
 
-  // Use local employees in local mode or Supabase users in Supabase mode
-  const availableUsers = isLocalMode ? localEmployees : supabaseUsers;
+  // Use fetched employees
+  const availableUsers = employees;
 
   // Set default assignee for personal tasks
   React.useEffect(() => {
-    if (isPersonalTask && currentUserId) {
-      setAssignedTo(currentUserId);
-    } else if (!isPersonalTask && isLocalMode && availableUsers.length > 0) {
-      // For admin tasks in local mode, don't auto-assign
+    if (isPersonalTask) {
+      setAssignedTo('personal');
+    } else {
+      // For admin tasks, don't auto-assign
       setAssignedTo('');
     }
-  }, [isPersonalTask, currentUserId, isLocalMode, availableUsers]);
+  }, [isPersonalTask, availableUsers]);
 
   const handleSave = async () => {
     // Validation with user feedback
@@ -125,35 +114,39 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
       dueDateTime.setHours(parseInt(hours), parseInt(minutes));
     }
 
-    const task: Partial<Task> = {
+    // Get selected employee email
+    const selectedEmployee = availableUsers.find((user: any) => user.email === assignedTo || user.id === assignedTo);
+    const employeeEmail = isPersonalTask ? user?.email : selectedEmployee?.email;
+
+    const taskData = {
       title: title.trim(),
       description: description.trim(),
       status,
       priority,
-      assigned_to: isPersonalTask ? currentUserId : assignedTo,
+      employee_email: employeeEmail,
       due_date: dueDateTime.toISOString(),
       notes: notes.trim(),
     };
 
     try {
-      // Save the task
-      onSave(task);
-      
-      // Send notification to assigned employee (if not personal task)
-      if (!isPersonalTask && assignedTo) {
-        const assignedEmployee = availableUsers.find((user: any) => user.id === assignedTo);
-        if (assignedEmployee) {
-          toast({
-            title: "Task Created & Employee Notified",
-            description: `Task "${title}" has been assigned to ${assignedEmployee.name}. They will be notified via email.`,
-          });
-        }
-      } else {
-        toast({
-          title: "Personal Task Created",
-          description: `Task "${title}" has been added to your task list.`,
-        });
+      // Send POST request to /api/tasks
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(taskData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create task');
       }
+
+      // Show success message
+      toast({
+        title: "Task Created Successfully!",
+        description: `Task "${title}" has been created and assigned${!isPersonalTask ? ` to ${selectedEmployee?.name || employeeEmail}` : ''}.`,
+      });
       
       handleClose();
     } catch (error) {
@@ -171,7 +164,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
     setDescription('');
     setStatus('pending');
     setPriority('medium');
-    setAssignedTo(isPersonalTask ? currentUserId || '' : '');
+    setAssignedTo(isPersonalTask ? 'personal' : '');
     setSelectedDate(undefined);
     setSelectedTime('');
     setNotes('');
@@ -274,7 +267,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
                 </SelectTrigger>
                 <SelectContent>
                   {availableUsers.map((employee: any) => (
-                    <SelectItem key={employee.id} value={employee.id}>
+                    <SelectItem key={employee.email} value={employee.email}>
                       {employee.name} ({employee.email})
                     </SelectItem>
                   ))}
