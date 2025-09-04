@@ -15,41 +15,54 @@ const QuickAuth = () => {
     
     try {
       if (type === 'existing') {
-        // Try to sign in with existing user
-        const { error } = await signIn('carlingenai@gmail.com', 'password123');
-        if (error) {
+        // Try multiple existing accounts
+        const accounts = [
+          { email: 'carlingenai@gmail.com', name: 'Carlin' },
+          { email: 'cinespa.ai@gmail.com', name: 'Srenivasan' },
+          { email: 'hs@marktechnologies.in', name: 'Nithin' }
+        ];
+        
+        let success = false;
+        for (const account of accounts) {
+          const { error } = await signIn(account.email, 'password123');
+          if (!error) {
+            success = true;
+            toast({
+              title: `Welcome back, ${account.name}!`,
+              description: 'Successfully signed in'
+            });
+            break;
+          }
+        }
+        
+        if (!success) {
           toast({
             title: 'Sign In Failed',
             description: 'Try creating a demo account instead',
             variant: 'destructive'
           });
-        } else {
-          toast({
-            title: 'Welcome back!',
-            description: 'Successfully signed in'
-          });
         }
       } else {
-        // Create demo account
-        const demoEmail = `demo${Date.now()}@example.com`;
-        const { error } = await signUp(demoEmail, 'password123', 'Demo User');
+        // Create demo account with admin role
+        const demoEmail = `admin${Date.now()}@demo.com`;
+        const { error } = await signUp(demoEmail, 'demo123456', 'Demo Admin');
         if (error) {
           toast({
             title: 'Demo Account Creation Failed',
-            description: error.message,
+            description: error.message || 'Please try manual sign up',
             variant: 'destructive'
           });
         } else {
           toast({
-            title: 'Demo Account Created!',
-            description: 'You are now signed in'
+            title: 'Demo Admin Account Created!',
+            description: 'You can now access all features'
           });
         }
       }
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'Something went wrong. Please try again.',
+        title: 'Authentication Error',
+        description: 'Please try manual sign up below',
         variant: 'destructive'
       });
     } finally {

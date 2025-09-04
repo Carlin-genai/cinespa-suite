@@ -10,6 +10,8 @@ import { useToast } from '@/hooks/use-toast';
 import RoleSelection from '@/components/RoleSelection';
 import AuthStatus from '@/components/AuthStatus';
 import QuickAuth from '@/components/QuickAuth';
+import AppHealth from '@/components/AppHealth';
+import DatabaseSetup from '@/components/DatabaseSetup';
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -132,6 +134,12 @@ const Auth = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-4">
+        {/* System Health Check */}
+        <AppHealth />
+        
+        {/* Database Auto-Setup */}
+        <DatabaseSetup />
+        
         {/* Authentication Status Debug Info */}
         <AuthStatus />
         
