@@ -55,60 +55,33 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   const [selectedTime, setSelectedTime] = useState('');
   const [notes, setNotes] = useState('');
 
-  // Fetch employees from Supabase profiles with fallback
+  // Fetch employees from Supabase profiles
   const { data: employees = [], isLoading: loadingEmployees, error: employeeError } = useQuery({
     queryKey: ['employees'],
     queryFn: async () => {
-      console.log('[TaskCreateDialog] Fetching employees from Supabase...');
-      
-      // First try to get all profiles (admin should see all due to RLS policy)
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, email, full_name')
-        .order('full_name', { ascending: true });
-      
-      console.log('[TaskCreateDialog] Supabase response:', { data, error, count: data?.length });
-      
-      if (error) {
-        console.error('Failed to fetch employees:', error);
-        
-        // If there's an RLS error, try to get just user's own profile as fallback
-        console.log('[TaskCreateDialog] Trying fallback query for current user...');
-        const { data: fallbackData, error: fallbackError } = await supabase
+      try {
+        const { data, error } = await supabase
           .from('profiles')
           .select('id, email, full_name')
-          .eq('id', (await supabase.auth.getUser()).data.user?.id);
+          .order('full_name', { ascending: true });
         
-        if (fallbackError) {
-          throw new Error(`Employee fetch failed: ${error.message}. Fallback also failed: ${fallbackError.message}`);
+        if (error) {
+          console.error('Failed to fetch employees:', error);
+          throw error;
         }
         
-        console.log('[TaskCreateDialog] Fallback data:', fallbackData);
-        return (fallbackData || []).map((e: any) => ({
+        return (data || []).map((e: any) => ({
           id: e.id,
           email: e.email,
           name: e.full_name || e.email,
         }));
+      } catch (error) {
+        console.error('Employee fetch error:', error);
+        throw error;
       }
-      
-      const employees = (data || []).map((e: any) => ({
-        id: e.id,
-        email: e.email,
-        name: e.full_name || e.email,
-      }));
-      
-      console.log('[TaskCreateDialog] Processed employees:', employees);
-      
-      if (employees.length === 0) {
-        console.warn('[TaskCreateDialog] No employees found - this might indicate an RLS issue');
-      }
-      
-      return employees;
     },
     enabled: open && (!isPersonalTask || showEmployeeSelection),
     retry: 1,
-    refetchOnWindowFocus: false,
-    refetchOnMount: true,
   });
 
   // Show loading or error state for employees
