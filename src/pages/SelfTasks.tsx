@@ -20,8 +20,6 @@ const SelfTasks = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const [employees, setEmployees] = useState<any[]>([]);
-  const [selectedEmployee, setSelectedEmployee] = useState('');
   const [taskContext, setTaskContext] = useState('');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -30,98 +28,55 @@ const SelfTasks = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
 
-  // ✅ Fetch employees from Supabase profiles
-  useEffect(() => {
-    const fetchEmployees = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('id, email, full_name')
-          .order('full_name');
-        
-        if (error) {
-          console.error('Error fetching employees:', error);
-          // Fallback to mock data if Supabase fails
-          setEmployees([
-            { id: 'emp1', email: 'john@company.com', full_name: 'John Doe' },
-            { id: 'emp2', email: 'jane@company.com', full_name: 'Jane Smith' },
-            { id: 'emp3', email: 'mike@company.com', full_name: 'Mike Johnson' }
-          ]);
-        } else {
-          setEmployees(data || []);
-        }
-      } catch (error) {
-        console.error('Error fetching employees:', error);
-        // Fallback to mock data
-        setEmployees([
-          { id: 'emp1', email: 'john@company.com', full_name: 'John Doe' },
-          { id: 'emp2', email: 'jane@company.com', full_name: 'Jane Smith' },
-          { id: 'emp3', email: 'mike@company.com', full_name: 'Mike Johnson' }
-        ]);
-      }
-    };
-
-    fetchEmployees();
-  }, []);
-
-  // ✅ Handle Create Task button click (Flask backend format)
-  const handleCreateTaskClick = async () => {
-    const employeeSelect = document.getElementById('employeeSelect') as (HTMLInputElement | HTMLSelectElement | null);
+  // ✅ Handle Create Self Task button click
+  const handleCreateSelfTaskClick = async () => {
     const taskContextElement = document.getElementById('taskContext') as (HTMLTextAreaElement | HTMLInputElement | null);
-    
-    const selectedEmployeeEmail = employeeSelect?.value || selectedEmployee;
     const taskDetails = taskContextElement?.value || taskContext;
 
-    if (!selectedEmployeeEmail || !taskDetails) {
+    if (!taskDetails.trim()) {
       toast({
         title: 'Error',
-        description: 'Please select an employee and enter task details',
+        description: 'Please enter task details',
         variant: 'destructive',
       });
       return;
     }
 
     try {
-      const response = await fetch('/api/tasks', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          employee: selectedEmployeeEmail,
-          context: taskDetails
-        })
+      // Create self-task using apiService (which handles Supabase)
+      await apiService.createTask({
+        title: taskDetails.trim().split('\n')[0] || 'Self Task', // First line as title
+        description: taskDetails.trim(),
+        assigned_to: user?.id,
+        assigned_by: user?.id,
+        status: 'pending',
+        priority: 'medium',
       });
 
-      if (response.ok) {
-        toast({
-          title: 'Success',
-          description: 'Task created successfully'
-        });
-        
-        // Clear the form
-        if (employeeSelect) employeeSelect.value = '';
-        if (taskContextElement) taskContextElement.value = '';
-        setSelectedEmployee('');
-        setTaskContext('');
-      } else {
-        const errorText = await response.text();
-        toast({
-          title: 'Error',
-          description: errorText || 'Failed to create task',
-          variant: 'destructive',
-        });
-      }
+      toast({
+        title: 'Success',
+        description: 'Self task created successfully'
+      });
+      
+      // Clear the form
+      if (taskContextElement) taskContextElement.value = '';
+      setTaskContext('');
+      
+      // Refresh tasks
+      queryClient.invalidateQueries({ queryKey: ['self-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] }); // Also update dashboard
+
     } catch (error) {
       toast({
         title: 'Error',
-        description: `Network error: ${error}`,
+        description: 'Failed to create self task',
         variant: 'destructive',
       });
+      console.error('Create self task error:', error);
     }
   };
 
-  // ✅ Fetch self-created tasks
+  // ✅ Fetch self-created tasks (tasks created by and for the current user)
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['self-tasks'],
     queryFn: async () => {
@@ -132,12 +87,28 @@ const SelfTasks = () => {
     },
   });
 
-  // ✅ Create task mutation
+  // Realtime updates for self-tasks
+  React.useEffect(() => {
+    const channel = supabase
+      .channel('public:self-tasks-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, (payload) => {
+        console.log('[SelfTasks] Realtime change on tasks:', payload.eventType);
+        queryClient.invalidateQueries({ queryKey: ['self-tasks'] });
+        queryClient.invalidateQueries({ queryKey: ['tasks'] }); // Also update dashboard
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  // ✅ Create task mutation for self-tasks
   const createTaskMutation = useMutation({
     mutationFn: (task: Partial<Task>) =>
       apiService.createTask({
         ...task,
-        assigned_to: selectedEmployee || user?.id,
+        assigned_to: user?.id,
         assigned_by: user?.id,
       }),
     onSuccess: () => {
@@ -242,44 +213,28 @@ const SelfTasks = () => {
         </Button>
       </div>
 
-      {/* Create Task Form */}
+      {/* Create Self Task Form */}
       <Card>
         <CardContent className="pt-6 space-y-4">
           <div>
-            <label className="block mb-2 text-sm font-medium">Assign to Employee *</label>
-            <Select value={selectedEmployee} onValueChange={(val) => setSelectedEmployee(val)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select employee to assign" />
-              </SelectTrigger>
-              <SelectContent>
-                {employees.map((emp) => (
-                  <SelectItem key={emp.id} value={emp.email}>
-                    {(emp.full_name || emp.name || emp.email)} ({emp.email})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {/* Hidden input to satisfy DOM API requirement */}
-            <input type="hidden" id="employeeSelect" value={selectedEmployee || ''} readOnly />
-            <p className="text-xs text-muted-foreground">Choose which employee should work on this task</p>
-          </div>
-
-          <div>
-            <label className="block mb-2 text-sm font-medium">Task Details *</label>
+            <label className="block mb-2 text-sm font-medium">Self Task Details *</label>
             <Textarea
               id="taskContext"
-              placeholder="Enter task details..."
+              placeholder="Enter task details for yourself..."
               value={taskContext}
               onChange={(e) => setTaskContext(e.target.value)}
               rows={4}
             />
+            <p className="text-xs text-muted-foreground">
+              Create a task that will be assigned to yourself. First line will be used as the title.
+            </p>
           </div>
 
           <Button 
-            onClick={handleCreateTaskClick}
+            onClick={handleCreateSelfTaskClick}
             className="w-full bg-rose-400 hover:bg-rose-500 text-white"
           >
-            <Plus className="mr-2 h-4 w-4" /> Create Task
+            <Plus className="mr-2 h-4 w-4" /> Create Self Task
           </Button>
         </CardContent>
       </Card>

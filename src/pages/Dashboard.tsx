@@ -109,14 +109,17 @@ const Dashboard = () => {
       console.log('[Dashboard] Admin user - showing all tasks:', tasks.length);
       return tasks;
     } else {
-      // Employees see only tasks assigned TO them BY admins
+      // Employees see:
+      // 1. Tasks assigned TO them BY admins
+      // 2. Their own self-tasks (assigned by themselves to themselves)
       const filteredTasks = tasks.filter((task: Task) => {
         const isAssignedToMe = task.assigned_to === user?.id;
         const isAssignedByAdmin = adminIds.length > 0 
           ? adminIds.includes(task.assigned_by as string)
           : task.assigned_by !== user?.id; // fallback: not self-assigned
+        const isSelfTask = task.assigned_by === user?.id && task.assigned_to === user?.id;
         
-        const shouldShow = isAssignedToMe && isAssignedByAdmin;
+        const shouldShow = isAssignedToMe && (isAssignedByAdmin || isSelfTask);
         
         if (isAssignedToMe) {
           console.log('[Dashboard] Task assigned to me:', {
@@ -124,6 +127,7 @@ const Dashboard = () => {
             title: task.title,
             assigned_by: task.assigned_by,
             isAssignedByAdmin,
+            isSelfTask,
             shouldShow
           });
         }
