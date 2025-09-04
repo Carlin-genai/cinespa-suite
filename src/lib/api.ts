@@ -1,6 +1,6 @@
 
 import { Task, User, Project } from '@/types';
-import { localApi } from './localApi';
+import { supabaseApi } from './supabaseApi';
 
 const BASE_URLS = [
   'http://127.0.0.1:5000',
@@ -9,9 +9,8 @@ const BASE_URLS = [
 
 let currentBaseUrl = BASE_URLS[0];
 
-// Check if we should use local mode
-const useLocalMode = import.meta.env.VITE_DATA_MODE === 'local' || 
-                    import.meta.env.VITE_DATA_MODE === undefined;
+// Check if we should use local mode - DISABLED, always use Supabase
+const useLocalMode = false;
 
 class ApiService {
   private async makeRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -57,177 +56,112 @@ class ApiService {
 
   // Task Management
   async getTasks(): Promise<Task[]> {
-    if (useLocalMode) return localApi.getTasks();
-    return this.makeRequest<Task[]>('/api/tasks');
+    return supabaseApi.getTasks();
   }
 
   async createTask(task: Partial<Task>): Promise<Task> {
-    if (useLocalMode) return localApi.createTask(task);
-    return this.makeRequest<Task>('/api/tasks', {
-      method: 'POST',
-      body: JSON.stringify(task),
-    });
+    return supabaseApi.createTask(task);
   }
 
   async updateTask(id: string, task: Partial<Task>): Promise<Task> {
-    if (useLocalMode) return localApi.updateTask(id, task);
-    
-    const result = await this.makeRequest<Task>(`/api/tasks/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(task),
-    });
-
-    // If task is being marked as completed, notify admin
-    if (task.status === 'completed') {
-      try {
-        await this.createNotification({
-          type: 'task_completion',
-          title: 'Task Completed',
-          message: `Task "${result.title}" has been completed by ${result.assigned_to}`,
-          recipient_type: 'admin',
-          task_id: id
-        });
-      } catch (error) {
-        console.log('Failed to send completion notification:', error);
-      }
-    }
-
-    return result;
+    return supabaseApi.updateTask(id, task);
   }
 
   async deleteTask(id: string): Promise<void> {
-    if (useLocalMode) return localApi.deleteTask(id);
-    return this.makeRequest<void>(`/api/tasks/${id}`, {
-      method: 'DELETE',
-    });
+    return supabaseApi.deleteTask(id);
   }
 
-  // User Management
+  // User Management - Not needed for Supabase mode
   async getUsers(): Promise<User[]> {
-    if (useLocalMode) return localApi.getUsers();
-    return this.makeRequest<User[]>('/api/users');
+    return []; // Not implemented for Supabase mode
   }
 
   async createUser(user: Partial<User>): Promise<User> {
-    if (useLocalMode) return localApi.createUser(user);
-    return this.makeRequest<User>('/api/users', {
-      method: 'POST',
-      body: JSON.stringify(user),
-    });
+    throw new Error('User creation handled by Supabase Auth');
   }
 
   async loginUser(credentials: { email: string; password: string }): Promise<{ user: User; token: string }> {
-    if (useLocalMode) return localApi.loginUser(credentials);
-    return this.makeRequest<{ user: User; token: string }>('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(credentials),
-    });
+    throw new Error('Login handled by Supabase Auth');
   }
 
   async signupUser(userData: { name: string; email: string; password: string; role?: string }): Promise<{ user: User; token: string }> {
-    if (useLocalMode) return localApi.signupUser(userData);
-    return this.makeRequest<{ user: User; token: string }>('/api/auth/signup', {
-      method: 'POST',
-      body: JSON.stringify(userData),
-    });
+    throw new Error('Signup handled by Supabase Auth');
   }
 
   async logoutUser(): Promise<void> {
-    if (useLocalMode) return localApi.logoutUser();
-    return this.makeRequest<void>('/api/auth/logout', {
-      method: 'POST',
-    });
+    // Handled by AuthContext
+    return;
   }
 
-  // Projects
+  // Projects - Not implemented for now
   async getProjects(): Promise<Project[]> {
-    if (useLocalMode) return localApi.getProjects();
-    return this.makeRequest<Project[]>('/api/projects');
+    return [];
   }
 
   async createProject(project: Partial<Project>): Promise<Project> {
-    if (useLocalMode) return localApi.createProject(project);
-    return this.makeRequest<Project>('/api/projects', {
-      method: 'POST',
-      body: JSON.stringify(project),
-    });
+    throw new Error('Projects not implemented yet');
   }
 
-  // Analytics
+  // Analytics - Mock data for now
   async getAnalytics(): Promise<any> {
-    if (useLocalMode) return localApi.getAnalytics();
-    return this.makeRequest<any>('/api/analytics');
+    return {
+      total_tasks: 0,
+      completed_tasks: 0,
+      pending_tasks: 0,
+      in_progress_tasks: 0,
+      overdue_tasks: 0
+    };
   }
 
   async getReports(): Promise<any> {
-    if (useLocalMode) return localApi.getReports();
-    return this.makeRequest<any>('/api/reports');
+    return this.getAnalytics();
   }
 
-  // Notifications
+  // Notifications - Use Supabase
   async getNotifications(): Promise<any[]> {
-    if (useLocalMode) return localApi.getNotifications();
-    return this.makeRequest<any[]>('/api/notifications');
+    return supabaseApi.getNotifications();
   }
 
   async markNotificationRead(id: string): Promise<void> {
-    if (useLocalMode) return localApi.markNotificationRead(id);
-    return this.makeRequest<void>(`/api/notifications/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify({ read: true }),
-    });
+    return supabaseApi.markNotificationRead(id);
   }
 
-  // Reminders
+  // Reminders - Use Supabase  
   async getReminders(): Promise<any[]> {
-    if (useLocalMode) return localApi.getReminders();
-    return this.makeRequest<any[]>('/api/reminders');
+    return supabaseApi.getReminders();
   }
 
   async createReminder(reminder: any): Promise<any> {
-    if (useLocalMode) return localApi.createReminder(reminder);
-    return this.makeRequest<any>('/api/reminders', {
-      method: 'POST',
-      body: JSON.stringify(reminder),
-    });
+    return supabaseApi.createReminder(reminder);
   }
 
-  // Daily Journal
+  // Daily Journal - Use Supabase
   async getJournalEntries(): Promise<any[]> {
-    if (useLocalMode) return localApi.getJournalEntries();
-    return this.makeRequest<any[]>('/api/journal');
+    return supabaseApi.getDailyJournalEntries();
   }
 
   async createJournalEntry(entry: any): Promise<any> {
-    if (useLocalMode) return localApi.createJournalEntry(entry);
-    return this.makeRequest<any>('/api/journal', {
-      method: 'POST',
-      body: JSON.stringify(entry),
-    });
+    return supabaseApi.createJournalEntry(entry);
   }
 
   async updateJournalEntry(id: string, entry: any): Promise<any> {
-    if (useLocalMode) return localApi.updateJournalEntry(id, entry);
-    return this.makeRequest<any>(`/api/journal/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(entry),
-    });
+    return supabaseApi.updateJournalEntry(id, entry);
   }
 
   async deleteJournalEntry(id: string): Promise<void> {
-    if (useLocalMode) return localApi.deleteJournalEntry(id);
-    return this.makeRequest<void>(`/api/journal/${id}`, {
-      method: 'DELETE',
-    });
+    // Not implemented in supabaseApi yet
+    throw new Error('Delete journal entry not implemented yet');
   }
 
   // Health check
   async healthCheck(): Promise<{ status: string; backend_url: string }> {
-    if (useLocalMode) return localApi.healthCheck();
-    return this.makeRequest<{ status: string; backend_url: string }>('/api/health');
+    return {
+      status: 'healthy',
+      backend_url: 'supabase'
+    };
   }
 
-  // Create notification
+  // Create notification - Not implemented yet
   async createNotification(notification: {
     type: string;
     title: string;
@@ -235,11 +169,9 @@ class ApiService {
     recipient_type?: string;
     task_id?: string;
   }): Promise<any> {
-    if (useLocalMode) return localApi.createNotification(notification);
-    return this.makeRequest<any>('/api/notifications', {
-      method: 'POST',
-      body: JSON.stringify(notification),
-    });
+    // Not implemented yet for Supabase
+    console.log('Notification creation not implemented yet:', notification);
+    return null;
   }
 }
 

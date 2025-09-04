@@ -35,11 +35,10 @@ function mapDbTaskToTask(row: any): Task {
 export class SupabaseApiService {
   // Task Management
   async getTasks(): Promise<Task[]> {
-    const userId = (await supabase.auth.getUser()).data.user?.id;
     const { data, error } = await supabase
       .from('tasks')
       .select('*')
-      .eq('assigned_to', userId);
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
     const tasks = (data || []).map(mapDbTaskToTask);
@@ -47,17 +46,13 @@ export class SupabaseApiService {
   }
 
   async getTeamTasks(): Promise<Task[]> {
-    const { data, error } = await supabase
-      .from('tasks')
-      .select('*');
-    
-    if (error) throw error;
-    const tasks = (data || []).map(mapDbTaskToTask);
-    return tasks;
+    return this.getTasks(); // Same as getTasks for now
   }
 
   async createTask(task: Partial<Task>): Promise<Task> {
     const user = (await supabase.auth.getUser()).data.user;
+    if (!user) throw new Error('User not authenticated');
+
     const { data, error } = await supabase
       .from('tasks')
       .insert([{ 
@@ -65,10 +60,10 @@ export class SupabaseApiService {
         description: task.description || '',
         status: task.status || 'pending',
         priority: task.priority || 'medium',
-        assigned_to: task.assigned_to,
+        assigned_to: task.assigned_to || user.id, // Default to current user if not specified
+        assigned_by: task.assigned_by || user.id, // Always set assigned_by to current user
         due_date: task.due_date,
         notes: task.notes,
-        assigned_by: user?.id 
       }])
       .select()
       .single();

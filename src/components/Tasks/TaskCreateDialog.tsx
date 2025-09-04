@@ -169,53 +169,34 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
       dueDateTime.setHours(parseInt(hours), parseInt(minutes));
     }
 
-    // Get selected employee email
-    const selectedEmployee = availableUsers.find((user: any) => user.email === assignedTo || user.id === assignedTo);
-    const employeeEmail = isPersonalTask ? user?.email : selectedEmployee?.email;
+    // Get selected employee for assignment
+    const selectedEmployee = availableUsers.find((u: any) => u.email === assignedTo || u.id === assignedTo);
+    const assignedUserId = isPersonalTask ? user?.id : (selectedEmployee?.id || assignedTo);
 
     const taskData = {
       title: title.trim(),
       description: description.trim(),
       status,
       priority,
-      // Flask-compatible keys
-      employee: employeeEmail,
-      context: description.trim() || title.trim(),
-      // Additional keys for other backends
-      employee_email: employeeEmail,
-      email: employeeEmail,
-      assigned_to: employeeEmail,
+      assigned_to: assignedUserId,
+      assigned_by: user?.id, // Current user is always the assigner
       due_date: dueDateTime.toISOString(),
       notes: notes.trim(),
     };
 
     try {
-      // Send POST request to /api/tasks
-      console.log('[TaskCreate] POST /api/tasks payload', taskData);
-      const response = await fetch('/api/tasks', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(taskData),
-      });
-
-      if (!response.ok) {
-        const errText = await response.text().catch(() => '');
-        console.error('[TaskCreate] Error creating task', response.status, errText);
-        throw new Error('Failed to create task');
-      }
-
-      console.log('[TaskCreate] Task created successfully');
-
+      console.log('[TaskCreate] Creating task with Supabase API', taskData);
+      await onSave(taskData);
+      
       // Show success message
       toast({
         title: "Task Created Successfully!",
-        description: `Task "${title}" has been created and assigned${!isPersonalTask ? ` to ${selectedEmployee?.name || employeeEmail}` : ''}.`,
+        description: `Task "${title}" has been created and assigned${!isPersonalTask ? ` to ${selectedEmployee?.name || assignedUserId}` : ''}.`,
       });
       
       handleClose();
     } catch (error) {
+      console.error('[TaskCreate] Error creating task:', error);
       toast({
         title: "Error Creating Task",
         description: "There was an error creating the task. Please try again.",
