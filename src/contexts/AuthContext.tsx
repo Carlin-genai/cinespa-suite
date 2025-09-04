@@ -56,10 +56,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching profile:', error);
+        return null;
+      }
+
+      if (!data) {
+        console.log('No profile found, user may need to complete signup');
         return null;
       }
 
@@ -84,7 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('user_roles')
         .select('*')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching user role:', error);
@@ -98,25 +103,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Initialize auth state
   useEffect(() => {
+    console.log('[Auth] Initializing authentication...');
+    
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
+        console.log('[Auth] State changed:', event, session?.user?.email || 'no user');
+        
+        // Update session and user immediately 
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Defer profile and role fetch to avoid recursion
+          // Defer profile/role fetch to avoid recursion
           setTimeout(async () => {
+            console.log('[Auth] Fetching user data for:', session.user.email);
             const userProfile = await fetchUserProfile(session.user.id);
             const userRoleData = await fetchUserRole(session.user.id);
-            if (userProfile) {
-              setProfile(userProfile);
-            }
-            if (userRoleData) {
-              setUserRole(userRoleData);
-            }
-          }, 0);
+            
+            console.log('[Auth] Profile:', userProfile?.email);
+            console.log('[Auth] Role:', userRoleData?.role);
+            
+            setProfile(userProfile);
+            setUserRole(userRoleData);
+          }, 100);
         } else {
           setProfile(null);
           setUserRole(null);
@@ -126,26 +138,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      console.log('Current session:', session?.user?.email);
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('[Auth] Error getting session:', error);
+        setLoading(false);
+        return;
+      }
+      
+      console.log('[Auth] Initial session check:', session?.user?.email || 'no session');
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        const userProfile = await fetchUserProfile(session.user.id);
-        const userRoleData = await fetchUserRole(session.user.id);
-        if (userProfile) {
+        // Fetch profile and role for existing session
+        setTimeout(async () => {
+          const userProfile = await fetchUserProfile(session.user.id);
+          const userRoleData = await fetchUserRole(session.user.id);
           setProfile(userProfile);
-        }
-        if (userRoleData) {
           setUserRole(userRoleData);
-        }
+        }, 100);
       }
       
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      console.log('[Auth] Cleaning up auth subscription');
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {

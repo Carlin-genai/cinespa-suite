@@ -9,6 +9,7 @@ import { Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import RoleSelection from '@/components/RoleSelection';
 import AuthStatus from '@/components/AuthStatus';
+import QuickAuth from '@/components/QuickAuth';
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -133,6 +134,9 @@ const Auth = () => {
       <div className="w-full max-w-md space-y-4">
         {/* Authentication Status Debug Info */}
         <AuthStatus />
+        
+        {/* Quick Authentication for Testing */}
+        <QuickAuth />
         
         <Card className="w-full">
           <CardHeader className="text-center">
