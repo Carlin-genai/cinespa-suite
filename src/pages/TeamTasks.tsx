@@ -109,13 +109,36 @@ const TeamTasks = () => {
 
   // Create task mutation
   const createTaskMutation = useMutation({
-    mutationFn: (task: Partial<Task>) => apiService.createTask(task),
-    onSuccess: () => {
+    mutationFn: async (taskData: Partial<Task> & { assignedEmployees?: string[] }) => {
+      const { assignedEmployees, ...task } = taskData;
+      
+      if (assignedEmployees && assignedEmployees.length > 0) {
+        // Create individual tasks for each assigned employee
+        const taskPromises = assignedEmployees.map(employeeId => 
+          apiService.createTask({
+            ...task,
+            assigned_to: employeeId,
+            assigned_by: user?.id,
+          })
+        );
+        
+        return Promise.all(taskPromises);
+      } else {
+        // Regular task creation
+        return apiService.createTask({
+          ...task,
+          assigned_by: user?.id,
+        });
+      }
+    },
+    onSuccess: (result) => {
+      const taskCount = Array.isArray(result) ? result.length : 1;
       queryClient.invalidateQueries({ queryKey: ['team-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['my-tasks'] });
       toast({
         title: "Success",
-        description: "Team task created successfully",
+        description: `Team task${taskCount > 1 ? 's' : ''} created successfully (${taskCount} ${taskCount > 1 ? 'employees' : 'employee'} assigned)`,
       });
       setCreateDialogOpen(false);
     },
@@ -232,8 +255,8 @@ const TeamTasks = () => {
     });
   };
 
-  const handleCreateTask = (task: Partial<Task>) => {
-    createTaskMutation.mutate(task);
+  const handleCreateTask = (taskData: Partial<Task> & { assignedEmployees?: string[] }) => {
+    createTaskMutation.mutate(taskData);
   };
 
   const handleCreateTeam = (teamData: { name: string; description?: string; memberIds: string[] }) => {
@@ -526,6 +549,7 @@ const TeamTasks = () => {
         onOpenChange={setCreateDialogOpen}
         onSave={handleCreateTask}
         isPersonalTask={false}
+        showEmployeeSelection={true}
       />
 
       <TeamCreateDialog
