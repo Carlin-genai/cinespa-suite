@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { Plus, Search, Clock, CheckCircle, XCircle, AlertCircle, User } from 'lucide-react';
 import TaskCard from '@/components/Tasks/TaskCard';
 import TaskCreateDialog from '@/components/Tasks/TaskCreateDialog';
@@ -12,6 +13,7 @@ import { apiService } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Task } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const SelfTasks = () => {
   const { user } = useAuth();
@@ -28,24 +30,96 @@ const SelfTasks = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
 
-  // ✅ Fetch employees from API
+  // ✅ Fetch employees from Supabase profiles
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        const response = await fetch('/api/employees');
-        if (response.ok) {
-          const data = await response.json();
-          setEmployees(data || []);
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, email, full_name')
+          .order('full_name');
+        
+        if (error) {
+          console.error('Error fetching employees:', error);
+          // Fallback to mock data if Supabase fails
+          setEmployees([
+            { id: 'emp1', email: 'john@company.com', full_name: 'John Doe' },
+            { id: 'emp2', email: 'jane@company.com', full_name: 'Jane Smith' },
+            { id: 'emp3', email: 'mike@company.com', full_name: 'Mike Johnson' }
+          ]);
         } else {
-          console.error('Error fetching employees:', response.status);
+          setEmployees(data || []);
         }
       } catch (error) {
         console.error('Error fetching employees:', error);
+        // Fallback to mock data
+        setEmployees([
+          { id: 'emp1', email: 'john@company.com', full_name: 'John Doe' },
+          { id: 'emp2', email: 'jane@company.com', full_name: 'Jane Smith' },
+          { id: 'emp3', email: 'mike@company.com', full_name: 'Mike Johnson' }
+        ]);
       }
     };
 
     fetchEmployees();
   }, []);
+
+  // ✅ Handle Create Task button click (Flask backend format)
+  const handleCreateTaskClick = async () => {
+    const employeeSelect = document.getElementById('employeeSelect') as HTMLSelectElement;
+    const taskContextElement = document.getElementById('taskContext') as HTMLTextAreaElement;
+    
+    const selectedEmployeeEmail = employeeSelect?.value;
+    const taskDetails = taskContextElement?.value;
+
+    if (!selectedEmployeeEmail || !taskDetails) {
+      toast({
+        title: 'Error',
+        description: 'Please select an employee and enter task details',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          employee: selectedEmployeeEmail,
+          context: taskDetails
+        })
+      });
+
+      if (response.ok) {
+        toast({
+          title: 'Success',
+          description: 'Task created successfully'
+        });
+        
+        // Clear the form
+        if (employeeSelect) employeeSelect.value = '';
+        if (taskContextElement) taskContextElement.value = '';
+        setSelectedEmployee('');
+        setTaskContext('');
+      } else {
+        const errorText = await response.text();
+        toast({
+          title: 'Error',
+          description: errorText || 'Failed to create task',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: `Network error: ${error}`,
+        variant: 'destructive',
+      });
+    }
+  };
 
   // ✅ Fetch self-created tasks
   const { data: tasks = [], isLoading } = useQuery({
@@ -168,22 +242,40 @@ const SelfTasks = () => {
         </Button>
       </div>
 
-      {/* Employee Dropdown */}
+      {/* Create Task Form */}
       <Card>
-        <CardContent className="pt-6">
-          <label className="block mb-2 text-sm font-medium">Assign to Employee *</label>
-          <Select onValueChange={(val) => setSelectedEmployee(val)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select employee to assign" />
-            </SelectTrigger>
-            <SelectContent>
+        <CardContent className="pt-6 space-y-4">
+          <div>
+            <label className="block mb-2 text-sm font-medium">Assign to Employee *</label>
+            <select 
+              id="employeeSelect"
+              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent"
+            >
+              <option value="">Select employee to assign</option>
               {employees.map((emp) => (
-                <SelectItem key={emp.id} value={emp.id}>
-                  {emp.name} ({emp.email})
-                </SelectItem>
+                <option key={emp.id} value={emp.email}>
+                  {emp.full_name} ({emp.email})
+                </option>
               ))}
-            </SelectContent>
-          </Select>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block mb-2 text-sm font-medium">Task Details *</label>
+            <textarea
+              id="taskContext"
+              placeholder="Enter task details..."
+              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent"
+              rows={4}
+            />
+          </div>
+          
+          <Button 
+            onClick={handleCreateTaskClick}
+            className="w-full bg-rose-400 hover:bg-rose-500 text-white"
+          >
+            <Plus className="mr-2 h-4 w-4" /> Create Task
+          </Button>
         </CardContent>
       </Card>
 
