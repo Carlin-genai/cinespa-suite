@@ -20,9 +20,8 @@ const SelfTasks = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const [employees, setEmployees] = useState<any[]>([]);
-  const [selectedEmployee, setSelectedEmployee] = useState('');
-  const [taskContext, setTaskContext] = useState('');
+  const [taskTitle, setTaskTitle] = useState('');
+  const [taskDescription, setTaskDescription] = useState('');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -30,98 +29,22 @@ const SelfTasks = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
 
-  // ✅ Fetch employees from Supabase profiles
-  useEffect(() => {
-    const fetchEmployees = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('id, email, full_name')
-          .order('full_name');
-        
-        if (error) {
-          console.error('Error fetching employees:', error);
-          // Fallback to mock data if Supabase fails
-          setEmployees([
-            { id: 'emp1', email: 'john@company.com', full_name: 'John Doe' },
-            { id: 'emp2', email: 'jane@company.com', full_name: 'Jane Smith' },
-            { id: 'emp3', email: 'mike@company.com', full_name: 'Mike Johnson' }
-          ]);
-        } else {
-          setEmployees(data || []);
-        }
-      } catch (error) {
-        console.error('Error fetching employees:', error);
-        // Fallback to mock data
-        setEmployees([
-          { id: 'emp1', email: 'john@company.com', full_name: 'John Doe' },
-          { id: 'emp2', email: 'jane@company.com', full_name: 'Jane Smith' },
-          { id: 'emp3', email: 'mike@company.com', full_name: 'Mike Johnson' }
-        ]);
-      }
+  // ✅ Realtime updates for self-tasks
+  React.useEffect(() => {
+    const channel = supabase
+      .channel('self-tasks-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, (payload) => {
+        console.log('[SelfTasks] Realtime change on tasks:', payload.eventType);
+        queryClient.invalidateQueries({ queryKey: ['self-tasks'] });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
     };
+  }, [queryClient]);
 
-    fetchEmployees();
-  }, []);
-
-  // ✅ Handle Create Task button click (Flask backend format)
-  const handleCreateTaskClick = async () => {
-    const employeeSelect = document.getElementById('employeeSelect') as (HTMLInputElement | HTMLSelectElement | null);
-    const taskContextElement = document.getElementById('taskContext') as (HTMLTextAreaElement | HTMLInputElement | null);
-    
-    const selectedEmployeeEmail = employeeSelect?.value || selectedEmployee;
-    const taskDetails = taskContextElement?.value || taskContext;
-
-    if (!selectedEmployeeEmail || !taskDetails) {
-      toast({
-        title: 'Error',
-        description: 'Please select an employee and enter task details',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/tasks', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          employee: selectedEmployeeEmail,
-          context: taskDetails
-        })
-      });
-
-      if (response.ok) {
-        toast({
-          title: 'Success',
-          description: 'Task created successfully'
-        });
-        
-        // Clear the form
-        if (employeeSelect) employeeSelect.value = '';
-        if (taskContextElement) taskContextElement.value = '';
-        setSelectedEmployee('');
-        setTaskContext('');
-      } else {
-        const errorText = await response.text();
-        toast({
-          title: 'Error',
-          description: errorText || 'Failed to create task',
-          variant: 'destructive',
-        });
-      }
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: `Network error: ${error}`,
-        variant: 'destructive',
-      });
-    }
-  };
-
-  // ✅ Fetch self-created tasks
+  // ✅ Fetch self-created tasks (tasks where user assigned to themselves)
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['self-tasks'],
     queryFn: async () => {
@@ -132,18 +55,22 @@ const SelfTasks = () => {
     },
   });
 
-  // ✅ Create task mutation
+  // ✅ Create task mutation (self-assigned only)
   const createTaskMutation = useMutation({
     mutationFn: (task: Partial<Task>) =>
       apiService.createTask({
         ...task,
-        assigned_to: selectedEmployee || user?.id,
-        assigned_by: user?.id,
+        assigned_to: user?.id, // Always assign to self
+        assigned_by: user?.id, // Always assigned by self
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['self-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] }); // Also refresh dashboard
       toast({ title: 'Success', description: 'Task created successfully' });
       setCreateDialogOpen(false);
+      // Clear form
+      setTaskTitle('');
+      setTaskDescription('');
     },
     onError: (error) => {
       toast({
@@ -246,40 +173,44 @@ const SelfTasks = () => {
       <Card>
         <CardContent className="pt-6 space-y-4">
           <div>
-            <label className="block mb-2 text-sm font-medium">Assign to Employee *</label>
-            <Select value={selectedEmployee} onValueChange={(val) => setSelectedEmployee(val)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select employee to assign" />
-              </SelectTrigger>
-              <SelectContent>
-                {employees.map((emp) => (
-                  <SelectItem key={emp.id} value={emp.email}>
-                    {(emp.full_name || emp.name || emp.email)} ({emp.email})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {/* Hidden input to satisfy DOM API requirement */}
-            <input type="hidden" id="employeeSelect" value={selectedEmployee || ''} readOnly />
-            <p className="text-xs text-muted-foreground">Choose which employee should work on this task</p>
+            <label className="block mb-2 text-sm font-medium">Task Title *</label>
+            <Input
+              placeholder="Enter task title..."
+              value={taskTitle}
+              onChange={(e) => setTaskTitle(e.target.value)}
+            />
           </div>
 
           <div>
-            <label className="block mb-2 text-sm font-medium">Task Details *</label>
+            <label className="block mb-2 text-sm font-medium">Task Description</label>
             <Textarea
-              id="taskContext"
-              placeholder="Enter task details..."
-              value={taskContext}
-              onChange={(e) => setTaskContext(e.target.value)}
+              placeholder="Enter task description..."
+              value={taskDescription}
+              onChange={(e) => setTaskDescription(e.target.value)}
               rows={4}
             />
           </div>
 
           <Button 
-            onClick={handleCreateTaskClick}
+            onClick={() => {
+              if (!taskTitle.trim()) {
+                toast({
+                  title: 'Error',
+                  description: 'Please enter a task title',
+                  variant: 'destructive',
+                });
+                return;
+              }
+              createTaskMutation.mutate({
+                title: taskTitle.trim(),
+                description: taskDescription.trim() || undefined,
+              });
+            }}
+            disabled={createTaskMutation.isPending}
             className="w-full bg-rose-400 hover:bg-rose-500 text-white"
           >
-            <Plus className="mr-2 h-4 w-4" /> Create Task
+            <Plus className="mr-2 h-4 w-4" /> 
+            {createTaskMutation.isPending ? 'Creating...' : 'Create Self Task'}
           </Button>
         </CardContent>
       </Card>

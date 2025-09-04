@@ -105,28 +105,35 @@ const Dashboard = () => {
     console.log('[Dashboard] Filtering tasks for user role:', { isAdmin, userId: user?.id, totalTasks: tasks.length, adminIds });
     
     if (isAdmin) {
-      // Admins see all tasks
-      console.log('[Dashboard] Admin user - showing all tasks:', tasks.length);
-      return tasks;
+      // Admins see all tasks assigned by them (both to others and to themselves)
+      const adminTasks = tasks.filter((task: Task) => task.assigned_by === user?.id);
+      console.log('[Dashboard] Admin user - showing tasks assigned by me:', adminTasks.length);
+      return adminTasks;
     } else {
-      // Employees see only tasks assigned TO them BY admins
+      // Employees see:
+      // 1. Tasks assigned TO them BY admins 
+      // 2. Self-created tasks (assigned by themselves to themselves)
       const filteredTasks = tasks.filter((task: Task) => {
         const isAssignedToMe = task.assigned_to === user?.id;
+        
+        if (!isAssignedToMe) return false;
+        
         const isAssignedByAdmin = adminIds.length > 0 
           ? adminIds.includes(task.assigned_by as string)
           : task.assigned_by !== user?.id; // fallback: not self-assigned
+          
+        const isSelfCreated = task.assigned_by === user?.id;
         
-        const shouldShow = isAssignedToMe && isAssignedByAdmin;
+        const shouldShow = isAssignedByAdmin || isSelfCreated;
         
-        if (isAssignedToMe) {
-          console.log('[Dashboard] Task assigned to me:', {
-            taskId: task.id,
-            title: task.title,
-            assigned_by: task.assigned_by,
-            isAssignedByAdmin,
-            shouldShow
-          });
-        }
+        console.log('[Dashboard] Task assigned to me:', {
+          taskId: task.id,
+          title: task.title,
+          assigned_by: task.assigned_by,
+          isAssignedByAdmin,
+          isSelfCreated,
+          shouldShow
+        });
         
         return shouldShow;
       });
@@ -249,8 +256,59 @@ const Dashboard = () => {
         />
       </div>
 
+      {/* Admin Tasks Management Section (Admin Only) */}
+      {isAdmin && (
+        <Card className="hover:shadow-lg hover:shadow-rose-gold/20 transition-all duration-300">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-rose-gold-contrast">
+              <Shield className="h-5 w-5 text-rose-gold" />
+              Tasks Assigned by Me
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {tasks.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No tasks assigned yet</p>
+                <p className="text-sm mt-2">Create tasks to assign to team members</p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {tasks
+                  .filter((task: Task) => task.assigned_by === user?.id)
+                  .sort((a: Task, b: Task) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                  .map((task: Task) => (
+                    <div key={task.id} className="border rounded-lg p-3 hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-medium text-sm text-rose-gold-contrast">{task.title}</h4>
+                        <span 
+                          className={cn(
+                            "text-xs px-2 py-1 rounded text-white",
+                            task.status === 'completed' && "bg-completed-green",
+                            task.status === 'in-progress' && "bg-progress-blue", 
+                            task.status === 'overdue' && "bg-overdue-red",
+                            task.status === 'pending' && "bg-pending-yellow text-gray-800"
+                          )}
+                        >
+                          {task.status.replace('-', ' ').toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>Assigned to: {task.assigned_to === user?.id ? 'Self' : 'Team Member'}</span>
+                        {task.due_date && (
+                          <span>Due: {new Date(task.due_date).toLocaleDateString()}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className={cn("grid gap-6", isAdmin ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1 lg:grid-cols-2")}>
         <Card className="hover:shadow-lg hover:shadow-rose-gold/20 transition-all duration-300">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-rose-gold-contrast">
