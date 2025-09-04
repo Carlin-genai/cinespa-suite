@@ -66,11 +66,11 @@ const SelfTasks = () => {
 
   // ✅ Handle Create Task button click (Flask backend format)
   const handleCreateTaskClick = async () => {
-    const employeeSelect = document.getElementById('employeeSelect') as HTMLSelectElement;
-    const taskContextElement = document.getElementById('taskContext') as HTMLTextAreaElement;
+    const employeeSelect = document.getElementById('employeeSelect') as (HTMLInputElement | HTMLSelectElement | null);
+    const taskContextElement = document.getElementById('taskContext') as (HTMLTextAreaElement | HTMLInputElement | null);
     
-    const selectedEmployeeEmail = employeeSelect?.value;
-    const taskDetails = taskContextElement?.value;
+    const selectedEmployeeEmail = employeeSelect?.value || selectedEmployee;
+    const taskDetails = taskContextElement?.value || taskContext;
 
     if (!selectedEmployeeEmail || !taskDetails) {
       toast({
@@ -247,29 +247,34 @@ const SelfTasks = () => {
         <CardContent className="pt-6 space-y-4">
           <div>
             <label className="block mb-2 text-sm font-medium">Assign to Employee *</label>
-            <select 
-              id="employeeSelect"
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent"
-            >
-              <option value="">Select employee to assign</option>
-              {employees.map((emp) => (
-                <option key={emp.id} value={emp.email}>
-                  {emp.full_name} ({emp.email})
-                </option>
-              ))}
-            </select>
+            <Select value={selectedEmployee} onValueChange={(val) => setSelectedEmployee(val)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select employee to assign" />
+              </SelectTrigger>
+              <SelectContent>
+                {employees.map((emp) => (
+                  <SelectItem key={emp.id} value={emp.email}>
+                    {(emp.full_name || emp.name || emp.email)} ({emp.email})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {/* Hidden input to satisfy DOM API requirement */}
+            <input type="hidden" id="employeeSelect" value={selectedEmployee || ''} readOnly />
+            <p className="text-xs text-muted-foreground">Choose which employee should work on this task</p>
           </div>
-          
+
           <div>
             <label className="block mb-2 text-sm font-medium">Task Details *</label>
-            <textarea
+            <Textarea
               id="taskContext"
               placeholder="Enter task details..."
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent"
+              value={taskContext}
+              onChange={(e) => setTaskContext(e.target.value)}
               rows={4}
             />
           </div>
-          
+
           <Button 
             onClick={handleCreateTaskClick}
             className="w-full bg-rose-400 hover:bg-rose-500 text-white"
