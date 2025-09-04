@@ -180,6 +180,129 @@ export class SupabaseApiService {
     
     if (error) throw error;
   }
+
+  // Team Management
+  async getTeams(): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('teams')
+      .select(`
+        *,
+        team_members(
+          id,
+          user_id,
+          profiles(full_name, email)
+        )
+      `)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  }
+
+  async createTeam(team: { name: string; description?: string }): Promise<any> {
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user) throw new Error('User not authenticated');
+
+    // Get user's org_id from profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('org_id')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError) throw profileError;
+
+    const { data, error } = await supabase
+      .from('teams')
+      .insert([{
+        name: team.name,
+        description: team.description,
+        org_id: profile.org_id
+      }])
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  }
+
+  async updateTeam(id: string, team: { name?: string; description?: string }): Promise<any> {
+    const { data, error } = await supabase
+      .from('teams')
+      .update(team)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  }
+
+  async deleteTeam(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('teams')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+  }
+
+  async addTeamMember(teamId: string, userId: string): Promise<void> {
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user) throw new Error('User not authenticated');
+
+    // Get user's org_id from profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('org_id')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError) throw profileError;
+
+    const { error } = await supabase
+      .from('team_members')
+      .insert([{
+        team_id: teamId,
+        user_id: userId,
+        org_id: profile.org_id
+      }]);
+    
+    if (error) throw error;
+  }
+
+  async removeTeamMember(teamId: string, userId: string): Promise<void> {
+    const { error } = await supabase
+      .from('team_members')
+      .delete()
+      .eq('team_id', teamId)
+      .eq('user_id', userId);
+    
+    if (error) throw error;
+  }
+
+  async getUsers(): Promise<any[]> {
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user) throw new Error('User not authenticated');
+
+    // Get user's org_id from profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('org_id')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError) throw profileError;
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, full_name, email, role')
+      .eq('org_id', profile.org_id)
+      .order('full_name', { ascending: true });
+    
+    if (error) throw error;
+    return data || [];
+  }
 }
 
 export const supabaseApi = new SupabaseApiService();
