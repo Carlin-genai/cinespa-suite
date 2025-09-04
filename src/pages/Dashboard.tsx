@@ -84,6 +84,22 @@ const Dashboard = () => {
     }
   }, [createDialogOpen, queryClient]);
 
+  // Realtime: refresh tasks immediately when new tasks are inserted/updated/deleted
+  React.useEffect(() => {
+    const channel = supabase
+      .channel('public:tasks-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, (payload) => {
+        console.log('[Dashboard] Realtime change on tasks:', payload.eventType);
+        // Refetch tasks so the dashboard updates instantly for both admin and employee
+        queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   // Filter tasks based on user role
   const userTasks = React.useMemo(() => {
     console.log('[Dashboard] Filtering tasks for user role:', { isAdmin, userId: user?.id, totalTasks: tasks.length, adminIds });
