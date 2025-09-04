@@ -2,17 +2,18 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { Users, Bell } from 'lucide-react';
+import { Users, Bell, Plus } from 'lucide-react';
 import TaskCard from '@/components/Tasks/TaskCard';
 import TaskEditDialog from '@/components/Tasks/TaskEditDialog';
 import ReminderDialog from '@/components/Tasks/ReminderDialog';
+import TaskCreateDialog from '@/components/Tasks/TaskCreateDialog';
 import { apiService } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Task } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 
 const TeamTasks = () => {
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -21,6 +22,7 @@ const TeamTasks = () => {
   const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
   const [reminderTaskId, setReminderTaskId] = useState<string>('');
   const [reminderTaskTitle, setReminderTaskTitle] = useState<string>('');
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   // Fetch all tasks from backend (team view)
   const { data: tasks = [], isLoading, error } = useQuery({
@@ -92,6 +94,28 @@ const TeamTasks = () => {
     },
   });
 
+  // Create task mutation
+  const createTaskMutation = useMutation({
+    mutationFn: (task: Partial<Task>) => apiService.createTask(task),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['team-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      toast({
+        title: "Success",
+        description: "Team task created successfully",
+      });
+      setCreateDialogOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to create team task",
+        variant: "destructive",
+      });
+      console.error('Create task error:', error);
+    },
+  });
+
   const handleEditTask = (task: Task) => {
     setSelectedTask(task);
     setEditDialogOpen(true);
@@ -142,6 +166,13 @@ const TeamTasks = () => {
     });
   };
 
+  const handleCreateTask = (task: Partial<Task>) => {
+    createTaskMutation.mutate(task);
+  };
+
+  // Check if user is admin 
+  const canCreateTasks = userRole?.role === 'admin';
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -174,9 +205,20 @@ const TeamTasks = () => {
             View and collaborate on all team tasks
           </p>
         </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Users className="h-4 w-4" />
-          <span>{tasks.length} total tasks</span>
+        <div className="flex items-center gap-4">
+          {canCreateTasks && (
+            <Button 
+              onClick={() => setCreateDialogOpen(true)}
+              className="bg-rose-gold hover:bg-rose-gold-dark text-white"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Create Team Task
+            </Button>
+          )}
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Users className="h-4 w-4" />
+            <span>{tasks.length} total tasks</span>
+          </div>
         </div>
       </div>
 
@@ -186,9 +228,18 @@ const TeamTasks = () => {
             <Users className="h-12 w-12 text-muted-foreground" />
           </div>
           <h3 className="text-lg font-semibold font-montserrat mb-2">No team tasks</h3>
-          <p className="text-muted-foreground font-opensans">
+          <p className="text-muted-foreground font-opensans mb-4">
             No tasks have been created for the team yet.
           </p>
+          {canCreateTasks && (
+            <Button 
+              onClick={() => setCreateDialogOpen(true)}
+              className="bg-rose-gold hover:bg-rose-gold-dark text-white"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Create First Team Task
+            </Button>
+          )}
         </div>
       ) : (
         <div className="space-y-8">
@@ -322,6 +373,13 @@ const TeamTasks = () => {
         onSave={handleSaveReminder}
         taskId={reminderTaskId}
         taskTitle={reminderTaskTitle}
+      />
+
+      <TaskCreateDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onSave={handleCreateTask}
+        isPersonalTask={false}
       />
     </div>
   );
