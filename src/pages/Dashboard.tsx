@@ -75,7 +75,9 @@ const Dashboard = () => {
   // Invalidate employee cache when dialog opens (to get fresh data with new RLS policies)
   React.useEffect(() => {
     if (createDialogOpen) {
+      console.log('[Dashboard] Invalidating employee cache for fresh data');
       queryClient.invalidateQueries({ queryKey: ['employees'] });
+      queryClient.refetchQueries({ queryKey: ['employees'] });
     }
   }, [createDialogOpen, queryClient]);
 

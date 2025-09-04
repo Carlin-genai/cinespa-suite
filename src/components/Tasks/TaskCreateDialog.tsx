@@ -56,24 +56,31 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   const { data: employees = [], isLoading: loadingEmployees, error: employeeError } = useQuery({
     queryKey: ['employees'],
     queryFn: async () => {
+      console.log('[TaskCreateDialog] Fetching employees from Supabase...');
       const { data, error } = await supabase
         .from('profiles')
         .select('id, email, full_name')
         .order('full_name', { ascending: true });
+      
+      console.log('[TaskCreateDialog] Supabase response:', { data, error });
       
       if (error) {
         console.error('Failed to fetch employees:', error);
         throw error;
       }
       
-      return (data || []).map((e: any) => ({
+      const employees = (data || []).map((e: any) => ({
         id: e.id,
         email: e.email,
         name: e.full_name || e.email,
       }));
+      
+      console.log('[TaskCreateDialog] Processed employees:', employees);
+      return employees;
     },
     enabled: open && !isPersonalTask,
-    retry: 2,
+    retry: 1,
+    refetchOnWindowFocus: false,
   });
 
   // Show loading or error state for employees
