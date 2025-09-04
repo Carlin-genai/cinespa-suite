@@ -55,6 +55,7 @@ const Dashboard = () => {
     mutationFn: (task: Partial<Task>) => apiService.createTask(task),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['employees'] }); // Refresh employee list
       toast({
         title: "Success",
         description: "Task created successfully",
@@ -71,12 +72,26 @@ const Dashboard = () => {
     },
   });
 
+  // Invalidate employee cache when dialog opens (to get fresh data with new RLS policies)
+  React.useEffect(() => {
+    if (createDialogOpen) {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+    }
+  }, [createDialogOpen, queryClient]);
+
   // Filter tasks based on user role
-  const userTasks = isAdmin 
-    ? tasks // Admins see all tasks
-    : tasks.filter((task: Task) => 
-        task.assigned_to === user?.id && (adminIds.length ? adminIds.includes(task.assigned_by as any) : task.assigned_by !== user?.id)
+  const userTasks = React.useMemo(() => {
+    if (isAdmin) {
+      // Admins see all tasks
+      return tasks;
+    } else {
+      // Employees see only tasks assigned to them by admins
+      return tasks.filter((task: Task) => 
+        task.assigned_to === user?.id && 
+        (adminIds.length ? adminIds.includes(task.assigned_by as any) : task.assigned_by !== user?.id)
       );
+    }
+  }, [tasks, isAdmin, user?.id, adminIds]);
   
   // Calculate stats from user's tasks
   const completedTasks = userTasks.filter((task: Task) => task.status === 'completed').length;

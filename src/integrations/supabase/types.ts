@@ -16,33 +16,80 @@ export type Database = {
     Tables: {
       daily_journal: {
         Row: {
+          attachments: Json | null
+          challenges: string | null
           content: string | null
           created_at: string | null
           date: string | null
+          due_date: string | null
           id: string
+          is_shared: boolean | null
+          next_goals: string | null
+          notes: string | null
+          org_id: string | null
+          reminders: Json | null
+          status: string | null
+          summary: string | null
+          task_ref: string | null
           task_updates: Json | null
           updated_at: string | null
           user_id: string | null
         }
         Insert: {
+          attachments?: Json | null
+          challenges?: string | null
           content?: string | null
           created_at?: string | null
           date?: string | null
+          due_date?: string | null
           id?: string
+          is_shared?: boolean | null
+          next_goals?: string | null
+          notes?: string | null
+          org_id?: string | null
+          reminders?: Json | null
+          status?: string | null
+          summary?: string | null
+          task_ref?: string | null
           task_updates?: Json | null
           updated_at?: string | null
           user_id?: string | null
         }
         Update: {
+          attachments?: Json | null
+          challenges?: string | null
           content?: string | null
           created_at?: string | null
           date?: string | null
+          due_date?: string | null
           id?: string
+          is_shared?: boolean | null
+          next_goals?: string | null
+          notes?: string | null
+          org_id?: string | null
+          reminders?: Json | null
+          status?: string | null
+          summary?: string | null
+          task_ref?: string | null
           task_updates?: Json | null
           updated_at?: string | null
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "daily_journal_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_journal_task_ref_fkey"
+            columns: ["task_ref"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "daily_journal_user_id_fkey"
             columns: ["user_id"]
@@ -54,36 +101,55 @@ export type Database = {
       }
       notifications: {
         Row: {
+          channel: string | null
           created_at: string | null
           id: string
           message: string
+          org_id: string | null
           read: boolean | null
+          scheduled_time: string | null
+          status: string | null
           task_id: string | null
           title: string
           type: string | null
           user_id: string | null
         }
         Insert: {
+          channel?: string | null
           created_at?: string | null
           id?: string
           message: string
+          org_id?: string | null
           read?: boolean | null
+          scheduled_time?: string | null
+          status?: string | null
           task_id?: string | null
           title: string
           type?: string | null
           user_id?: string | null
         }
         Update: {
+          channel?: string | null
           created_at?: string | null
           id?: string
           message?: string
+          org_id?: string | null
           read?: boolean | null
+          scheduled_time?: string | null
+          status?: string | null
           task_id?: string | null
           title?: string
           type?: string | null
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "notifications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "notifications_task_id_fkey"
             columns: ["task_id"]
@@ -100,32 +166,79 @@ export type Database = {
           },
         ]
       }
+      organizations: {
+        Row: {
+          brand_color: string | null
+          created_at: string | null
+          id: string
+          logo_url: string | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          brand_color?: string | null
+          created_at?: string | null
+          id?: string
+          logo_url?: string | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          brand_color?: string | null
+          created_at?: string | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
+          account_type: string | null
           avatar_url: string | null
           created_at: string | null
           email: string
           full_name: string | null
           id: string
+          org_id: string | null
+          preferences: Json | null
+          role: string | null
           updated_at: string | null
         }
         Insert: {
+          account_type?: string | null
           avatar_url?: string | null
           created_at?: string | null
           email: string
           full_name?: string | null
           id: string
+          org_id?: string | null
+          preferences?: Json | null
+          role?: string | null
           updated_at?: string | null
         }
         Update: {
+          account_type?: string | null
           avatar_url?: string | null
           created_at?: string | null
           email?: string
           full_name?: string | null
           id?: string
+          org_id?: string | null
+          preferences?: Json | null
+          role?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reminders: {
         Row: {
@@ -172,43 +285,102 @@ export type Database = {
           },
         ]
       }
+      settings: {
+        Row: {
+          created_at: string | null
+          id: string
+          language: string | null
+          notification_options: Json | null
+          org_id: string | null
+          preferences: Json | null
+          theme: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          language?: string | null
+          notification_options?: Json | null
+          org_id?: string | null
+          preferences?: Json | null
+          theme?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          language?: string | null
+          notification_options?: Json | null
+          org_id?: string | null
+          preferences?: Json | null
+          theme?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           assigned_by: string | null
           assigned_to: string | null
+          attachments: Json | null
           created_at: string | null
+          created_by: string | null
           description: string | null
           due_date: string | null
           id: string
+          is_self_task: boolean | null
           notes: string | null
+          org_id: string | null
           priority: string | null
           status: string | null
+          team_id: string | null
           title: string
           updated_at: string | null
         }
         Insert: {
           assigned_by?: string | null
           assigned_to?: string | null
+          attachments?: Json | null
           created_at?: string | null
+          created_by?: string | null
           description?: string | null
           due_date?: string | null
           id?: string
+          is_self_task?: boolean | null
           notes?: string | null
+          org_id?: string | null
           priority?: string | null
           status?: string | null
+          team_id?: string | null
           title: string
           updated_at?: string | null
         }
         Update: {
           assigned_by?: string | null
           assigned_to?: string | null
+          attachments?: Json | null
           created_at?: string | null
+          created_by?: string | null
           description?: string | null
           due_date?: string | null
           id?: string
+          is_self_task?: boolean | null
           notes?: string | null
+          org_id?: string | null
           priority?: string | null
           status?: string | null
+          team_id?: string | null
           title?: string
           updated_at?: string | null
         }
@@ -225,6 +397,94 @@ export type Database = {
             columns: ["assigned_to"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_members: {
+        Row: {
+          created_at: string | null
+          id: string
+          org_id: string
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          org_id: string
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          org_id?: string
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          org_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          org_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          org_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teams_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]

@@ -52,15 +52,20 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   const [selectedTime, setSelectedTime] = useState('');
   const [notes, setNotes] = useState('');
 
-  // Fetch employees from Supabase profiles (reliable vs /api/employees which may return HTML)
-  const { data: employees = [] } = useQuery({
+  // Fetch employees from Supabase profiles (admins can now see all profiles)
+  const { data: employees = [], isLoading: loadingEmployees, error: employeeError } = useQuery({
     queryKey: ['employees'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
         .select('id, email, full_name')
         .order('full_name', { ascending: true });
-      if (error) throw error;
+      
+      if (error) {
+        console.error('Failed to fetch employees:', error);
+        throw error;
+      }
+      
       return (data || []).map((e: any) => ({
         id: e.id,
         email: e.email,
@@ -68,7 +73,19 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
       }));
     },
     enabled: open && !isPersonalTask,
+    retry: 2,
   });
+
+  // Show loading or error state for employees
+  React.useEffect(() => {
+    if (employeeError && open && !isPersonalTask) {
+      toast({
+        title: "Error loading employees",
+        description: "Failed to load employee list. Please try again.",
+        variant: "destructive"
+      });
+    }
+  }, [employeeError, open, isPersonalTask, toast]);
 
   // Use fetched employees
   const availableUsers = employees;
@@ -280,19 +297,41 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
               <Label htmlFor="assignedTo" className="text-rose-gold-contrast">Assign to Employee *</Label>
               <Select value={assignedTo} onValueChange={setAssignedTo}>
                 <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select employee to assign" />
+                  <SelectValue placeholder={
+                    loadingEmployees ? "Loading employees..." : 
+                    availableUsers.length === 0 ? "No employees found" :
+                    "Select employee to assign"
+                  } />
                 </SelectTrigger>
-                <SelectContent className="z-50 bg-background">
-                  {availableUsers.map((employee: any) => (
-                    <SelectItem key={employee.email} value={employee.email}>
-                      {employee.name} ({employee.email})
+                <SelectContent className="z-50 bg-background border shadow-md">
+                  {loadingEmployees ? (
+                    <SelectItem value="loading" disabled>
+                      Loading employees...
                     </SelectItem>
-                  ))}
+                  ) : availableUsers.length === 0 ? (
+                    <SelectItem value="none" disabled>
+                      No employees available
+                    </SelectItem>
+                  ) : (
+                    availableUsers.map((employee: any) => (
+                      <SelectItem key={employee.email} value={employee.email}>
+                        {employee.name} ({employee.email})
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-1">
-                Choose which employee should work on this task
+                {loadingEmployees 
+                  ? "Loading employee list from database..." 
+                  : `Choose which employee should work on this task (${availableUsers.length} available)`
+                }
               </p>
+              {employeeError && (
+                <p className="text-xs text-destructive mt-1">
+                  Failed to load employees. Please refresh and try again.
+                </p>
+              )}
             </div>
           )}
           
