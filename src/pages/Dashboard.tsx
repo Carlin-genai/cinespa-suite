@@ -34,18 +34,21 @@ const Dashboard = () => {
   });
 
   // Admin user IDs (for employee view, show only tasks assigned by admins)
-  const { data: adminIds = [] } = useQuery({
+  const { data: adminIds = [], isLoading: loadingAdmins } = useQuery({
     queryKey: ['admin-ids'],
     queryFn: async () => {
+      console.log('[Dashboard] Fetching admin IDs...');
       const { data, error } = await supabase
         .from('user_roles')
         .select('user_id')
         .eq('role', 'admin');
       if (error) {
-        console.warn('Failed to fetch admin IDs', error);
+        console.warn('[Dashboard] Failed to fetch admin IDs', error);
         return [] as string[];
       }
-      return (data || []).map((r: any) => r.user_id as string);
+      const adminIds = (data || []).map((r: any) => r.user_id as string);
+      console.log('[Dashboard] Found admin IDs:', adminIds);
+      return adminIds;
     },
     enabled: !isAdmin,
   });
@@ -83,17 +86,56 @@ const Dashboard = () => {
 
   // Filter tasks based on user role
   const userTasks = React.useMemo(() => {
+    console.log('[Dashboard] Filtering tasks for user role:', { isAdmin, userId: user?.id, totalTasks: tasks.length, adminIds });
+    
     if (isAdmin) {
       // Admins see all tasks
+      console.log('[Dashboard] Admin user - showing all tasks:', tasks.length);
       return tasks;
     } else {
-      // Employees see only tasks assigned to them by admins
-      return tasks.filter((task: Task) => 
-        task.assigned_to === user?.id && 
-        (adminIds.length ? adminIds.includes(task.assigned_by as any) : task.assigned_by !== user?.id)
-      );
+      // Employees see only tasks assigned TO them BY admins
+      const filteredTasks = tasks.filter((task: Task) => {
+        const isAssignedToMe = task.assigned_to === user?.id;
+        const isAssignedByAdmin = adminIds.length > 0 
+          ? adminIds.includes(task.assigned_by as string)
+          : task.assigned_by !== user?.id; // fallback: not self-assigned
+        
+        const shouldShow = isAssignedToMe && isAssignedByAdmin;
+        
+        if (isAssignedToMe) {
+          console.log('[Dashboard] Task assigned to me:', {
+            taskId: task.id,
+            title: task.title,
+            assigned_by: task.assigned_by,
+            isAssignedByAdmin,
+            shouldShow
+          });
+        }
+        
+        return shouldShow;
+      });
+      
+      console.log('[Dashboard] Employee filtering result:', {
+        totalTasks: tasks.length,
+        filteredTasks: filteredTasks.length,
+        adminIds: adminIds.length,
+        userId: user?.id
+      });
+      
+      return filteredTasks;
     }
   }, [tasks, isAdmin, user?.id, adminIds]);
+  
+  // Debug stats calculation
+  React.useEffect(() => {
+    console.log('[Dashboard] Stats calculation:', {
+      userTasks: userTasks.length,
+      completed: userTasks.filter(t => t.status === 'completed').length,
+      pending: userTasks.filter(t => t.status === 'pending').length,
+      inProgress: userTasks.filter(t => t.status === 'in-progress').length,
+      overdue: userTasks.filter(t => t.status === 'overdue').length,
+    });
+  }, [userTasks]);
   
   // Calculate stats from user's tasks
   const completedTasks = userTasks.filter((task: Task) => task.status === 'completed').length;
@@ -113,10 +155,13 @@ const Dashboard = () => {
     });
   };
 
-  if (isLoading) {
+  if (isLoading || (loadingAdmins && !isAdmin)) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-gold"></div>
+        <p className="ml-4 text-muted-foreground">
+          {isLoading ? 'Loading tasks...' : 'Loading admin data...'}
+        </p>
       </div>
     );
   }
