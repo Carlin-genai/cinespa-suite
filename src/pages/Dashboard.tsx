@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Task } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 const Dashboard = () => {
   const { user, profile, userRole } = useAuth();
@@ -30,6 +31,23 @@ const Dashboard = () => {
   const { data: analytics } = useQuery({
     queryKey: ['analytics'],
     queryFn: () => apiService.getAnalytics(),
+  });
+
+  // Admin user IDs (for employee view, show only tasks assigned by admins)
+  const { data: adminIds = [] } = useQuery({
+    queryKey: ['admin-ids'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'admin');
+      if (error) {
+        console.warn('Failed to fetch admin IDs', error);
+        return [] as string[];
+      }
+      return (data || []).map((r: any) => r.user_id as string);
+    },
+    enabled: !isAdmin,
   });
 
   // Create task mutation
@@ -57,7 +75,7 @@ const Dashboard = () => {
   const userTasks = isAdmin 
     ? tasks // Admins see all tasks
     : tasks.filter((task: Task) => 
-        task.assigned_to === user?.id || task.assigned_by === user?.id
+        task.assigned_to === user?.id && (adminIds.length ? adminIds.includes(task.assigned_by as any) : task.assigned_by !== user?.id)
       );
   
   // Calculate stats from user's tasks

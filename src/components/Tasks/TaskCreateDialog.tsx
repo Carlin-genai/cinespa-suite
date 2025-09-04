@@ -15,6 +15,7 @@ import { useQuery } from '@tanstack/react-query';
 import { apiService } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Task {
   id?: string;
@@ -51,24 +52,20 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   const [selectedTime, setSelectedTime] = useState('');
   const [notes, setNotes] = useState('');
 
-  // Fetch employees from backend endpoint
+  // Fetch employees from Supabase profiles (reliable vs /api/employees which may return HTML)
   const { data: employees = [] } = useQuery({
     queryKey: ['employees'],
     queryFn: async () => {
-      const response = await fetch('/api/employees', { method: 'GET' });
-      if (!response.ok) {
-        throw new Error('Failed to fetch employees');
-      }
-      const raw = await response.json();
-      const list = Array.isArray(raw) ? raw : raw?.employees ?? raw?.data ?? [];
-      // Normalize to a consistent shape
-      return list
-        .map((e: any) => ({
-          id: e.id ?? e.user_id ?? e.uuid ?? e.email,
-          email: e.email ?? e.user_email ?? e.email_address,
-          name: e.name ?? e.full_name ?? e.username ?? e.display_name ?? (e.email ?? 'Unknown')
-        }))
-        .filter((e: any) => !!e.email);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, email, full_name')
+        .order('full_name', { ascending: true });
+      if (error) throw error;
+      return (data || []).map((e: any) => ({
+        id: e.id,
+        email: e.email,
+        name: e.full_name || e.email,
+      }));
     },
     enabled: open && !isPersonalTask,
   });
@@ -132,7 +129,10 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
       description: description.trim(),
       status,
       priority,
-      // Provide multiple keys for backend compatibility
+      // Flask-compatible keys
+      employee: employeeEmail,
+      context: description.trim() || title.trim(),
+      // Additional keys for other backends
       employee_email: employeeEmail,
       email: employeeEmail,
       assigned_to: employeeEmail,
@@ -243,7 +243,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
                 <SelectTrigger className="mt-1">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-50 bg-background">
                   <SelectItem value="pending">Pending - Not Started</SelectItem>
                   <SelectItem value="in-progress">In Progress - Working On It</SelectItem>
                   <SelectItem value="completed">Completed - Finished</SelectItem>
@@ -257,7 +257,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
                 <SelectTrigger className="mt-1">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-50 bg-background">
                   <SelectItem value="low">
                     <span className={priorityColors.low}>Low - Can wait</span>
                   </SelectItem>
@@ -282,7 +282,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Select employee to assign" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-50 bg-background">
                   {availableUsers.map((employee: any) => (
                     <SelectItem key={employee.email} value={employee.email}>
                       {employee.name} ({employee.email})
@@ -318,6 +318,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
                     selected={selectedDate}
                     onSelect={setSelectedDate}
                     initialFocus
+                    className={cn("p-3 pointer-events-auto")}
                   />
                 </PopoverContent>
               </Popover>
