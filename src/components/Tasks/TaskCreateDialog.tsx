@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -12,21 +11,11 @@ import { CalendarIcon, Save, X, Clock, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
-import { apiService } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
-interface Task {
-  id?: string;
-  title: string;
-  description: string;
-  status: 'pending' | 'in-progress' | 'completed' | 'overdue';
-  priority: 'low' | 'medium' | 'high' | 'critical';
-  assigned_to: string;
-  due_date: string;
-  notes?: string;
-}
+import { Task } from '@/types';
 
 interface TaskCreateDialogProps {
   open: boolean;
@@ -43,16 +32,21 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   isPersonalTask = false,
   showEmployeeSelection = false,
 }) => {
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    due_date: '',
-    assigned_to: '',
-    priority: 'Medium' as 'Low' | 'Medium' | 'High',
-    time_limit: '', // in minutes
-    credit_points: '',
-    attachment_url: ''
-  });
+  const { user, userRole } = useAuth();
+  const { toast } = useToast();
+
+  // Form state
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'critical'>('medium');
+  const [assignedTo, setAssignedTo] = useState('');
+  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [selectedTime, setSelectedTime] = useState('');
+  const [timeLimit, setTimeLimit] = useState('');
+  const [creditPoints, setCreditPoints] = useState('');
+  const [attachmentUrl, setAttachmentUrl] = useState('');
+  const [notes, setNotes] = useState('');
 
   // Fetch employees from Supabase profiles
   const { data: employees = [], isLoading: loadingEmployees, error: employeeError } = useQuery({
@@ -61,7 +55,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('id, email, full_name')
+          .select('id, email, full_name, team_id, is_team_head')
           .order('full_name', { ascending: true });
         
         if (error) {
@@ -73,6 +67,8 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
           id: e.id,
           email: e.email,
           name: e.full_name || e.email,
+          teamId: e.team_id,
+          isTeamHead: e.is_team_head
         }));
       } catch (error) {
         console.error('Employee fetch error:', error);
@@ -93,21 +89,6 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
       });
     }
   }, [employeeError, open, isPersonalTask, showEmployeeSelection, toast]);
-
-  // Use fetched employees
-  const availableUsers = employees;
-
-  // Set default assignee for personal tasks
-  React.useEffect(() => {
-    if (isPersonalTask) {
-      setAssignedTo('personal');
-    } else {
-      // For admin tasks, don't auto-assign
-      setAssignedTo('');
-    }
-    // Reset selected employees when switching modes
-    setSelectedEmployees([]);
-  }, [isPersonalTask, showEmployeeSelection, availableUsers]);
 
   const handleSave = async () => {
     // Validation with user feedback
@@ -156,23 +137,26 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
     }
 
     // Get selected employee for assignment
-    const selectedEmployee = availableUsers.find((u: any) => u.email === assignedTo || u.id === assignedTo);
+    const selectedEmployee = employees.find((u: any) => u.email === assignedTo || u.id === assignedTo);
     const assignedUserId = isPersonalTask ? user?.id : (selectedEmployee?.id || assignedTo);
 
     const taskData = {
       title: title.trim(),
       description: description.trim(),
-      status,
+      status: 'pending' as const,
       priority,
       assigned_to: assignedUserId,
-      assigned_by: user?.id, // Current user is always the assigner
+      assigned_by: user?.id,
       due_date: dueDateTime.toISOString(),
-      notes: notes.trim(),
+      time_limit: timeLimit ? parseInt(timeLimit) : undefined,
+      credit_points: creditPoints ? parseInt(creditPoints) : undefined,
+      attachment_url: attachmentUrl || undefined,
+      notes: notes.trim() || undefined,
       ...(showEmployeeSelection && { assignedEmployees: selectedEmployees }),
     };
 
     try {
-      console.log('[TaskCreate] Creating task with Supabase API', taskData);
+      console.log('[TaskCreate] Creating task with data', taskData);
       await onSave(taskData);
       
       // Show success message
@@ -198,21 +182,23 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
     // Reset form
     setTitle('');
     setDescription('');
-    setStatus('pending');
     setPriority('medium');
     setAssignedTo(isPersonalTask ? 'personal' : '');
     setSelectedEmployees([]);
     setSelectedDate(undefined);
     setSelectedTime('');
+    setTimeLimit('');
+    setCreditPoints('');
+    setAttachmentUrl('');
     setNotes('');
     onOpenChange(false);
   };
 
   const priorityColors = {
-    'low': 'text-muted-foreground',
-    'medium': 'text-rose-gold',
-    'high': 'text-rose-gold-contrast',
-    'critical': 'text-destructive'
+    'low': 'text-green-600',
+    'medium': 'text-blue-600',
+    'high': 'text-purple-600',
+    'critical': 'text-red-600'
   };
 
   // Check if form is valid
@@ -225,16 +211,16 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="font-montserrat flex items-center gap-2 text-rose-gold">
-            <User className="h-5 w-5 text-rose-gold" />
-            {isPersonalTask ? 'Create Personal Task' : 'Create New Task'}
+          <DialogTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" />
+            {isPersonalTask ? 'Create Self Task' : 'Create New Task'}
           </DialogTitle>
         </DialogHeader>
         
         {/* Scrollable content area */}
         <div className="flex-1 overflow-y-auto px-6 space-y-4">
           <div>
-            <Label htmlFor="title" className="text-rose-gold-contrast">Task Title *</Label>
+            <Label htmlFor="title">Task Title *</Label>
             <Input
               id="title"
               value={title}
@@ -242,18 +228,15 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
               placeholder="Enter a clear, actionable task title"
               className="mt-1"
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              Make it specific and actionable (e.g., "Complete client presentation slides")
-            </p>
           </div>
           
           <div>
-            <Label htmlFor="description" className="text-rose-gold-contrast">Description</Label>
+            <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe the task requirements, context, and expected deliverables"
+              placeholder="Describe the task requirements and expected deliverables"
               className="mt-1"
               rows={3}
             />
@@ -261,51 +244,63 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
           
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="status" className="text-rose-gold-contrast">Initial Status</Label>
-              <Select value={status} onValueChange={(value: Task['status']) => setStatus(value)}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="z-50 bg-background">
-                  <SelectItem value="pending">Pending - Not Started</SelectItem>
-                  <SelectItem value="in-progress">In Progress - Working On It</SelectItem>
-                  <SelectItem value="completed">Completed - Finished</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label htmlFor="priority" className="text-rose-gold-contrast">Priority Level</Label>
-              <Select value={priority} onValueChange={(value: Task['priority']) => setPriority(value)}>
+              <Label htmlFor="priority">Priority Level</Label>
+              <Select value={priority} onValueChange={(value: 'low' | 'medium' | 'high' | 'critical') => setPriority(value)}>
                 <SelectTrigger className="mt-1">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="z-50 bg-background">
                   <SelectItem value="low">
-                    <span className={priorityColors.low}>Low - Can wait</span>
+                    <span className={priorityColors.low}>Low Priority</span>
                   </SelectItem>
                   <SelectItem value="medium">
-                    <span className={priorityColors.medium}>Medium - Normal priority</span>
+                    <span className={priorityColors.medium}>Medium Priority</span>
                   </SelectItem>
                   <SelectItem value="high">
-                    <span className={priorityColors.high}>High - Important</span>
+                    <span className={priorityColors.high}>High Priority</span>
                   </SelectItem>
                   <SelectItem value="critical">
-                    <span className={priorityColors.critical}>Critical - Urgent</span>
+                    <span className={priorityColors.critical}>Critical Priority</span>
                   </SelectItem>
                 </SelectContent>
               </Select>
             </div>
+            
+            <div>
+              <Label htmlFor="creditPoints">Credit Points</Label>
+              <Input
+                id="creditPoints"
+                type="number"
+                min="0"
+                value={creditPoints}
+                onChange={(e) => setCreditPoints(e.target.value)}
+                placeholder="Points for completion"
+                className="mt-1"
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="timeLimit">Time Limit (minutes)</Label>
+            <Input
+              id="timeLimit"
+              type="number"
+              min="1"
+              value={timeLimit}
+              onChange={(e) => setTimeLimit(e.target.value)}
+              placeholder="Expected completion time"
+              className="mt-1"
+            />
           </div>
 
           {(!isPersonalTask && !showEmployeeSelection) && (
             <div>
-              <Label htmlFor="assignedTo" className="text-rose-gold-contrast">Assign to Employee *</Label>
+              <Label htmlFor="assignedTo">Assign to Employee *</Label>
               <Select value={assignedTo} onValueChange={setAssignedTo}>
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder={
                     loadingEmployees ? "Loading employees..." : 
-                    availableUsers.length === 0 ? "No employees found" :
+                    employees.length === 0 ? "No employees found" :
                     "Select employee to assign"
                   } />
                 </SelectTrigger>
@@ -314,25 +309,20 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
                     <SelectItem value="loading" disabled>
                       Loading employees...
                     </SelectItem>
-                  ) : availableUsers.length === 0 ? (
+                  ) : employees.length === 0 ? (
                     <SelectItem value="none" disabled>
                       No employees available
                     </SelectItem>
                   ) : (
-                    availableUsers.map((employee: any) => (
+                    employees.map((employee: any) => (
                       <SelectItem key={employee.email} value={employee.email}>
                         {employee.name} ({employee.email})
+                        {employee.isTeamHead && <span className="ml-1 text-xs bg-blue-100 text-blue-800 px-1 rounded">Team Head</span>}
                       </SelectItem>
                     ))
                   )}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                {loadingEmployees 
-                  ? "Loading employee list from database..." 
-                  : `Choose which employee should work on this task (${availableUsers.length} available)`
-                }
-              </p>
               {employeeError && (
                 <p className="text-xs text-destructive mt-1">
                   Failed to load employees. Please refresh and try again.
@@ -343,19 +333,19 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
 
           {showEmployeeSelection && (
             <div>
-              <Label className="text-rose-gold-contrast">Select Team Members * ({selectedEmployees.length} selected)</Label>
+              <Label>Select Team Members * ({selectedEmployees.length} selected)</Label>
               {loadingEmployees ? (
                 <div className="text-center py-4">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-rose-gold mx-auto"></div>
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
                 </div>
               ) : (
                 <div className="max-h-48 overflow-y-auto border rounded-lg p-4 space-y-3 mt-1">
-                  {availableUsers.length === 0 ? (
+                  {employees.length === 0 ? (
                     <p className="text-muted-foreground text-center py-4">
                       No employees available
                     </p>
                   ) : (
-                    availableUsers.map((employee: any) => (
+                    employees.map((employee: any) => (
                       <div key={employee.id} className="flex items-center space-x-3">
                         <input
                           type="checkbox"
@@ -384,9 +374,6 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
                   )}
                 </div>
               )}
-              <p className="text-xs text-muted-foreground mt-1">
-                Select multiple employees to assign this team task to all of them
-              </p>
               {employeeError && (
                 <p className="text-xs text-destructive mt-1">
                   Failed to load employees. Please refresh and try again.
@@ -396,7 +383,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
           )}
           
           <div>
-            <Label className="text-rose-gold-contrast">Due Date & Time *</Label>
+            <Label>Due Date & Time *</Label>
             <div className="flex gap-2 mt-1">
               <Popover>
                 <PopoverTrigger asChild>
@@ -417,7 +404,6 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
                     selected={selectedDate}
                     onSelect={setSelectedDate}
                     initialFocus
-                    className={cn("p-3 pointer-events-auto")}
                   />
                 </PopoverContent>
               </Popover>
@@ -432,18 +418,26 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
                 />
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Optional: Set a specific time for better planning
-            </p>
+          </div>
+
+          <div>
+            <Label htmlFor="attachmentUrl">Attachment URL</Label>
+            <Input
+              id="attachmentUrl"
+              value={attachmentUrl}
+              onChange={(e) => setAttachmentUrl(e.target.value)}
+              placeholder="Link to relevant documents or resources"
+              className="mt-1"
+            />
           </div>
           
           <div>
-            <Label htmlFor="notes" className="text-rose-gold-contrast">Additional Notes</Label>
+            <Label htmlFor="notes">Additional Notes</Label>
             <Textarea
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Add any additional context, resources, or reminders for this task"
+              placeholder="Add any additional context or instructions"
               className="mt-1"
               rows={2}
             />
@@ -456,11 +450,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
             <X className="mr-2 h-4 w-4" />
             Cancel
           </Button>
-          <Button 
-            onClick={handleSave} 
-            disabled={!isFormValid}
-            className="bg-rose-gold hover:bg-rose-gold-dark text-white"
-          >
+          <Button onClick={handleSave} disabled={!isFormValid}>
             <Save className="mr-2 h-4 w-4" />
             Create Task
           </Button>
