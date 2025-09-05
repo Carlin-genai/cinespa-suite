@@ -34,6 +34,8 @@ export type Database = {
           task_updates: Json | null
           updated_at: string | null
           user_id: string | null
+          voice_note_duration: number | null
+          voice_note_url: string | null
         }
         Insert: {
           attachments?: Json | null
@@ -54,6 +56,8 @@ export type Database = {
           task_updates?: Json | null
           updated_at?: string | null
           user_id?: string | null
+          voice_note_duration?: number | null
+          voice_note_url?: string | null
         }
         Update: {
           attachments?: Json | null
@@ -74,6 +78,8 @@ export type Database = {
           task_updates?: Json | null
           updated_at?: string | null
           user_id?: string | null
+          voice_note_duration?: number | null
+          voice_note_url?: string | null
         }
         Relationships: [
           {
@@ -98,6 +104,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      notification_preferences: {
+        Row: {
+          created_at: string | null
+          daily_reminders: boolean | null
+          email_notifications: boolean | null
+          id: string
+          task_assigned: boolean | null
+          task_completed: boolean | null
+          task_overdue: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          daily_reminders?: boolean | null
+          email_notifications?: boolean | null
+          id?: string
+          task_assigned?: boolean | null
+          task_completed?: boolean | null
+          task_overdue?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          daily_reminders?: boolean | null
+          email_notifications?: boolean | null
+          id?: string
+          task_assigned?: boolean | null
+          task_completed?: boolean | null
+          task_overdue?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       notifications: {
         Row: {
@@ -331,13 +373,18 @@ export type Database = {
       }
       tasks: {
         Row: {
+          actual_hours: number | null
+          admin_rating: number | null
           assigned_by: string | null
           assigned_to: string | null
           attachments: Json | null
+          completion_attachments: Json | null
           created_at: string | null
           created_by: string | null
+          credit_points: number | null
           description: string | null
           due_date: string | null
+          estimated_hours: number | null
           id: string
           is_self_task: boolean | null
           notes: string | null
@@ -349,13 +396,18 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          actual_hours?: number | null
+          admin_rating?: number | null
           assigned_by?: string | null
           assigned_to?: string | null
           attachments?: Json | null
+          completion_attachments?: Json | null
           created_at?: string | null
           created_by?: string | null
+          credit_points?: number | null
           description?: string | null
           due_date?: string | null
+          estimated_hours?: number | null
           id?: string
           is_self_task?: boolean | null
           notes?: string | null
@@ -367,13 +419,18 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          actual_hours?: number | null
+          admin_rating?: number | null
           assigned_by?: string | null
           assigned_to?: string | null
           attachments?: Json | null
+          completion_attachments?: Json | null
           created_at?: string | null
           created_by?: string | null
+          credit_points?: number | null
           description?: string | null
           due_date?: string | null
+          estimated_hours?: number | null
           id?: string
           is_self_task?: boolean | null
           notes?: string | null
@@ -420,6 +477,7 @@ export type Database = {
           created_at: string | null
           id: string
           org_id: string
+          role: Database["public"]["Enums"]["team_role"] | null
           team_id: string
           user_id: string
         }
@@ -427,6 +485,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           org_id: string
+          role?: Database["public"]["Enums"]["team_role"] | null
           team_id: string
           user_id: string
         }
@@ -434,6 +493,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           org_id?: string
+          role?: Database["public"]["Enums"]["team_role"] | null
           team_id?: string
           user_id?: string
         }
@@ -540,6 +600,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "employee"
+      team_role: "head" | "member"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -668,6 +729,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "employee"],
+      team_role: ["head", "member"],
     },
   },
 } as const
