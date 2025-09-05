@@ -32,7 +32,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   isPersonalTask = false,
   showEmployeeSelection = false,
 }) => {
-  const { user, userRole } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   // Form state
@@ -202,10 +202,12 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   };
 
   // Check if form is valid
-  const isFormValid = title && 
-    (!isPersonalTask && !showEmployeeSelection ? assignedTo : true) && 
+  const isFormValid = Boolean(
+    title.trim() &&
+    (!isPersonalTask && !showEmployeeSelection ? assignedTo : true) &&
     (!showEmployeeSelection || selectedEmployees.length > 0) &&
-    selectedDate;
+    selectedDate
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
