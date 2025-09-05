@@ -6,21 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Calendar, Clock, FileText, MoreVertical, Edit, Trash2, CheckCircle, AlertTriangle, Hourglass, Star } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useAuth } from '@/contexts/AuthContext';
+import { Task } from '@/types';
 
 interface TaskCardProps {
-  task: {
-    id: string;
-    title: string;
-    description: string;
-    status: 'pending' | 'in-progress' | 'completed' | 'overdue';
-    priority: 'low' | 'medium' | 'high' | 'critical';
-    assigned_to: string;
-    due_date: string;
-    notes?: string;
-    created_at: string;
-    admin_rating?: number;
-    admin_comment?: string;
-  };
+  task: Task;
   onEdit?: (task: any) => void;
   onDelete?: (taskId: string) => void;
   showActions?: boolean;

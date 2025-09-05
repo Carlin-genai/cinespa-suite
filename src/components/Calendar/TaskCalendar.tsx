@@ -6,28 +6,30 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { format, isSameDay } from 'date-fns';
 import { CalendarIcon, Clock } from 'lucide-react';
+import { Task } from '@/types';
 
-interface Task {
+interface CalendarTask {
   id: string;
   title: string;
   due_date: string;
-  priority: string;
-  status: string;
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  status: 'pending' | 'in-progress' | 'completed' | 'overdue';
 }
 
 const TaskCalendar: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [tasksForSelectedDate, setTasksForSelectedDate] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<CalendarTask[]>([]);
+  const [tasksForSelectedDate, setTasksForSelectedDate] = useState<CalendarTask[]>([]);
   const { user } = useAuth();
 
   const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'High': 
+    switch (priority.toLowerCase()) {
+      case 'high': 
+      case 'critical':
         return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'Medium': 
+      case 'medium': 
         return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'Low': 
+      case 'low': 
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       default: 
         return 'bg-gray-100 text-gray-800 border-gray-200';
@@ -59,7 +61,13 @@ const TaskCalendar: React.FC = () => {
         .order('due_date');
 
       if (error) throw error;
-      setTasks(data || []);
+      // Cast the data to proper types since database returns strings
+      const typedData = (data || []).map(task => ({
+        ...task,
+        priority: task.priority as 'low' | 'medium' | 'high' | 'critical',
+        status: task.status as 'pending' | 'in-progress' | 'completed' | 'overdue'
+      }));
+      setTasks(typedData);
     } catch (error) {
       console.error('Error fetching tasks:', error);
     }
@@ -72,7 +80,7 @@ const TaskCalendar: React.FC = () => {
   useEffect(() => {
     if (selectedDate) {
       const tasksForDate = tasks.filter(task => 
-        isSameDay(new Date(task.due_date), selectedDate)
+        task.due_date && isSameDay(new Date(task.due_date), selectedDate)
       );
       setTasksForSelectedDate(tasksForDate);
     }
@@ -80,15 +88,15 @@ const TaskCalendar: React.FC = () => {
 
   const getTasksForDate = (date: Date) => {
     return tasks.filter(task => 
-      isSameDay(new Date(task.due_date), date)
+      task.due_date && isSameDay(new Date(task.due_date), date)
     );
   };
 
   const renderDay = (date: Date) => {
     const tasksForDate = getTasksForDate(date);
-    const hasHighPriority = tasksForDate.some(task => task.priority === 'High');
-    const hasMediumPriority = tasksForDate.some(task => task.priority === 'Medium');
-    const hasLowPriority = tasksForDate.some(task => task.priority === 'Low');
+    const hasHighPriority = tasksForDate.some(task => task.priority === 'high' || task.priority === 'critical');
+    const hasMediumPriority = tasksForDate.some(task => task.priority === 'medium');
+    const hasLowPriority = tasksForDate.some(task => task.priority === 'low');
 
     let indicatorClass = '';
     if (hasHighPriority) {

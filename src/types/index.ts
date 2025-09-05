@@ -13,6 +13,18 @@ export interface Task {
   admin_comment?: string;
   created_at: string;
   updated_at: string;
+  time_limit?: number;
+  credit_points?: number;
+  attachment_url?: string;
+  attachments?: any[];
+  completion_attachments?: any[];
+  actual_hours?: number;
+  estimated_hours?: number;
+  is_self_task?: boolean;
+  created_by?: string;
+  team_id?: string;
+  org_id?: string;
+  completed_at?: string;
 }
 
 export interface User {
