@@ -243,9 +243,11 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          is_team_head: boolean | null
           org_id: string | null
           preferences: Json | null
           role: string | null
+          team_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -255,9 +257,11 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          is_team_head?: boolean | null
           org_id?: string | null
           preferences?: Json | null
           role?: string | null
+          team_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -267,9 +271,11 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          is_team_head?: boolean | null
           org_id?: string | null
           preferences?: Json | null
           role?: string | null
+          team_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -278,6 +284,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
             referencedColumns: ["id"]
           },
         ]
@@ -377,7 +390,9 @@ export type Database = {
           admin_rating: number | null
           assigned_by: string | null
           assigned_to: string | null
+          attachment_url: string | null
           attachments: Json | null
+          completed_at: string | null
           completion_attachments: Json | null
           created_at: string | null
           created_by: string | null
@@ -392,6 +407,7 @@ export type Database = {
           priority: string | null
           status: string | null
           team_id: string | null
+          time_limit: number | null
           title: string
           updated_at: string | null
         }
@@ -400,7 +416,9 @@ export type Database = {
           admin_rating?: number | null
           assigned_by?: string | null
           assigned_to?: string | null
+          attachment_url?: string | null
           attachments?: Json | null
+          completed_at?: string | null
           completion_attachments?: Json | null
           created_at?: string | null
           created_by?: string | null
@@ -415,6 +433,7 @@ export type Database = {
           priority?: string | null
           status?: string | null
           team_id?: string | null
+          time_limit?: number | null
           title: string
           updated_at?: string | null
         }
@@ -423,7 +442,9 @@ export type Database = {
           admin_rating?: number | null
           assigned_by?: string | null
           assigned_to?: string | null
+          attachment_url?: string | null
           attachments?: Json | null
+          completed_at?: string | null
           completion_attachments?: Json | null
           created_at?: string | null
           created_by?: string | null
@@ -438,6 +459,7 @@ export type Database = {
           priority?: string | null
           status?: string | null
           team_id?: string | null
+          time_limit?: number | null
           title?: string
           updated_at?: string | null
         }
@@ -589,6 +611,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_team_head: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
       migrate_existing_roles: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -599,7 +625,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "employee"
+      app_role: "admin" | "employee" | "team_head"
       team_role: "head" | "member"
     }
     CompositeTypes: {
@@ -728,7 +754,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "employee"],
+      app_role: ["admin", "employee", "team_head"],
       team_role: ["head", "member"],
     },
   },

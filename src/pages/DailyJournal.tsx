@@ -1,336 +1,322 @@
-
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Save, Edit, Trash2, BookOpen, RotateCcw, RefreshCw } from 'lucide-react';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
-import { apiService } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { Calendar, Save, Plus, Trash2, Mic, MicOff, Play, Pause, Square } from 'lucide-react';
+import VoiceRecorder from '@/components/VoiceRecorder';
 
 const DailyJournal = () => {
+  const { user } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [newEntryContent, setNewEntryContent] = useState('');
-  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
-  const [editingContent, setEditingContent] = useState('');
-
-  // Fetch journal entries from backend
-  const { data: entries = [], isLoading } = useQuery({
-    queryKey: ['journal-entries'],
-    queryFn: () => apiService.getJournalEntries(),
+  const [entry, setEntry] = useState({
+    content: '',
+    task_updates: [] as string[],
+    next_goals: '',
+    challenges: '',
+    summary: '',
+    voice_note_url: '',
+    voice_note_duration: 0
   });
+  const [newTaskUpdate, setNewTaskUpdate] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [entries, setEntries] = useState<any[]>([]);
 
-  // Create journal entry mutation
-  const createEntryMutation = useMutation({
-    mutationFn: (entry: { date: string; content: string }) => 
-      apiService.createJournalEntry(entry),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
-      setNewEntryContent('');
-      toast({
-        title: "Success",
-        description: "Journal entry created successfully",
-      });
-    },
-    onError: (error) => {
+  const fetchJournalEntries = async () => {
+    if (!user) return;
+
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('daily_journal')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('date', selectedDate)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setEntries(data || []);
+    } catch (error) {
+      console.error('Error fetching journal entries:', error);
       toast({
         title: "Error",
-        description: "Failed to create journal entry",
-        variant: "destructive",
+        description: "Failed to fetch journal entries",
+        variant: "destructive"
       });
-      console.error('Create journal entry error:', error);
-    },
-  });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  // Update journal entry mutation (using backend if available, or placeholder)
-  const updateEntryMutation = useMutation({
-    mutationFn: ({ id, content }: { id: string; content: string }) => {
-      // Placeholder for update - your backend should implement PATCH/PUT for journal entries
-      console.log('Updating entry:', id, content);
-      return Promise.resolve({ id, content });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
-      setEditingEntryId(null);
-      setEditingContent('');
+  const handleSaveEntry = async () => {
+    if (!user || !entry.content.trim()) return;
+
+    try {
+      setIsLoading(true);
+      const { error } = await supabase
+        .from('daily_journal')
+        .insert({
+          user_id: user.id,
+          date: selectedDate,
+          content: entry.content,
+          task_updates: entry.task_updates,
+          next_goals: entry.next_goals,
+          challenges: entry.challenges,
+          summary: entry.summary,
+          voice_note_url: entry.voice_note_url,
+          voice_note_duration: entry.voice_note_duration
+        });
+
+      if (error) throw error;
+
       toast({
         title: "Success",
-        description: "Journal entry updated successfully",
+        description: "Journal entry saved successfully"
       });
-    },
-    onError: (error) => {
+
+      // Reset form
+      setEntry({
+        content: '',
+        task_updates: [],
+        next_goals: '',
+        challenges: '',
+        summary: '',
+        voice_note_url: '',
+        voice_note_duration: 0
+      });
+
+      // Refresh entries
+      fetchJournalEntries();
+    } catch (error) {
+      console.error('Error saving journal entry:', error);
       toast({
         title: "Error",
-        description: "Failed to update journal entry",
-        variant: "destructive",
+        description: "Failed to save journal entry",
+        variant: "destructive"
       });
-      console.error('Update journal entry error:', error);
-    },
-  });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  // Delete journal entry mutation (placeholder - implement in your backend)
-  const deleteEntryMutation = useMutation({
-    mutationFn: (id: string) => {
-      console.log('Deleting entry:', id);
-      return Promise.resolve();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
-      toast({
-        title: "Success",
-        description: "Journal entry deleted successfully",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to delete journal entry",
-        variant: "destructive",
-      });
-      console.error('Delete journal entry error:', error);
-    },
-  });
-
-  const handleCreateEntry = () => {
-    if (!newEntryContent.trim()) return;
+  const handleAddTaskUpdate = () => {
+    if (!newTaskUpdate.trim()) return;
     
-    createEntryMutation.mutate({
-      date: selectedDate.toISOString().split('T')[0],
-      content: newEntryContent,
+    setEntry(prev => ({
+      ...prev,
+      task_updates: [...prev.task_updates, newTaskUpdate]
+    }));
+    setNewTaskUpdate('');
+  };
+
+  const handleRemoveTaskUpdate = (index: number) => {
+    setEntry(prev => ({
+      ...prev,
+      task_updates: prev.task_updates.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleVoiceRecording = (audioBlob: Blob, duration: number) => {
+    // Here you would upload the audio blob to storage and get the URL
+    // For now, we'll just store the duration
+    setEntry(prev => ({
+      ...prev,
+      voice_note_duration: duration
+    }));
+    
+    toast({
+      title: "Voice Note Recorded",
+      description: `${Math.floor(duration / 60)}:${(duration % 60).toString().padStart(2, '0')} minutes recorded`
     });
   };
 
-  const handleEditEntry = (id: string, currentContent: string) => {
-    setEditingEntryId(id);
-    setEditingContent(currentContent);
-  };
-
-  const handleSaveEdit = () => {
-    if (!editingEntryId || !editingContent.trim()) return;
-    
-    updateEntryMutation.mutate({
-      id: editingEntryId,
-      content: editingContent,
-    });
-  };
-
-  const handleDeleteEntry = (id: string) => {
-    deleteEntryMutation.mutate(id);
-  };
-
-  const handleResetEntry = (id: string) => {
-    // Reset to original state - implement based on your backend
-    console.log('Resetting entry:', id);
-  };
-
-  const handleRestartEntry = (id: string) => {
-    // Restart entry - implement based on your backend
-    console.log('Restarting entry:', id);
-  };
-
-  const todayEntries = entries.filter((entry: any) => {
-    const entryDate = new Date(entry.date).toDateString();
-    const selectedDateString = selectedDate.toDateString();
-    return entryDate === selectedDateString;
-  });
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-luxury-gold"></div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    fetchJournalEntries();
+  }, [user, selectedDate]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold font-montserrat text-foreground">Daily Journal</h1>
-          <p className="text-muted-foreground font-opensans">
-            Log your daily work, progress, and notes
+          <h1 className="text-3xl font-bold text-foreground">Daily Journal</h1>
+          <p className="text-muted-foreground">
+            Record your daily progress, challenges, and voice notes
           </p>
         </div>
       </div>
 
-      {/* Date Picker */}
+      {/* Date Selector */}
       <Card>
         <CardHeader>
-          <CardTitle className="font-montserrat flex items-center gap-2">
-            <CalendarIcon className="h-5 w-5 text-luxury-gold" />
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
             Select Date
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-full justify-start text-left font-normal",
-                  !selectedDate && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => date && setSelectedDate(date)}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
+          <Input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="max-w-xs"
+          />
         </CardContent>
       </Card>
 
       {/* New Entry Form */}
       <Card>
         <CardHeader>
-          <CardTitle className="font-montserrat flex items-center gap-2">
-            <BookOpen className="h-5 w-5 text-luxury-gold" />
-            Add Journal Entry for {format(selectedDate, "MMMM d, yyyy")}
-          </CardTitle>
+          <CardTitle>Add New Entry</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="content">Content</Label>
+            <Label htmlFor="content">Daily Progress</Label>
             <Textarea
               id="content"
-              placeholder="What did you work on today? Any progress updates, challenges, or notes..."
-              value={newEntryContent}
-              onChange={(e) => setNewEntryContent(e.target.value)}
+              placeholder="What did you accomplish today? Share your progress, insights, and thoughts..."
+              value={entry.content}
+              onChange={(e) => setEntry(prev => ({ ...prev, content: e.target.value }))}
               rows={4}
             />
           </div>
+
+          <div>
+            <Label htmlFor="challenges">Challenges Faced</Label>
+            <Textarea
+              id="challenges"
+              placeholder="What obstacles did you encounter? How did you overcome them?"
+              value={entry.challenges}
+              onChange={(e) => setEntry(prev => ({ ...prev, challenges: e.target.value }))}
+              rows={2}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="next_goals">Tomorrow's Goals</Label>
+            <Textarea
+              id="next_goals"
+              placeholder="What do you plan to work on tomorrow?"
+              value={entry.next_goals}
+              onChange={(e) => setEntry(prev => ({ ...prev, next_goals: e.target.value }))}
+              rows={2}
+            />
+          </div>
+
+          {/* Task Updates Section */}
+          <div>
+            <Label>Task Updates</Label>
+            <div className="flex gap-2 mt-2">
+              <Input
+                placeholder="Add a task update..."
+                value={newTaskUpdate}
+                onChange={(e) => setNewTaskUpdate(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleAddTaskUpdate()}
+              />
+              <Button onClick={handleAddTaskUpdate} size="sm">
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+            {entry.task_updates.length > 0 && (
+              <div className="mt-2 space-y-2">
+                {entry.task_updates.map((update, index) => (
+                  <div key={index} className="flex items-center justify-between bg-muted p-2 rounded">
+                    <span className="text-sm">{update}</span>
+                    <Button
+                      onClick={() => handleRemoveTaskUpdate(index)}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Voice Recorder */}
+          <VoiceRecorder
+            onRecordingComplete={handleVoiceRecording}
+            existingAudioUrl={entry.voice_note_url}
+          />
+
           <Button 
-            onClick={handleCreateEntry}
-            disabled={!newEntryContent.trim() || createEntryMutation.isPending}
-            className="gradient-gold text-charcoal-black"
+            onClick={handleSaveEntry}
+            disabled={isLoading || !entry.content.trim()}
+            className="w-full"
           >
             <Save className="mr-2 h-4 w-4" />
-            {createEntryMutation.isPending ? 'Saving...' : 'Save Entry'}
+            {isLoading ? 'Saving...' : 'Save Entry'}
           </Button>
         </CardContent>
       </Card>
 
-      {/* Entries for Selected Date */}
+      {/* Existing Entries */}
       <Card>
         <CardHeader>
-          <CardTitle className="font-montserrat">
-            Entries for {format(selectedDate, "MMMM d, yyyy")} ({todayEntries.length})
-          </CardTitle>
+          <CardTitle>Entries for {selectedDate}</CardTitle>
         </CardHeader>
         <CardContent>
-          {todayEntries.length === 0 ? (
+          {entries.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="font-opensans">No journal entries for this date</p>
-              <p className="text-sm mt-2">Add your first entry above</p>
+              <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No journal entries for this date</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {todayEntries.map((entry: any) => (
-                <Card key={entry.id} className="border-l-4 border-l-luxury-gold">
+              {entries.map((entry) => (
+                <Card key={entry.id} className="border-l-4 border-l-primary">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between mb-2">
                       <span className="text-sm text-muted-foreground">
                         {new Date(entry.created_at).toLocaleTimeString()}
                       </span>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleResetEntry(entry.id)}
-                          className="h-8 w-8 p-0 hover:bg-luxury-gold hover:text-charcoal-black"
-                        >
-                          <RotateCcw className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleRestartEntry(entry.id)}
-                          className="h-8 w-8 p-0 hover:bg-progress-blue hover:text-white"
-                        >
-                          <RefreshCw className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleEditEntry(entry.id, entry.content)}
-                          className="h-8 w-8 p-0 hover:bg-luxury-gold hover:text-charcoal-black"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDeleteEntry(entry.id)}
-                          className="h-8 w-8 p-0 hover:bg-blocked-red hover:text-white"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      {entry.voice_note_duration > 0 && (
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                          Voice: {Math.floor(entry.voice_note_duration / 60)}:{(entry.voice_note_duration % 60).toString().padStart(2, '0')}
+                        </span>
+                      )}
                     </div>
                     
-                    {editingEntryId === entry.id ? (
-                      <div className="space-y-2">
-                        <Textarea
-                          value={editingContent}
-                          onChange={(e) => setEditingContent(e.target.value)}
-                          rows={3}
-                        />
-                        <div className="flex gap-2">
-                          <Button 
-                            size="sm" 
-                            onClick={handleSaveEdit}
-                            className="gradient-gold text-charcoal-black"
-                          >
-                            Save
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => {
-                              setEditingEntryId(null);
-                              setEditingContent('');
-                            }}
-                          >
-                            Cancel
-                          </Button>
+                    <div className="space-y-3">
+                      {entry.content && (
+                        <div>
+                          <h4 className="font-semibold text-sm text-primary mb-1">Progress</h4>
+                          <p className="text-sm whitespace-pre-wrap">{entry.content}</p>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="prose prose-sm max-w-none">
-                        <p className="font-opensans text-foreground whitespace-pre-wrap">
-                          {entry.content}
-                        </p>
-                      </div>
-                    )}
-
-                    {entry.task_updates && entry.task_updates.length > 0 && (
-                      <div className="mt-4 p-3 bg-muted rounded-lg">
-                        <h4 className="font-semibold text-sm mb-2">Task Updates:</h4>
-                        <div className="space-y-1">
-                          {entry.task_updates.map((update: any, index: number) => (
-                            <p key={index} className="text-sm text-muted-foreground">
-                              • {update}
-                            </p>
-                          ))}
+                      )}
+                      
+                      {entry.challenges && (
+                        <div>
+                          <h4 className="font-semibold text-sm text-destructive mb-1">Challenges</h4>
+                          <p className="text-sm whitespace-pre-wrap">{entry.challenges}</p>
                         </div>
-                      </div>
-                    )}
+                      )}
+                      
+                      {entry.next_goals && (
+                        <div>
+                          <h4 className="font-semibold text-sm text-blue-600 mb-1">Tomorrow's Goals</h4>
+                          <p className="text-sm whitespace-pre-wrap">{entry.next_goals}</p>
+                        </div>
+                      )}
+                      
+                      {entry.task_updates && entry.task_updates.length > 0 && (
+                        <div>
+                          <h4 className="font-semibold text-sm text-green-600 mb-1">Task Updates</h4>
+                          <ul className="list-disc list-inside space-y-1">
+                            {entry.task_updates.map((update: string, index: number) => (
+                              <li key={index} className="text-sm">{update}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               ))}

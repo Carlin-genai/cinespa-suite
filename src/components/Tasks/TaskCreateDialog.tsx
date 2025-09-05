@@ -43,17 +43,16 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   isPersonalTask = false,
   showEmployeeSelection = false,
 }) => {
-  const { user, userRole } = useAuth();
-  const { toast } = useToast();
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [status, setStatus] = useState<Task['status']>('pending');
-  const [priority, setPriority] = useState<Task['priority']>('medium');
-  const [assignedTo, setAssignedTo] = useState('');
-  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [selectedTime, setSelectedTime] = useState('');
-  const [notes, setNotes] = useState('');
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    due_date: '',
+    assigned_to: '',
+    priority: 'Medium' as 'Low' | 'Medium' | 'High',
+    time_limit: '', // in minutes
+    credit_points: '',
+    attachment_url: ''
+  });
 
   // Fetch employees from Supabase profiles
   const { data: employees = [], isLoading: loadingEmployees, error: employeeError } = useQuery({
