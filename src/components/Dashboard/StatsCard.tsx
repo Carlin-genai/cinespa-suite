@@ -20,7 +20,12 @@ const StatsCard = ({ title, value, change, icon: Icon, trend = 'neutral', classN
         <CardTitle className="text-sm font-medium font-opensans text-muted-foreground">
           {title}
         </CardTitle>
-        <Icon className="h-4 w-4 text-rose-gold" />
+        <Icon className="h-4 w-4" style={{ color: 
+          title.toLowerCase().includes('completed') ? 'hsl(120, 100%, 0.8%)' :
+          title.toLowerCase().includes('progress') ? 'hsl(206.6, 89.7%, 54.1%)' :
+          title.toLowerCase().includes('overdue') ? 'hsl(9.4, 100%, 50%)' :
+          'hsl(var(--rose-gold))'
+        }} />
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold font-montserrat text-rose-gold-contrast">

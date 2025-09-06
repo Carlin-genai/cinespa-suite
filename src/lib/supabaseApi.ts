@@ -45,8 +45,19 @@ export class SupabaseApiService {
     return tasks;
   }
 
-  async getTeamTasks(): Promise<Task[]> {
-    return this.getTasks(); // Same as getTasks for now
+  // Get self tasks (tasks assigned by user to themselves)
+  async getSelfTasks(): Promise<Task[]> {
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user) throw new Error('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('*')
+      .or(`and(assigned_to.eq.${user.id},assigned_by.eq.${user.id}),and(assigned_to.eq.${user.id},is_self_task.eq.true)`)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return (data || []).map(mapDbTaskToTask);
   }
 
   async createTask(task: Partial<Task>): Promise<Task> {
@@ -125,17 +136,73 @@ export class SupabaseApiService {
     return data || [];
   }
 
-  // Notifications
+  // Notifications - role-based visibility
   async getNotifications(): Promise<any[]> {
     const userId = (await supabase.auth.getUser()).data.user?.id;
-    const { data, error } = await supabase
-      .from('notifications')
-      .select('*')
+    if (!userId) throw new Error('User not authenticated');
+
+    // Get user role to determine what notifications to show
+    const { data: userRole, error: roleError } = await supabase
+      .from('user_roles')
+      .select('role')
       .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    return data || [];
+      .single();
+
+    if (roleError && roleError.code !== 'PGRST116') throw roleError;
+
+    const role = userRole?.role || 'employee';
+
+    if (role === 'admin') {
+      // Admin sees notifications for tasks assigned by them
+      const { data: adminTasks } = await supabase
+        .from('tasks')
+        .select('id')
+        .eq('assigned_by', userId);
+      
+      const taskIds = adminTasks?.map(task => task.id) || [];
+      
+      const { data, error } = await supabase
+        .from('notifications')
+        .select(`
+          *,
+          tasks!notifications_task_id_fkey(
+            id,
+            title,
+            assigned_to,
+            assigned_by
+          )
+        `)
+        .in('task_id', taskIds)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    } else {
+      // Employee sees notifications for tasks assigned to them
+      const { data: employeeTasks } = await supabase
+        .from('tasks')
+        .select('id')
+        .eq('assigned_to', userId);
+      
+      const taskIds = employeeTasks?.map(task => task.id) || [];
+      
+      const { data, error } = await supabase
+        .from('notifications')
+        .select(`
+          *,
+          tasks!notifications_task_id_fkey(
+            id,
+            title,
+            assigned_to,
+            assigned_by
+          )
+        `)
+        .in('task_id', taskIds)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    }
   }
 
   async markNotificationRead(id: string): Promise<void> {

@@ -89,6 +89,11 @@ export default {
 				'blocked-red': 'hsl(var(--overdue-red))', // Alias for consistency
 				'pending-yellow': 'hsl(var(--pending-yellow))',
 				'not-started-beige': 'hsl(var(--not-started-beige))',
+				// Priority colors for calendar
+				'priority-critical': 'hsl(var(--priority-critical))',
+				'priority-high': 'hsl(var(--priority-high))',
+				'priority-medium': 'hsl(var(--priority-medium))',
+				'priority-low': 'hsl(var(--priority-low))',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

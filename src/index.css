@@ -56,12 +56,18 @@
     --sidebar-border: 0 0% 90%; /* Light border */
     --sidebar-ring: 350 23% 57%;
 
-    /* Status colors for consistent UI */
-    --completed-green: 120 100% 0.8%; /* hsl(120deg 100% 0.8%) */
-    --progress-blue: 206.6 89.7% 54.1%; /* hsl(206.6deg 89.7% 54.1%) */
-    --overdue-red: 9.4 100% 50%; /* hsl(9.4deg 100% 50%) */
+    /* Status colors for consistent UI - User specified exact values */
+    --completed-green: 120 100% 0.8%; /* hsl(120.0, 100.0%, 0.8%) */
+    --progress-blue: 206.6 89.7% 54.1%; /* hsl(206.6, 89.7%, 54.1%) */
+    --overdue-red: 9.4 100% 50%; /* hsl(9.4, 100.0%, 50.0%) */
     --pending-yellow: 45 93% 47%; /* #F57C00 */
     --not-started-beige: 39 77% 83%; /* #F5DEB3 */
+    
+    /* Priority colors for calendar highlighting */
+    --priority-critical: 0 100% 50%; /* Red */
+    --priority-high: 270 100% 50%; /* Purple */
+    --priority-medium: 210 100% 50%; /* Blue */
+    --priority-low: 60 100% 50%; /* Yellow */
   }
 
   .dark {
@@ -115,11 +121,17 @@
     --sidebar-ring: 350 23% 62%;
 
     /* Status colors for dark theme - same as light theme for consistency */
-    --completed-green: 120 100% 0.8%; /* hsl(120deg 100% 0.8%) */
-    --progress-blue: 206.6 89.7% 54.1%; /* hsl(206.6deg 89.7% 54.1%) */
-    --overdue-red: 9.4 100% 50%; /* hsl(9.4deg 100% 50%) */
+    --completed-green: 120 100% 0.8%; /* hsl(120.0, 100.0%, 0.8%) */
+    --progress-blue: 206.6 89.7% 54.1%; /* hsl(206.6, 89.7%, 54.1%) */
+    --overdue-red: 9.4 100% 50%; /* hsl(9.4, 100.0%, 50.0%) */
     --pending-yellow: 45 93% 57%; /* Lighter yellow for dark theme */
     --not-started-beige: 39 77% 73%; /* Lighter beige for dark theme */
+    
+    /* Priority colors for calendar highlighting - same for dark theme */
+    --priority-critical: 0 100% 50%; /* Red */
+    --priority-high: 270 100% 50%; /* Purple */
+    --priority-medium: 210 100% 50%; /* Blue */
+    --priority-low: 60 100% 50%; /* Yellow */
   }
 }
 

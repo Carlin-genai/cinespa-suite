@@ -24,13 +24,14 @@ const TaskCalendar: React.FC = () => {
 
   const getPriorityColor = (priority: string) => {
     switch (priority.toLowerCase()) {
-      case 'high': 
       case 'critical':
-        return 'bg-purple-100 text-purple-800 border-purple-200';
+        return 'border-priority-critical/20 bg-priority-critical/10 text-priority-critical';
+      case 'high': 
+        return 'border-priority-high/20 bg-priority-high/10 text-priority-high';
       case 'medium': 
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'border-priority-medium/20 bg-priority-medium/10 text-priority-medium';
       case 'low': 
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return 'border-priority-low/20 bg-priority-low/10 text-priority-low';
       default: 
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -94,17 +95,20 @@ const TaskCalendar: React.FC = () => {
 
   const renderDay = (date: Date) => {
     const tasksForDate = getTasksForDate(date);
-    const hasHighPriority = tasksForDate.some(task => task.priority === 'high' || task.priority === 'critical');
+    const hasCriticalPriority = tasksForDate.some(task => task.priority === 'critical');
+    const hasHighPriority = tasksForDate.some(task => task.priority === 'high');
     const hasMediumPriority = tasksForDate.some(task => task.priority === 'medium');
     const hasLowPriority = tasksForDate.some(task => task.priority === 'low');
 
     let indicatorClass = '';
-    if (hasHighPriority) {
-      indicatorClass = 'bg-purple-500';
+    if (hasCriticalPriority) {
+      indicatorClass = 'bg-priority-critical';
+    } else if (hasHighPriority) {
+      indicatorClass = 'bg-priority-high';
     } else if (hasMediumPriority) {
-      indicatorClass = 'bg-blue-500';
+      indicatorClass = 'bg-priority-medium';
     } else if (hasLowPriority) {
-      indicatorClass = 'bg-yellow-500';
+      indicatorClass = 'bg-priority-low';
     }
 
     return (
@@ -182,17 +186,21 @@ const TaskCalendar: React.FC = () => {
           <CardTitle>Priority Legend</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4">
+          <div className="flex gap-4 flex-wrap">
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-purple-500 rounded-full" />
+              <div className="w-4 h-4 bg-priority-critical rounded-full" />
+              <span className="text-sm">Critical Priority</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-priority-high rounded-full" />
               <span className="text-sm">High Priority</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-blue-500 rounded-full" />
+              <div className="w-4 h-4 bg-priority-medium rounded-full" />
               <span className="text-sm">Medium Priority</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-yellow-500 rounded-full" />
+              <div className="w-4 h-4 bg-priority-low rounded-full" />
               <span className="text-sm">Low Priority</span>
             </div>
           </div>
