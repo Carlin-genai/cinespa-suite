@@ -10,6 +10,7 @@ import TaskCard from '@/components/Tasks/TaskCard';
 import TaskCreateDialog from '@/components/Tasks/TaskCreateDialog';
 import TaskEditDialog from '@/components/Tasks/TaskEditDialog';
 import { apiService } from '@/lib/api';
+import { supabaseApi } from '@/lib/supabaseApi';
 import { useAuth } from '@/contexts/AuthContext';
 import { Task } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -47,12 +48,7 @@ const SelfTasks = () => {
   // ✅ Fetch self-created tasks (tasks where user assigned to themselves)
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['self-tasks'],
-    queryFn: async () => {
-      const allTasks = await apiService.getTasks();
-      return allTasks.filter(
-        (task: Task) => task.assigned_by === user?.id && task.assigned_to === user?.id
-      );
-    },
+    queryFn: () => supabaseApi.getSelfTasks(),
   });
 
   // ✅ Create task mutation (self-assigned only)
