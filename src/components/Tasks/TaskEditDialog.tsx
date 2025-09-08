@@ -163,7 +163,7 @@ const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
           
           <div className="flex justify-between pt-4">
             <div className="flex gap-2">
-              <Button variant="outline" onClick={handleReset} className="border-luxury-gold text-luxury-gold hover:bg-luxury-gold hover:text-charcoal-black">
+              <Button variant="outline" onClick={handleReset} className="border-rose-gold text-rose-gold hover:bg-rose-gold hover:text-white">
                 <RotateCcw className="mr-2 h-4 w-4" />
                 Reset
               </Button>
@@ -176,7 +176,7 @@ const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
                 Delete
               </Button>
             </div>
-            <Button onClick={handleSave} className="gradient-gold text-charcoal-black">
+            <Button onClick={handleSave} className="bg-rose-gold hover:bg-rose-gold-dark text-white">
               <Save className="mr-2 h-4 w-4" />
               Save Changes
             </Button>

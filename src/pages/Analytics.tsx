@@ -33,7 +33,7 @@ const Analytics = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-luxury-gold"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-gold"></div>
       </div>
     );
   }
@@ -41,7 +41,7 @@ const Analytics = () => {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen text-center">
-        <p className="text-blocked-red mb-4">Failed to load analytics data.</p>
+        <p className="text-overdue-red mb-4">Failed to load analytics data.</p>
         <Button onClick={() => window.location.reload()}>Retry</Button>
       </div>
     );
@@ -172,7 +172,7 @@ const Analytics = () => {
           <p className="text-muted-foreground font-opensans">
             {viewType === 'personal' ? 'Track your performance metrics and productivity insights' : 'Monitor team performance and productivity trends'}
             {isLocalMode && (
-              <Badge variant="outline" className="ml-2 border-luxury-gold text-luxury-gold">
+              <Badge variant="outline" className="ml-2 border-rose-gold text-rose-gold">
                 Local Mode
               </Badge>
             )}
@@ -203,10 +203,10 @@ const Analytics = () => {
 
       {/* Key Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="border-luxury-gold/20">
+        <Card className="border-rose-gold/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
-            <CheckSquare className="h-4 w-4 text-luxury-gold" />
+            <CheckSquare className="h-4 w-4 text-rose-gold" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalTasks}</div>
@@ -242,10 +242,10 @@ const Analytics = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-blocked-red/20">
+        <Card className="border-overdue-red/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avg. Completion Time</CardTitle>
-            <Timer className="h-4 w-4 text-luxury-gold" />
+            <Timer className="h-4 w-4 text-rose-gold" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{avgCompletionTime}</div>
@@ -396,8 +396,8 @@ const Analytics = () => {
               </ul>
             </div>
             
-            <div className="p-4 bg-luxury-gold/10 rounded-lg">
-              <h4 className="font-semibold text-luxury-gold mb-2">Opportunities</h4>
+            <div className="p-4 bg-rose-gold/10 rounded-lg">
+              <h4 className="font-semibold text-rose-gold mb-2">Opportunities</h4>
               <ul className="text-sm space-y-1">
                 {completionRate < 60 && <li>• Focus on completing more tasks</li>}
                 {onTimePercentage < 70 && <li>• Improve deadline management</li>}

@@ -73,8 +73,8 @@ const AdminRatingDialog: React.FC<AdminRatingDialogProps> = ({
                   className={cn(
                     "h-6 w-6 cursor-pointer transition-colors",
                     (hoveredStar >= star || (!hoveredStar && rating >= star))
-                      ? "text-luxury-gold fill-luxury-gold" 
-                      : "text-gray-300 hover:text-luxury-gold"
+                      ? "text-rose-gold fill-rose-gold" 
+                      : "text-gray-300 hover:text-rose-gold"
                   )}
                   onClick={() => handleStarClick(star)}
                   onMouseEnter={() => handleStarHover(star)}
@@ -103,7 +103,7 @@ const AdminRatingDialog: React.FC<AdminRatingDialogProps> = ({
               <X className="mr-2 h-4 w-4" />
               Cancel
             </Button>
-            <Button onClick={handleSave} className="gradient-gold text-charcoal-black">
+            <Button onClick={handleSave} className="bg-rose-gold hover:bg-rose-gold-dark text-white">
               <Save className="mr-2 h-4 w-4" />
               Save Rating
             </Button>

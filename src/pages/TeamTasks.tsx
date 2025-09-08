@@ -379,7 +379,7 @@ const TeamTasks = () => {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="absolute top-2 right-16 opacity-0 group-hover:opacity-100 transition-opacity border-rose-gold text-rose-gold hover:bg-rose-gold hover:text-charcoal-black"
+                          className="absolute top-2 right-16 opacity-0 group-hover:opacity-100 transition-opacity border-rose-gold text-rose-gold hover:bg-rose-gold hover:text-white"
                           onClick={() => handleSetReminder(task.id, task.title)}
                         >
                           <Bell className="h-4 w-4" />
@@ -407,7 +407,7 @@ const TeamTasks = () => {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="absolute top-2 right-16 opacity-0 group-hover:opacity-100 transition-opacity border-rose-gold text-rose-gold hover:bg-rose-gold hover:text-charcoal-black"
+                          className="absolute top-2 right-16 opacity-0 group-hover:opacity-100 transition-opacity border-rose-gold text-rose-gold hover:bg-rose-gold hover:text-white"
                           onClick={() => handleSetReminder(task.id, task.title)}
                         >
                           <Bell className="h-4 w-4" />
@@ -435,7 +435,7 @@ const TeamTasks = () => {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="absolute top-2 right-16 opacity-0 group-hover:opacity-100 transition-opacity border-rose-gold text-rose-gold hover:bg-rose-gold hover:text-charcoal-black"
+                          className="absolute top-2 right-16 opacity-0 group-hover:opacity-100 transition-opacity border-rose-gold text-rose-gold hover:bg-rose-gold hover:text-white"
                           onClick={() => handleSetReminder(task.id, task.title)}
                         >
                           <Bell className="h-4 w-4" />
@@ -463,7 +463,7 @@ const TeamTasks = () => {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="absolute top-2 right-16 opacity-0 group-hover:opacity-100 transition-opacity border-rose-gold text-rose-gold hover:bg-rose-gold hover:text-charcoal-black"
+                          className="absolute top-2 right-16 opacity-0 group-hover:opacity-100 transition-opacity border-rose-gold text-rose-gold hover:bg-rose-gold hover:text-white"
                           onClick={() => handleSetReminder(task.id, task.title)}
                         >
                           <Bell className="h-4 w-4" />

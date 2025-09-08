@@ -54,7 +54,7 @@ const ReminderDialog: React.FC<ReminderDialogProps> = ({
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="font-montserrat flex items-center gap-2">
-            <Bell className="h-5 w-5 text-luxury-gold" />
+            <Bell className="h-5 w-5 text-rose-gold" />
             Set Reminder
           </DialogTitle>
         </DialogHeader>
@@ -118,7 +118,7 @@ const ReminderDialog: React.FC<ReminderDialogProps> = ({
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={!selectedDate} className="gradient-gold text-charcoal-black">
+            <Button onClick={handleSave} disabled={!selectedDate} className="bg-rose-gold hover:bg-rose-gold-dark text-white">
               <Bell className="mr-2 h-4 w-4" />
               Set Reminder
             </Button>

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -54,9 +53,9 @@ const Notifications = () => {
       case 'task':
         return <Calendar className="h-5 w-5 text-progress-blue" />;
       case 'reminder':
-        return <Bell className="h-5 w-5 text-luxury-gold" />;
+        return <Bell className="h-5 w-5 text-rose-gold" />;
       case 'alert':
-        return <AlertTriangle className="h-5 w-5 text-blocked-red" />;
+        return <AlertTriangle className="h-5 w-5 text-overdue-red" />;
       default:
         return <Info className="h-5 w-5 text-muted-foreground" />;
     }
@@ -71,7 +70,7 @@ const Notifications = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-luxury-gold"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-gold"></div>
       </div>
     );
   }
@@ -96,10 +95,10 @@ const Notifications = () => {
 
       {/* Upcoming Reminders */}
       {upcomingReminders.length > 0 && (
-        <Card className="border-luxury-gold/50">
+        <Card className="border-rose-gold/50">
           <CardHeader>
             <CardTitle className="font-montserrat flex items-center gap-2">
-              <Bell className="h-5 w-5 text-luxury-gold animate-pulse" />
+              <Bell className="h-5 w-5 text-rose-gold animate-pulse" />
               Upcoming Reminders ({upcomingReminders.length})
             </CardTitle>
           </CardHeader>
@@ -108,7 +107,7 @@ const Notifications = () => {
               {upcomingReminders.map((reminder: any) => (
                 <div
                   key={reminder.id}
-                  className="flex items-center justify-between p-3 bg-luxury-gold/10 rounded-lg border border-luxury-gold/20"
+                  className="flex items-center justify-between p-3 bg-rose-gold/10 rounded-lg border border-rose-gold/20"
                 >
                   <div className="flex-1">
                     <p className="font-medium text-foreground">{reminder.message}</p>
@@ -116,7 +115,7 @@ const Notifications = () => {
                       {new Date(reminder.reminder_time).toLocaleString()}
                     </p>
                   </div>
-                  <Badge className="bg-luxury-gold text-charcoal-black">
+                  <Badge className="bg-rose-gold text-white">
                     Pending
                   </Badge>
                 </div>
@@ -131,7 +130,7 @@ const Notifications = () => {
         <Card>
           <CardHeader>
             <CardTitle className="font-montserrat flex items-center gap-2">
-              <Bell className="h-5 w-5 text-blocked-red" />
+              <Bell className="h-5 w-5 text-overdue-red" />
               Unread Notifications ({unreadNotifications.length})
             </CardTitle>
           </CardHeader>
@@ -162,7 +161,7 @@ const Notifications = () => {
                         size="sm"
                         variant="outline"
                         onClick={() => handleMarkAsRead(notification.id)}
-                        className="border-luxury-gold text-luxury-gold hover:bg-luxury-gold hover:text-charcoal-black"
+                        className="border-rose-gold text-rose-gold hover:bg-rose-gold hover:text-white"
                       >
                         <Check className="h-4 w-4" />
                       </Button>
