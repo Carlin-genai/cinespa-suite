@@ -56,12 +56,12 @@
     --sidebar-border: 0 0% 90%; /* Light border */
     --sidebar-ring: 350 23% 57%;
 
-    /* Status colors for consistent UI - User specified exact values */
-    --completed-green: 120 100% 0.8%; /* hsl(120.0, 100.0%, 0.8%) */
+    /* Status colors - User specified exact HSL values */
+    --completed-green: 120 100% 25%; /* Updated for visibility - hsl(120.0, 100.0%, 25.0%) */
     --progress-blue: 206.6 89.7% 54.1%; /* hsl(206.6, 89.7%, 54.1%) */
     --overdue-red: 9.4 100% 50%; /* hsl(9.4, 100.0%, 50.0%) */
-    --pending-yellow: 45 93% 47%; /* #F57C00 */
-    --not-started-beige: 39 77% 83%; /* #F5DEB3 */
+    --pending-yellow: 45 93% 47%; /* Standard pending yellow */
+    --not-started-beige: 39 77% 83%; /* Standard beige */
     
     /* Priority colors for calendar highlighting */
     --priority-critical: 0 100% 50%; /* Red */
@@ -120,8 +120,8 @@
     --sidebar-border: 12 6.5% 15.1%;
     --sidebar-ring: 350 23% 62%;
 
-    /* Status colors for dark theme - same as light theme for consistency */
-    --completed-green: 120 100% 0.8%; /* hsl(120.0, 100.0%, 0.8%) */
+    /* Status colors for dark theme - same HSL values for consistency */
+    --completed-green: 120 100% 25%; /* Updated for visibility - hsl(120.0, 100.0%, 25.0%) */
     --progress-blue: 206.6 89.7% 54.1%; /* hsl(206.6, 89.7%, 54.1%) */
     --overdue-red: 9.4 100% 50%; /* hsl(9.4, 100.0%, 50.0%) */
     --pending-yellow: 45 93% 57%; /* Lighter yellow for dark theme */

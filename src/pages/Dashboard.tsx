@@ -214,7 +214,7 @@ const Dashboard = () => {
                         <h4 className="font-medium text-sm text-rose-gold-contrast">{task.title}</h4>
                         <span 
                           className={cn(
-                            "text-xs px-2 py-1 rounded text-white",
+                            "text-xs px-2 py-1 rounded text-white font-medium",
                             task.status === 'completed' && "bg-completed-green",
                             task.status === 'in-progress' && "bg-progress-blue", 
                             task.status === 'overdue' && "bg-overdue-red",
@@ -267,7 +267,7 @@ const Dashboard = () => {
                       <h4 className="font-medium text-sm text-rose-gold-contrast">{task.title}</h4>
                       <span 
                         className={cn(
-                          "text-xs px-2 py-1 rounded text-white",
+                          "text-xs px-2 py-1 rounded text-white font-medium",
                           task.status === 'completed' && "bg-completed-green",
                           task.status === 'in-progress' && "bg-progress-blue", 
                           task.status === 'overdue' && "bg-overdue-red",
