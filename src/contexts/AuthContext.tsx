@@ -107,12 +107,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     console.log('[Auth] Initializing authentication...');
     
-    let isInitialized = false;
+    let mounted = true;
     
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log('[Auth] State changed:', event, session?.user?.email || 'no user');
+        
+        if (!mounted) return;
         
         // Update session and user immediately 
         setSession(session);
@@ -121,55 +123,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user) {
           // Defer profile/role fetch to avoid recursion
           setTimeout(async () => {
+            if (!mounted) return;
+            
             console.log('[Auth] Fetching user data for:', session.user.email);
             const userProfile = await fetchUserProfile(session.user.id);
             const userRoleData = await fetchUserRole(session.user.id);
+            
+            if (!mounted) return;
             
             console.log('[Auth] Profile:', userProfile?.email);
             console.log('[Auth] Role:', userRoleData?.role);
             
             setProfile(userProfile);
             setUserRole(userRoleData);
-            
-            // Only set loading to false after all data is fetched
-            if (!isInitialized) {
-              setLoading(false);
-              isInitialized = true;
-            }
+            setLoading(false);
           }, 100);
         } else {
           setProfile(null);
           setUserRole(null);
-          // Set loading to false for non-authenticated users
-          if (!isInitialized) {
-            setLoading(false);
-            isInitialized = true;
-          }
+          setLoading(false);
         }
       }
     );
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (!mounted) return;
+      
       if (error) {
         console.error('[Auth] Error getting session:', error);
         setLoading(false);
-        isInitialized = true;
         return;
       }
       
       console.log('[Auth] Initial session check:', session?.user?.email || 'no session');
       
-      // Don't duplicate the auth state change logic here
-      // The auth state change listener will handle it
-      if (!session?.user && !isInitialized) {
+      // The auth state change listener will handle the session data
+      // Just ensure loading is set to false if no session
+      if (!session?.user) {
         setLoading(false);
-        isInitialized = true;
       }
     });
 
     return () => {
       console.log('[Auth] Cleaning up auth subscription');
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);

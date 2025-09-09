@@ -128,19 +128,19 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-rose-gold/5 p-4">
       <div className="w-full max-w-md space-y-4">
-        <Card className="w-full">
+        <Card className="w-full shadow-2xl border-rose-gold/20 bg-card/95 backdrop-blur-sm">
           <CardHeader className="text-center">
             <div className="mb-4">
-              <h1 className="font-bold text-3xl text-foreground mb-2">
+              <h1 className="font-bold text-3xl text-rose-gold-contrast mb-2 font-montserrat">
                 Mark Technologies
               </h1>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground font-opensans">
                 Task Management & Performance Tracking
               </p>
             </div>
-            <CardTitle className="text-xl">
+            <CardTitle className="text-xl text-rose-gold-contrast font-montserrat">
               {isSignUp ? 'Create Account' : 'Sign In'}
             </CardTitle>
           </CardHeader>
@@ -201,7 +201,7 @@ const Auth = () => {
               <Button 
                 type="submit" 
                 disabled={loading} 
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                className="w-full bg-rose-gold hover:bg-rose-gold-dark text-rose-gold-foreground transition-all duration-300 shadow-lg hover:shadow-rose-gold/25 font-opensans"
               >
                 {loading ? 'Please wait...' : (
                   <>
@@ -226,7 +226,7 @@ const Auth = () => {
               variant="outline"
               onClick={handleGoogleSignIn}
               disabled={loading}
-              className="w-full"
+              className="w-full border-rose-gold/30 hover:bg-rose-gold/5 hover:border-rose-gold/50 transition-all duration-300 font-opensans"
             >
               <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                 <path
@@ -255,7 +255,7 @@ const Auth = () => {
                 <Button
                   variant="link"
                   onClick={() => setIsSignUp(!isSignUp)}
-                  className="p-0 ml-1 h-auto font-normal text-primary"
+                  className="p-0 ml-1 h-auto font-normal text-rose-gold hover:text-rose-gold-dark transition-colors duration-200 font-opensans"
                 >
                   {isSignUp ? 'Sign in' : 'Sign up'}
                 </Button>
