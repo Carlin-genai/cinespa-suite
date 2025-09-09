@@ -160,7 +160,7 @@ const SelfTasks = () => {
           <h1 className="text-3xl font-bold">Self Tasks</h1>
           <p className="text-muted-foreground">Manage your personal tasks</p>
         </div>
-        <Button onClick={() => setCreateDialogOpen(true)} className="bg-rose-400 text-white">
+        <Button onClick={() => setCreateDialogOpen(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground">
           <Plus className="mr-2 h-4 w-4" /> Create Self Task
         </Button>
       </div>
@@ -203,7 +203,7 @@ const SelfTasks = () => {
               });
             }}
             disabled={createTaskMutation.isPending}
-            className="w-full bg-rose-400 hover:bg-rose-500 text-white"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             <Plus className="mr-2 h-4 w-4" /> 
             {createTaskMutation.isPending ? 'Creating...' : 'Create Self Task'}

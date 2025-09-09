@@ -12,7 +12,7 @@ const AuthStatus = () => {
       <Card className="w-full max-w-md mx-auto">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-rose-gold"></div>
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
             Checking Authentication...
           </CardTitle>
         </CardHeader>

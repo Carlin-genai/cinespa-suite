@@ -107,9 +107,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     console.log('[Auth] Initializing authentication...');
     
+    let isInitialized = false;
+    
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log('[Auth] State changed:', event, session?.user?.email || 'no user');
         
         // Update session and user immediately 
@@ -128,13 +130,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             
             setProfile(userProfile);
             setUserRole(userRoleData);
+            
+            // Only set loading to false after all data is fetched
+            if (!isInitialized) {
+              setLoading(false);
+              isInitialized = true;
+            }
           }, 100);
         } else {
           setProfile(null);
           setUserRole(null);
+          // Set loading to false for non-authenticated users
+          if (!isInitialized) {
+            setLoading(false);
+            isInitialized = true;
+          }
         }
-        
-        setLoading(false);
       }
     );
 
@@ -143,24 +154,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) {
         console.error('[Auth] Error getting session:', error);
         setLoading(false);
+        isInitialized = true;
         return;
       }
       
       console.log('[Auth] Initial session check:', session?.user?.email || 'no session');
-      setSession(session);
-      setUser(session?.user ?? null);
-
-      if (session?.user) {
-        // Fetch profile and role for existing session
-        setTimeout(async () => {
-          const userProfile = await fetchUserProfile(session.user.id);
-          const userRoleData = await fetchUserRole(session.user.id);
-          setProfile(userProfile);
-          setUserRole(userRoleData);
-        }, 100);
-      }
       
-      setLoading(false);
+      // Don't duplicate the auth state change logic here
+      // The auth state change listener will handle it
+      if (!session?.user && !isInitialized) {
+        setLoading(false);
+        isInitialized = true;
+      }
     });
 
     return () => {

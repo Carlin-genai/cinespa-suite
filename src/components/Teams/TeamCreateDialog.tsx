@@ -115,7 +115,7 @@ const TeamCreateDialog: React.FC<TeamCreateDialogProps> = ({
             
             {usersLoading ? (
               <div className="text-center py-4">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-rose-gold mx-auto"></div>
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
               </div>
             ) : (
               <div className="max-h-64 overflow-y-auto border rounded-lg p-4 space-y-3">
@@ -159,7 +159,7 @@ const TeamCreateDialog: React.FC<TeamCreateDialogProps> = ({
           </Button>
           <Button 
             onClick={handleSave}
-            className="bg-rose-gold hover:bg-rose-gold-dark text-white"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             Create Team
           </Button>
