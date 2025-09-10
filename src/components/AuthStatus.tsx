@@ -25,9 +25,9 @@ const AuthStatus = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           {user ? (
-            <CheckCircle className="h-5 w-5 text-green-500" />
+            <CheckCircle className="h-5 w-5 text-completed-green" />
           ) : (
-            <AlertCircle className="h-5 w-5 text-red-500" />
+            <AlertCircle className="h-5 w-5 text-overdue-red" />
           )}
           Authentication Status
         </CardTitle>
@@ -35,7 +35,7 @@ const AuthStatus = () => {
       <CardContent className="space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">User Session:</span>
-          <span className={`text-sm font-medium ${user ? 'text-green-600' : 'text-red-600'}`}>
+          <span className={`text-sm font-medium ${user ? 'text-completed-green' : 'text-overdue-red'}`}>
             {user ? 'Active' : 'None'}
           </span>
         </div>
@@ -49,14 +49,14 @@ const AuthStatus = () => {
             
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Profile:</span>
-              <span className={`text-sm font-medium ${profile ? 'text-green-600' : 'text-yellow-600'}`}>
+              <span className={`text-sm font-medium ${profile ? 'text-completed-green' : 'text-pending-yellow'}`}>
                 {profile ? 'Loaded' : 'Loading...'}
               </span>
             </div>
             
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Role:</span>
-              <span className={`text-sm font-medium flex items-center gap-1 ${userRole ? 'text-green-600' : 'text-yellow-600'}`}>
+              <span className={`text-sm font-medium flex items-center gap-1 ${userRole ? 'text-completed-green' : 'text-pending-yellow'}`}>
                 {userRole ? (
                   <>
                     {userRole.role === 'admin' ? <Shield className="h-3 w-3" /> : <User className="h-3 w-3" />}

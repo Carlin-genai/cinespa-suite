@@ -160,7 +160,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
 
         {isRecording && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <div className="h-2 w-2 bg-red-500 rounded-full animate-pulse" />
+            <div className="h-2 w-2 bg-overdue-red rounded-full animate-pulse" />
             Recording: {formatTime(recordingTime)}
           </div>
         )}

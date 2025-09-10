@@ -33,20 +33,20 @@ const TaskCalendar: React.FC = () => {
       case 'low': 
         return 'border-priority-low/20 bg-priority-low/10 text-priority-low';
       default: 
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-muted text-muted-foreground border-border';
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-completed-green/20 text-completed-green border-completed-green/30';
       case 'in-progress':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
+        return 'bg-progress-blue/20 text-progress-blue border-progress-blue/30';
       case 'overdue':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-overdue-red/20 text-overdue-red border-overdue-red/30';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-pending-yellow/20 text-pending-yellow border-pending-yellow/30';
     }
   };
 

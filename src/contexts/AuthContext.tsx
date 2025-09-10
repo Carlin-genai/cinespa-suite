@@ -111,7 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         console.log('[Auth] State changed:', event, session?.user?.email || 'no user');
         
         if (!mounted) return;
@@ -121,13 +121,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Defer profile/role fetch to avoid recursion
-          setTimeout(async () => {
-            if (!mounted) return;
-            
-            console.log('[Auth] Fetching user data for:', session.user.email);
-            const userProfile = await fetchUserProfile(session.user.id);
-            const userRoleData = await fetchUserRole(session.user.id);
+          // Fetch profile and role data
+          console.log('[Auth] Fetching user data for:', session.user.email);
+          
+          try {
+            const [userProfile, userRoleData] = await Promise.all([
+              fetchUserProfile(session.user.id),
+              fetchUserRole(session.user.id)
+            ]);
             
             if (!mounted) return;
             
@@ -136,8 +137,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             
             setProfile(userProfile);
             setUserRole(userRoleData);
-            setLoading(false);
-          }, 100);
+          } catch (error) {
+            console.error('[Auth] Error fetching user data:', error);
+            setProfile(null);
+            setUserRole(null);
+          } finally {
+            if (mounted) {
+              setLoading(false);
+            }
+          }
         } else {
           setProfile(null);
           setUserRole(null);

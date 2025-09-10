@@ -24,11 +24,18 @@ const Auth = () => {
 
   // Check if user needs role selection
   useEffect(() => {
-    if (user && !userRole) {
-      setShowRoleSelection(true);
-    } else if (user && userRole) {
-      navigate('/');
-    }
+    // Add a small delay to ensure auth state has stabilized
+    const timeout = setTimeout(() => {
+      if (user && !userRole) {
+        console.log('[Auth Page] User exists but no role, showing role selection');
+        setShowRoleSelection(true);
+      } else if (user && userRole) {
+        console.log('[Auth Page] User and role exist, navigating to dashboard');
+        navigate('/', { replace: true });
+      }
+    }, 100);
+
+    return () => clearTimeout(timeout);
   }, [user, userRole, navigate]);
 
   // Show role selection if needed

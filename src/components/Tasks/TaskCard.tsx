@@ -33,11 +33,11 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'critical': return 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700';
-      case 'high': return 'bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-700';
-      case 'medium': return 'bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-700';
-      case 'low': return 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600';
-      default: return 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600';
+      case 'critical': return 'bg-priority-critical/15 text-priority-critical border-priority-critical/30';
+      case 'high': return 'bg-priority-high/15 text-priority-high border-priority-high/30'; 
+      case 'medium': return 'bg-priority-medium/15 text-priority-medium border-priority-medium/30';
+      case 'low': return 'bg-priority-low/15 text-priority-low border-priority-low/30';
+      default: return 'bg-muted text-muted-foreground border-border';
     }
   };
 

@@ -301,14 +301,14 @@ const DailyJournal = () => {
                       
                       {entry.next_goals && (
                         <div>
-                          <h4 className="font-semibold text-sm text-blue-600 mb-1">Tomorrow's Goals</h4>
+                          <h4 className="font-semibold text-sm text-progress-blue mb-1">Tomorrow's Goals</h4>
                           <p className="text-sm whitespace-pre-wrap">{entry.next_goals}</p>
                         </div>
                       )}
                       
                       {entry.task_updates && entry.task_updates.length > 0 && (
                         <div>
-                          <h4 className="font-semibold text-sm text-green-600 mb-1">Task Updates</h4>
+                          <h4 className="font-semibold text-sm text-completed-green mb-1">Task Updates</h4>
                           <ul className="list-disc list-inside space-y-1">
                             {entry.task_updates.map((update: string, index: number) => (
                               <li key={index} className="text-sm">{update}</li>

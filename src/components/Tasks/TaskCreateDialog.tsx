@@ -195,10 +195,10 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   };
 
   const priorityColors = {
-    'low': 'text-green-600',
-    'medium': 'text-blue-600',
-    'high': 'text-purple-600',
-    'critical': 'text-red-600'
+    'low': 'text-priority-low',
+    'medium': 'text-priority-medium',
+    'high': 'text-priority-high', 
+    'critical': 'text-priority-critical'
   };
 
   // Check if form is valid
@@ -319,7 +319,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
                     employees.map((employee: any) => (
                       <SelectItem key={employee.email} value={employee.email}>
                         {employee.name} ({employee.email})
-                        {employee.isTeamHead && <span className="ml-1 text-xs bg-blue-100 text-blue-800 px-1 rounded">Team Head</span>}
+                        {employee.isTeamHead && <span className="ml-1 text-xs bg-rose-gold/15 text-rose-gold px-1 rounded border border-rose-gold/30">Team Head</span>}
                       </SelectItem>
                     ))
                   )}
