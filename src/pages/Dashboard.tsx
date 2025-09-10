@@ -138,7 +138,7 @@ const Dashboard = () => {
                 Administrator
               </div>
             ) : (
-              <div className="flex items-center gap-1 px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full text-sm">
+              <div className="flex items-center gap-1 px-3 py-1 bg-progress-blue/15 text-progress-blue rounded-full text-sm border border-progress-blue/30">
                 <User className="h-4 w-4" />
                 Employee
               </div>
@@ -148,7 +148,7 @@ const Dashboard = () => {
         {isAdmin && (
           <Button
             onClick={() => setCreateDialogOpen(true)}
-            className="bg-rose-gold hover:bg-rose-gold-dark text-white ml-4"
+            className="bg-rose-gold hover:bg-rose-gold-dark text-rose-gold-foreground ml-4"
           >
             <Plus className="mr-2 h-4 w-4" />
             Add Task
@@ -170,20 +170,20 @@ const Dashboard = () => {
           change={`${userTasks.length > 0 ? Math.round((completedTasks / userTasks.length) * 100) : 0}% completion rate`}
           icon={CheckCircle2}
           trend="up"
-          className="bg-gradient-to-br from-green-50 to-green-25 dark:from-green-950 dark:to-green-900"
+          className="bg-gradient-to-br from-completed-green/10 to-completed-green/5 dark:from-completed-green/15 dark:to-completed-green/10"
         />
         <StatsCard
           title="In Progress"
           value={inProgressTasks}
           icon={Clock}
-          className="bg-gradient-to-br from-blue-50 to-blue-25 dark:from-blue-950 dark:to-blue-900"
+          className="bg-gradient-to-br from-progress-blue/10 to-progress-blue/5 dark:from-progress-blue/15 dark:to-progress-blue/10"
         />
         <StatsCard
           title="Overdue"
           value={overdueTasks}
           icon={AlertTriangle}
           trend={overdueTasks > 0 ? "down" : "neutral"}
-          className="bg-gradient-to-br from-red-50 to-red-25 dark:from-red-950 dark:to-red-900"
+          className="bg-gradient-to-br from-overdue-red/10 to-overdue-red/5 dark:from-overdue-red/15 dark:to-overdue-red/10"
         />
       </div>
 
@@ -218,7 +218,7 @@ const Dashboard = () => {
                             task.status === 'completed' && "bg-completed-green",
                             task.status === 'in-progress' && "bg-progress-blue", 
                             task.status === 'overdue' && "bg-overdue-red",
-                            task.status === 'pending' && "bg-pending-yellow text-gray-800"
+                            task.status === 'pending' && "bg-pending-yellow text-foreground"
                           )}
                         >
                           {task.status.replace('-', ' ').toUpperCase()}
@@ -271,7 +271,7 @@ const Dashboard = () => {
                           task.status === 'completed' && "bg-completed-green",
                           task.status === 'in-progress' && "bg-progress-blue", 
                           task.status === 'overdue' && "bg-overdue-red",
-                          task.status === 'pending' && "bg-pending-yellow text-gray-800"
+                          task.status === 'pending' && "bg-pending-yellow text-foreground"
                         )}
                       >
                         {task.status.replace('-', ' ').toUpperCase()}
@@ -300,13 +300,13 @@ const Dashboard = () => {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Completion Rate</span>
-                <span className="font-semibold text-green-600">
+                <span className="font-semibold text-completed-green">
                   {userTasks.length > 0 ? Math.round((completedTasks / userTasks.length) * 100) : 0}%
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Active Tasks</span>
-                <span className="font-semibold text-blue-600">{inProgressTasks + pendingTasks}</span>
+                <span className="font-semibold text-progress-blue">{inProgressTasks + pendingTasks}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Priority Tasks</span>
@@ -316,8 +316,8 @@ const Dashboard = () => {
               </div>
               {overdueTasks > 0 && (
                 <div className="flex items-center justify-between border-t pt-4">
-                  <span className="text-sm text-red-600">Needs Attention</span>
-                  <span className="font-semibold text-red-600">{overdueTasks} overdue</span>
+                  <span className="text-sm text-overdue-red">Needs Attention</span>
+                  <span className="font-semibold text-overdue-red">{overdueTasks} overdue</span>
                 </div>
               )}
             </div>

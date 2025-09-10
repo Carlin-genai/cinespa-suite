@@ -172,6 +172,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
+  // Safety timeout to prevent hanging loading state on edge cases
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setLoading((prev) => {
+        if (prev && !user) {
+          console.warn('[Auth] Safety timeout: no session detected, ending loading state');
+          return false;
+        }
+        return prev;
+      });
+    }, 2000);
+    return () => clearTimeout(timeout);
+  }, [user]);
+
   const signIn = async (email: string, password: string) => {
     console.log('Attempting sign in for:', email);
     const { data, error } = await supabase.auth.signInWithPassword({
