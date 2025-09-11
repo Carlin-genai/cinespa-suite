@@ -147,7 +147,7 @@ export class SupabaseApiService {
           .from('tasks')
           .insert([taskData])
           .select()
-          .single();
+          .maybeSingle();
         
         if (error) {
           console.error('[SupabaseApi] Team task creation error:', error);
@@ -176,7 +176,7 @@ export class SupabaseApiService {
       .from('tasks')
       .insert([taskData])
       .select()
-      .single();
+      .maybeSingle();
     
     if (error) {
       console.error('[SupabaseApi] Single task creation error:', error);

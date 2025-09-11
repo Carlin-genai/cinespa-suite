@@ -53,12 +53,21 @@ const SelfTasks = () => {
 
   // ✅ Create task mutation (self-assigned only)
   const createTaskMutation = useMutation({
-    mutationFn: (task: Partial<Task>) =>
-      apiService.createTask({
+    mutationFn: (task: Partial<Task>) => {
+      if (!user?.id) {
+        return Promise.reject(new Error('You must be logged in to create tasks'));
+      }
+      const defaultDue = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      return apiService.createTask({
+        status: 'pending',
+        priority: 'medium',
+        is_self_task: true as any,
+        due_date: (task as any).due_date || defaultDue,
         ...task,
-        assigned_to: user?.id, // Always assign to self
-        assigned_by: user?.id, // Always assigned by self
-      }),
+        assigned_to: user.id,
+        assigned_by: user.id,
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['self-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] }); // Also refresh dashboard
@@ -71,7 +80,7 @@ const SelfTasks = () => {
     onError: (error) => {
       toast({
         title: 'Error',
-        description: 'Failed to create task',
+        description: error instanceof Error ? error.message : 'Failed to create task',
         variant: 'destructive',
       });
       console.error('Create task error:', error);
