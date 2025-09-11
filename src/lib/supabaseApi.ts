@@ -60,10 +60,40 @@ export class SupabaseApiService {
     return (data || []).map(mapDbTaskToTask);
   }
 
-  async createTask(task: Partial<Task>): Promise<Task> {
+  async createTask(task: Partial<Task> & { assignedEmployees?: string[]; time_limit?: number; credit_points?: number; attachment_url?: string }): Promise<Task> {
     const user = (await supabase.auth.getUser()).data.user;
     if (!user) throw new Error('User not authenticated');
 
+    // For team tasks with multiple assignees, create multiple task records
+    if (task.assignedEmployees && task.assignedEmployees.length > 0) {
+      const taskPromises = task.assignedEmployees.map(async (employeeId) => {
+        const { data, error } = await supabase
+          .from('tasks')
+          .insert([{ 
+            title: task.title || '',
+            description: task.description || '',
+            status: task.status || 'pending',
+            priority: task.priority || 'medium',
+            assigned_to: employeeId,
+            assigned_by: task.assigned_by || user.id,
+            due_date: task.due_date,
+            notes: task.notes,
+            time_limit: task.time_limit,
+            credit_points: task.credit_points || 0,
+            attachment_url: task.attachment_url,
+          }])
+          .select()
+          .single();
+        
+        if (error) throw error;
+        return mapDbTaskToTask(data);
+      });
+
+      const results = await Promise.all(taskPromises);
+      return results[0]; // Return the first created task
+    }
+
+    // Single task creation
     const { data, error } = await supabase
       .from('tasks')
       .insert([{ 
@@ -71,10 +101,13 @@ export class SupabaseApiService {
         description: task.description || '',
         status: task.status || 'pending',
         priority: task.priority || 'medium',
-        assigned_to: task.assigned_to || user.id, // Default to current user if not specified
-        assigned_by: task.assigned_by || user.id, // Always set assigned_by to current user
+        assigned_to: task.assigned_to || user.id,
+        assigned_by: task.assigned_by || user.id,
         due_date: task.due_date,
         notes: task.notes,
+        time_limit: task.time_limit,
+        credit_points: task.credit_points || 0,
+        attachment_url: task.attachment_url,
       }])
       .select()
       .single();
