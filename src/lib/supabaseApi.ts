@@ -191,6 +191,8 @@ export class SupabaseApiService {
   }
 
   async updateTask(id: string, task: Partial<Task>): Promise<Task> {
+    console.log('[SupabaseApi] Updating task:', id, task);
+    
     const { data, error } = await supabase
       .from('tasks')
       .update({
@@ -206,7 +208,12 @@ export class SupabaseApiService {
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('[SupabaseApi] Update task error:', error);
+      throw error;
+    }
+    
+    console.log('[SupabaseApi] Task updated successfully:', data);
     return mapDbTaskToTask(data);
   }
 
