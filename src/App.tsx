@@ -13,6 +13,7 @@ import NotificationManager from "./components/Notifications/NotificationManager"
 import Dashboard from "./pages/Dashboard";
 import MyTasks from "./pages/MyTasks";
 import TeamTasks from "./pages/TeamTasks";
+import AssignedTasks from "./pages/AssignedTasks";
 import SelfTasks from "./pages/SelfTasks";
 import DailyJournal from "./pages/DailyJournal";
 import Analytics from "./pages/Analytics";
@@ -46,6 +47,7 @@ const App = () => (
                 <Route index element={<Dashboard />} />
                 <Route path="my-tasks" element={<MyTasks />} />
                 <Route path="team-tasks" element={<TeamTasks />} />
+                <Route path="assigned-tasks" element={<AssignedTasks />} />
                 <Route path="self-tasks" element={<SelfTasks />} />
                 <Route path="daily-journal" element={<DailyJournal />} />
                 <Route path="analytics" element={<Analytics />} />

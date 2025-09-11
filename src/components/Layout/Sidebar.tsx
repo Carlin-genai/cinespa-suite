@@ -15,24 +15,29 @@ import {
   Bell,
   User,
   LogOut,
-  UserCheck
+  UserCheck,
+  ClipboardList
 } from 'lucide-react';
-
-const navigation = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'My Tasks', href: '/my-tasks', icon: CheckSquare },
-  { name: 'Team Tasks', href: '/team-tasks', icon: Users },
-  { name: 'Self Tasks', href: '/self-tasks', icon: UserCheck },
-  { name: 'Daily Journal', href: '/daily-journal', icon: BookOpen },
-  { name: 'Analytics', href: '/analytics', icon: BarChart3 },
-  { name: 'Calendar', href: '/calendar', icon: Calendar },
-  { name: 'Notifications', href: '/notifications', icon: Bell },
-  { name: 'Settings', href: '/settings', icon: Settings },
-];
 
 const Sidebar = () => {
   const location = useLocation();
   const { user, profile, userRole, signOut } = useAuth();
+
+  const navigation = [
+    { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+    { name: 'My Tasks', href: '/my-tasks', icon: CheckSquare },
+    { name: 'Team Tasks', href: '/team-tasks', icon: Users },
+    { name: 'Self Tasks', href: '/self-tasks', icon: UserCheck },
+    ...(userRole?.role === 'admin' ? [
+      { name: 'Assigned Tasks', href: '/assigned-tasks', icon: ClipboardList }
+    ] : []),
+    { name: 'Daily Journal', href: '/daily-journal', icon: BookOpen },
+    { name: 'Analytics', href: '/analytics', icon: BarChart3 },
+    { name: 'Calendar', href: '/calendar', icon: Calendar },
+    { name: 'Notifications', href: '/notifications', icon: Bell },
+    { name: 'Settings', href: '/settings', icon: Settings },
+  ];
+
 
   return (
     <div className="flex h-screen w-64 flex-col bg-sidebar border-r border-sidebar-border">

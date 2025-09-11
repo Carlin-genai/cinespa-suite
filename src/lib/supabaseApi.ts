@@ -455,6 +455,57 @@ export class SupabaseApiService {
     if (error) throw error;
   }
 
+  async getTeamMembers(teamId: string): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('team_members')
+      .select(`
+        id,
+        user_id,
+        role,
+        profiles(id, full_name, email)
+      `)
+      .eq('team_id', teamId)
+      .order('created_at', { ascending: true });
+    
+    if (error) throw error;
+    return data || [];
+  }
+
+  async setTeamHead(teamId: string, userId: string): Promise<void> {
+    // First, remove any existing team head for this team
+    await supabase
+      .from('team_members')
+      .update({ role: 'member' })
+      .eq('team_id', teamId)
+      .eq('role', 'head');
+
+    // Set the new team head
+    const { error } = await supabase
+      .from('team_members')
+      .update({ role: 'head' })
+      .eq('team_id', teamId)
+      .eq('user_id', userId);
+    
+    if (error) throw error;
+  }
+
+  async getUserTeams(): Promise<any[]> {
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user) throw new Error('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('team_members')
+      .select(`
+        team_id,
+        role,
+        teams(id, name, description)
+      `)
+      .eq('user_id', user.id);
+    
+    if (error) throw error;
+    return data || [];
+  }
+
   async getUsers(): Promise<any[]> {
     const user = (await supabase.auth.getUser()).data.user;
     if (!user) throw new Error('User not authenticated');
