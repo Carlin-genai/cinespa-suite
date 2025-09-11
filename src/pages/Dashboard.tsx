@@ -385,6 +385,8 @@ const Dashboard = () => {
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
         onSave={handleCreateTask}
+        isPersonalTask={!isAdmin}
+        showEmployeeSelection={isAdmin}
       />
       </div>
     </AuthGuard>

@@ -139,7 +139,8 @@ export class SupabaseApiService {
         const taskData = { 
           ...taskDataBase,
           assigned_to: employeeId,
-          assigned_by: task.assigned_by || user.id,
+          assigned_by: assignedBy,
+          is_self_task: false,
         };
         
         console.log('[SupabaseApi] Inserting team task:', taskData);
@@ -165,8 +166,9 @@ export class SupabaseApiService {
     // Single task creation
     const taskData = { 
       ...taskDataBase,
-      assigned_to: task.assigned_to || user.id,
-      assigned_by: task.assigned_by || user.id,
+      assigned_to: assignedTo,
+      assigned_by: assignedBy,
+      is_self_task: assignedTo === assignedBy,
     };
     
     console.log('[SupabaseApi] Inserting single task:', taskData);

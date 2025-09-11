@@ -130,17 +130,16 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
       return;
     }
     
-    if (!selectedDate) {
-      toast({
-        title: "Due Date Required", 
-        description: "Please select a due date for this task.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Combine date and time if time is provided
+    // Default due date if not selected: tomorrow at 5PM
     let dueDateTime = selectedDate;
+    if (!dueDateTime) {
+      const d = new Date();
+      d.setDate(d.getDate() + 1);
+      d.setHours(17, 0, 0, 0);
+      dueDateTime = d;
+    }
+    
+    // Combine date and time if time is provided
     if (selectedTime) {
       const [hours, minutes] = selectedTime.split(':');
       dueDateTime = new Date(selectedDate);
@@ -222,8 +221,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   const isFormValid = Boolean(
     title.trim() &&
     (!isPersonalTask && !showEmployeeSelection ? assignedTo : true) &&
-    (!showEmployeeSelection || selectedEmployees.length > 0) &&
-    selectedDate
+    (!showEmployeeSelection || selectedEmployees.length > 0)
   );
 
   return (
