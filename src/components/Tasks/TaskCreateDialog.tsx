@@ -225,11 +225,8 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   };
 
   // Check if form is valid
-  const isFormValid = Boolean(
-    title.trim() &&
-    (!isPersonalTask && !showEmployeeSelection ? assignedTo : true) &&
-    (!showEmployeeSelection || selectedEmployees.length > 0)
-  );
+  // Always valid if we have a title (defaults and fallbacks handle the rest)
+  const isFormValid = Boolean(title.trim());
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
