@@ -205,22 +205,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signInWithGoogle = async () => {
     console.log('Attempting Google sign in');
     
-    // Use current window location for redirect - works in all environments
-    const redirectUrl = window.location.origin;
-    
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: redirectUrl,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth`,
         },
-      },
-    });
-    
-    console.log('Google sign in result:', { error });
-    return { error };
+      });
+      
+      if (error) {
+        console.error('Google sign in error:', error);
+        return { error };
+      }
+      
+      console.log('Google sign in initiated successfully');
+      return { error: null };
+    } catch (err) {
+      console.error('Google sign in exception:', err);
+      return { error: err };
+    }
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
