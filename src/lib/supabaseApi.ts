@@ -63,15 +63,7 @@ export class SupabaseApiService {
   async createTask(task: Partial<Task> & { assignedEmployees?: string[]; attachments?: File[]; time_limit?: number; credit_points?: number; attachment_url?: string }): Promise<Task> {
     console.log('[SupabaseApi] Creating task - start', task);
     
-    // Validate required fields
-    if (!task.title?.trim()) {
-      throw new Error('Task title is required');
-    }
-    
-    if (!task.assigned_to) {
-      throw new Error('Task must be assigned to a user');
-    }
-    
+    // Get authenticated user first
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       console.error('[SupabaseApi] Authentication error:', authError);
@@ -79,6 +71,15 @@ export class SupabaseApiService {
     }
     
     console.log('[SupabaseApi] Authenticated user:', user.id);
+
+    // Validate required fields
+    if (!task.title?.trim()) {
+      throw new Error('Task title is required');
+    }
+    
+    // Auto-assign to current user if not specified (for self-tasks)
+    const assignedTo = task.assigned_to || user.id;
+    const assignedBy = task.assigned_by || user.id;
 
     // Handle file uploads first if attachments exist
     let uploadedAttachments: string[] = [];

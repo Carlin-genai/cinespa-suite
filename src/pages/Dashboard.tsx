@@ -132,11 +132,25 @@ const Dashboard = () => {
       return;
     }
     
-    // Don't show success toast here, let the dialog handle it
-    createTaskMutation.mutate({
-      ...task,
+    // Ensure default values for required fields
+    const taskData = {
+      title: task.title?.trim() || '',
+      description: task.description?.trim() || '',
+      status: task.status || 'pending' as const,
+      priority: task.priority || 'medium' as const,
       assigned_by: user.id,
-    });
+      assigned_to: task.assigned_to || user.id,
+      due_date: task.due_date || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      notes: task.notes || undefined,
+      time_limit: (task as any).time_limit || undefined,
+      credit_points: (task as any).credit_points || 0,
+      attachment_url: (task as any).attachment_url || undefined,
+      attachments: task.attachments || undefined,
+      assignedEmployees: (task as any).assignedEmployees || undefined,
+    };
+    
+    console.log('[Dashboard] Final task data for creation:', taskData);
+    createTaskMutation.mutate(taskData);
   };
 
   if (isLoading || !user) {

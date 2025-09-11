@@ -53,20 +53,36 @@ const SelfTasks = () => {
 
   // ✅ Create task mutation (self-assigned only)
   const createTaskMutation = useMutation({
-    mutationFn: (task: Partial<Task>) => {
+    mutationFn: async (task: Partial<Task>) => {
+      console.log('[SelfTasks] Creating self task:', task);
+      
       if (!user?.id) {
-        return Promise.reject(new Error('You must be logged in to create tasks'));
+        throw new Error('You must be logged in to create tasks');
       }
-      const defaultDue = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-      return apiService.createTask({
-        status: 'pending',
-        priority: 'medium',
-        is_self_task: true as any,
-        due_date: (task as any).due_date || defaultDue,
-        ...task,
+      
+      // Ensure tomorrow's date if no due_date provided
+      const defaultDue = new Date();
+      defaultDue.setDate(defaultDue.getDate() + 1);
+      defaultDue.setHours(17, 0, 0, 0); // 5PM tomorrow
+      
+      const taskData = {
+        title: task.title?.trim() || '',
+        description: task.description?.trim() || '',
+        status: 'pending' as const,
+        priority: 'medium' as const,
         assigned_to: user.id,
         assigned_by: user.id,
-      });
+        due_date: (task as any).due_date || defaultDue.toISOString(),
+        notes: task.notes || undefined,
+        time_limit: (task as any).time_limit || undefined,
+        credit_points: (task as any).credit_points || 0,
+        attachment_url: (task as any).attachment_url || undefined,
+        is_self_task: true,
+        ...task, // Override with any provided values
+      };
+      
+      console.log('[SelfTasks] Final task data:', taskData);
+      return apiService.createTask(taskData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['self-tasks'] });
