@@ -201,7 +201,7 @@ const EditableProfile = () => {
           <div className="space-y-2">
             <Label>Account Type</Label>
             <p className="text-sm text-muted-foreground p-2 bg-muted rounded">
-              Mark Technologies User
+              Wedot User
             </p>
           </div>
         </div>

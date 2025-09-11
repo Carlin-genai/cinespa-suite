@@ -40,10 +40,10 @@ const Sidebar = () => {
       <div className="flex h-20 items-center justify-center border-b border-sidebar-border px-6">
         <div className="text-center">
           <h1 className="font-montserrat text-xl font-bold text-sidebar-primary leading-tight">
-            MARK TECHNOLOGIES
+            WEDOT
           </h1>
           <p className="text-xs text-sidebar-foreground font-opensans mt-1 leading-tight">
-            TASK MANAGEMENT & PERFORMANCE TRACKING
+            WE DO IT TOGETHER
           </p>
         </div>
       </div>
