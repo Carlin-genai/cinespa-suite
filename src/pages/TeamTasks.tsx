@@ -15,6 +15,7 @@ import { supabaseApi } from '@/lib/supabaseApi';
 import { useAuth } from '@/contexts/AuthContext';
 import { Task } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import { useTasks } from '@/hooks/useTasks';
 
 const TeamTasks = () => {
   const { user, userRole } = useAuth();
@@ -31,11 +32,8 @@ const TeamTasks = () => {
   const [selectedTeam, setSelectedTeam] = useState<any>(null);
   const [teamEditDialogOpen, setTeamEditDialogOpen] = useState(false);
 
-  // Fetch all tasks from backend (team view)
-  const { data: tasks = [], isLoading, error } = useQuery({
-    queryKey: ['team-tasks'],
-    queryFn: () => apiService.getTasks(),
-  });
+  // Use the new useTasks hook for team tasks
+  const { data: tasks = [], loading, error, reload } = useTasks('team');
 
   // Fetch teams
   const { data: teams = [], isLoading: teamsLoading } = useQuery({
@@ -285,7 +283,7 @@ const TeamTasks = () => {
   const canCreateTasks = userRole?.role === 'admin';
   const canManageTeams = ['admin', 'manager'].includes(userRole?.role || '');
 
-  if (isLoading || teamsLoading) {
+  if (loading || teamsLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -296,8 +294,9 @@ const TeamTasks = () => {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen text-center">
-        <p className="text-overdue-red mb-4">Failed to load team tasks. Please check your backend connection.</p>
-        <Button onClick={() => window.location.reload()}>Retry</Button>
+        <p className="text-destructive mb-4">Failed to load team tasks</p>
+        <p className="text-muted-foreground mb-4 text-sm">{error.message}</p>
+        <Button onClick={reload} variant="outline">Retry</Button>
       </div>
     );
   }

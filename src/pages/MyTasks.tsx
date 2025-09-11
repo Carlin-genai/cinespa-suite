@@ -1,11 +1,11 @@
 
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, CheckCircle, XCircle, AlertCircle, Clock, User, Star } from 'lucide-react';
+import { Plus, Search, CheckCircle, XCircle, AlertCircle, Clock, User, Star, RefreshCw } from 'lucide-react';
 import TaskCard from '@/components/Tasks/TaskCard';
 import TaskEditDialog from '@/components/Tasks/TaskEditDialog';
 import AdminRatingDialog from '@/components/Tasks/AdminRatingDialog';
@@ -14,6 +14,7 @@ import { apiService } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Task } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import { useTasks } from '@/hooks/useTasks';
 
 const MyTasks = () => {
   const { user, userRole } = useAuth();
@@ -32,14 +33,8 @@ const MyTasks = () => {
 
   const isAdmin = userRole?.role === 'admin';
 
-  // Fetch tasks assigned to the current user
-  const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ['my-tasks'],
-    queryFn: async () => {
-      const allTasks = await apiService.getTasks();
-      return allTasks.filter((task: Task) => task.assigned_to === user?.id);
-    },
-  });
+  // Use the new useTasks hook for tasks assigned to current user
+  const { data: tasks = [], loading, error, reload } = useTasks('my');
 
   // Update task mutation
   const updateTaskMutation = useMutation({
@@ -185,10 +180,24 @@ const MyTasks = () => {
     }
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen text-center">
+        <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+        <p className="text-destructive mb-4">Failed to load your tasks</p>
+        <p className="text-muted-foreground mb-4 text-sm">{error.message}</p>
+        <Button onClick={reload} variant="outline">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Retry
+        </Button>
       </div>
     );
   }
@@ -305,7 +314,7 @@ const MyTasks = () => {
           <CardContent className="pt-6">
             <div className="text-center py-12">
               <User className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-medium text-foreground mb-2">No tasks found</h3>
+              <h3 className="text-lg font-medium text-foreground mb-2">No tasks yet</h3>
               <p className="text-muted-foreground">
                 {searchTerm || statusFilter !== 'all' || priorityFilter !== 'all'
                   ? "Try adjusting your filters or search terms"

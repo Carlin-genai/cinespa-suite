@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, User, Bell, Settings } from 'lucide-react';
+import { Users, User, Bell, Settings, AlertCircle, RefreshCw } from 'lucide-react';
 import TaskCard from '@/components/Tasks/TaskCard';
 import TaskEditDialog from '@/components/Tasks/TaskEditDialog';
 import ReminderDialog from '@/components/Tasks/ReminderDialog';
@@ -11,7 +11,7 @@ import { apiService } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Task } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { useTasks } from '@/hooks/useTasks';
 
 const AssignedTasks = () => {
   const { user, userRole } = useAuth();
@@ -26,30 +26,8 @@ const AssignedTasks = () => {
   const [ratingDialogOpen, setRatingDialogOpen] = useState(false);
   const [selectedTaskForRating, setSelectedTaskForRating] = useState<string>('');
 
-  // Fetch all tasks assigned by the current admin with real-time updates
-  const { data: tasks = [], isLoading, error, refetch } = useQuery({
-    queryKey: ['assigned-tasks'],
-    queryFn: () => apiService.getTasks(),
-    enabled: userRole?.role === 'admin',
-  });
-
-  // Real-time updates for assigned tasks
-  React.useEffect(() => {
-    if (userRole?.role !== 'admin' || !user) return;
-    
-    const channel = supabase
-      .channel('assigned-tasks-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, (payload) => {
-        console.log('[AssignedTasks] Realtime change:', payload.eventType);
-        queryClient.invalidateQueries({ queryKey: ['assigned-tasks'] });
-        refetch();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient, refetch, user, userRole]);
+  // Use the new useTasks hook for tasks assigned by current admin
+  const { data: tasks = [], loading, error, reload } = useTasks('assigned');
 
   // Update task mutation
   const updateTaskMutation = useMutation({
@@ -218,7 +196,7 @@ const AssignedTasks = () => {
     );
   }
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -229,8 +207,13 @@ const AssignedTasks = () => {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen text-center">
-        <p className="text-overdue-red mb-4">Failed to load assigned tasks. Please check your backend connection.</p>
-        <Button onClick={() => window.location.reload()}>Retry</Button>
+        <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+        <p className="text-destructive mb-4">Failed to load assigned tasks</p>
+        <p className="text-muted-foreground mb-4 text-sm">{error.message}</p>
+        <Button onClick={reload} variant="outline">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Retry
+        </Button>
       </div>
     );
   }

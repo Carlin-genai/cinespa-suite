@@ -1,20 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Search, Clock, CheckCircle, XCircle, AlertCircle, User } from 'lucide-react';
+import { Plus, Search, Clock, CheckCircle, XCircle, AlertCircle, User, RefreshCw } from 'lucide-react';
 import TaskCard from '@/components/Tasks/TaskCard';
 import TaskCreateDialog from '@/components/Tasks/TaskCreateDialog';
 import TaskEditDialog from '@/components/Tasks/TaskEditDialog';
 import { apiService } from '@/lib/api';
-import { supabaseApi } from '@/lib/supabaseApi';
 import { useAuth } from '@/contexts/AuthContext';
 import { Task } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { useTasks } from '@/hooks/useTasks';
 
 const SelfTasks = () => {
   const { user } = useAuth();
@@ -30,26 +29,8 @@ const SelfTasks = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
 
-  // ✅ Realtime updates for self-tasks
-  React.useEffect(() => {
-    const channel = supabase
-      .channel('self-tasks-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, (payload) => {
-        console.log('[SelfTasks] Realtime change on tasks:', payload.eventType);
-        queryClient.invalidateQueries({ queryKey: ['self-tasks'] });
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
-
-  // ✅ Fetch self-created tasks (tasks where user assigned to themselves)
-  const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ['self-tasks'],
-    queryFn: () => supabaseApi.getSelfTasks(),
-  });
+  // Use the new useTasks hook for self-assigned tasks
+  const { data: tasks = [], loading, error, reload } = useTasks('self');
 
   // ✅ Create task mutation (self-assigned only)
   const createTaskMutation = useMutation({
@@ -169,10 +150,24 @@ const SelfTasks = () => {
     setEditDialogOpen(false);
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-400"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen text-center">
+        <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+        <p className="text-destructive mb-4">Failed to load your self tasks</p>
+        <p className="text-muted-foreground mb-4 text-sm">{error.message}</p>
+        <Button onClick={reload} variant="outline">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Retry
+        </Button>
       </div>
     );
   }
@@ -250,7 +245,22 @@ const SelfTasks = () => {
       {/* Tasks Grid */}
       {filteredTasks.length === 0 ? (
         <Card>
-          <CardContent className="pt-6 text-center">No tasks found</CardContent>
+          <CardContent className="pt-6">
+            <div className="text-center py-12">
+              <User className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-medium text-foreground mb-2">No self tasks yet</h3>
+              <p className="text-muted-foreground mb-4">
+                {searchTerm || statusFilter !== 'all' || priorityFilter !== 'all'
+                  ? "Try adjusting your filters or search terms"
+                  : "Create your first personal task to get started"
+                }
+              </p>
+              <Button onClick={() => setCreateDialogOpen(true)} variant="outline">
+                <Plus className="h-4 w-4 mr-2" />
+                Create Self Task
+              </Button>
+            </div>
+          </CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

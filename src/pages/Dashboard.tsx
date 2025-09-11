@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Clock, AlertTriangle, Users, Calendar, Bell, Plus, Shield, User } from 'lucide-react';
+import { CheckCircle2, Clock, AlertTriangle, Users, Calendar, Bell, Plus, Shield, User, RefreshCw } from 'lucide-react';
 import StatsCard from '@/components/Dashboard/StatsCard';
 import TaskCard from '@/components/Tasks/TaskCard';
 import TaskCreateDialog from '@/components/Tasks/TaskCreateDialog';
@@ -11,8 +11,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Task } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
 import AuthGuard from '@/components/AuthGuard';
+import { useTasks } from '@/hooks/useTasks';
 
 const Dashboard = () => {
   const { user, profile, userRole } = useAuth();
@@ -22,18 +22,8 @@ const Dashboard = () => {
 
   const isAdmin = userRole?.role === 'admin';
 
-  // Fetch tasks from backend API
-  const { data: tasks = [], isLoading, error, refetch } = useQuery({
-    queryKey: ['tasks'],
-    queryFn: async () => {
-      console.log('[Dashboard] Fetching tasks...');
-      const result = await apiService.getTasks();
-      console.log('[Dashboard] Tasks fetched:', result.length);
-      return result;
-    },
-    enabled: !!user, // Only fetch when user is authenticated
-    retry: 1,
-  });
+  // Use the new useTasks hook
+  const { data: tasks = [], loading, error, reload } = useTasks('dashboard');
 
   // Fetch analytics from backend
   const { data: analytics } = useQuery({
@@ -53,9 +43,9 @@ const Dashboard = () => {
     onSuccess: (data) => {
       console.log('[Dashboard] Task created successfully:', data);
       // Invalidate and refetch tasks immediately
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks-dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['employees'] });
-      refetch();
+      reload();
       
       toast({
         title: "Task Created",
@@ -82,26 +72,7 @@ const Dashboard = () => {
     }
   }, [createDialogOpen, queryClient]);
 
-  // Realtime: refresh tasks immediately when new tasks are inserted/updated/deleted
-  React.useEffect(() => {
-    if (!user) return;
-    
-    console.log('[Dashboard] Setting up realtime listener for user:', user.id);
-    
-    const channel = supabase
-      .channel('public:tasks-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, (payload) => {
-        console.log('[Dashboard] Realtime change on tasks:', payload.eventType);
-        // Refetch tasks so the dashboard updates instantly for both admin and employee
-        queryClient.invalidateQueries({ queryKey: ['tasks'] });
-        refetch();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient, refetch, user]);
+  // Realtime: refresh tasks immediately when new tasks are inserted/updated/deleted (handled by useTasks hook)
 
   // Filter tasks based on user role
   const userTasks = React.useMemo(() => {
@@ -167,7 +138,7 @@ const Dashboard = () => {
     }
   };
 
-  if (isLoading || !user) {
+  if (loading || !user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -181,9 +152,14 @@ const Dashboard = () => {
   if (error) {
     console.error('[Dashboard] Error loading tasks:', error);
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <p className="text-destructive mb-4">Error loading tasks</p>
-        <Button onClick={() => refetch()}>Try Again</Button>
+      <div className="flex flex-col items-center justify-center min-h-screen text-center">
+        <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
+        <p className="text-destructive mb-4">Failed to load dashboard</p>
+        <p className="text-muted-foreground mb-4 text-sm">{error.message}</p>
+        <Button onClick={reload} variant="outline">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Retry
+        </Button>
       </div>
     );
   }

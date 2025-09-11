@@ -608,6 +608,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      get_user_org_id: {
+        Args: { user_uuid: string }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -619,6 +623,10 @@ export type Database = {
         Args: { user_id: string }
         Returns: boolean
       }
+      is_user_team_head: {
+        Args: { team_uuid: string; user_uuid: string }
+        Returns: boolean
+      }
       migrate_existing_roles: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -626,6 +634,10 @@ export type Database = {
       update_overdue_tasks: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      users_in_same_team: {
+        Args: { user1_uuid: string; user2_uuid: string }
+        Returns: boolean
       }
     }
     Enums: {
