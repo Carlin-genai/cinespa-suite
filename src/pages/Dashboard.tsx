@@ -22,27 +22,17 @@ const Dashboard = () => {
 
   const isAdmin = userRole?.role === 'admin';
 
-  // Fetch tasks from backend API with enhanced error handling
+  // Fetch tasks from backend API
   const { data: tasks = [], isLoading, error, refetch } = useQuery({
     queryKey: ['tasks'],
     queryFn: async () => {
-      try {
-        console.log('[Dashboard] Fetching tasks for user:', user?.id);
-        if (!user?.id) {
-          console.warn('[Dashboard] No authenticated user, skipping task fetch');
-          return [];
-        }
-        const result = await apiService.getTasks();
-        console.log('[Dashboard] Tasks fetched successfully:', result.length);
-        return result;
-      } catch (error) {
-        console.error('[Dashboard] Error fetching tasks:', error);
-        throw error;
-      }
+      console.log('[Dashboard] Fetching tasks...');
+      const result = await apiService.getTasks();
+      console.log('[Dashboard] Tasks fetched:', result.length);
+      return result;
     },
-    enabled: !!user?.id, // Only fetch when user is authenticated and has ID
-    retry: 2,
-    staleTime: 30000, // Consider data fresh for 30 seconds
+    enabled: !!user, // Only fetch when user is authenticated
+    retry: 1,
   });
 
   // Fetch analytics from backend
@@ -56,28 +46,21 @@ const Dashboard = () => {
   const createTaskMutation = useMutation({
     mutationFn: async (task: Partial<Task> & { attachments?: File[] }) => {
       console.log('[Dashboard] Creating task:', task);
-      const result = await apiService.createTask(task);
-      console.log('[Dashboard] Task creation API result:', result);
-      return result;
+      return await apiService.createTask(task);
     },
     onSuccess: (data) => {
       console.log('[Dashboard] Task created successfully:', data);
-      // Invalidate and refetch tasks immediately
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      queryClient.invalidateQueries({ queryKey: ['employees'] }); // Refresh employee list
+      // Force immediate refetch
       refetch();
-      
-      toast({
-        title: "Task Created",
-        description: `Task "${data.title}" created successfully and should appear below.`,
-        variant: "default",
-      });
+      setCreateDialogOpen(false);
     },
     onError: (error) => {
       console.error('[Dashboard] Create task error:', error);
       toast({
-        title: "Task Creation Failed",
-        description: error instanceof Error ? error.message : "Failed to create task. Please check your permissions and try again.",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create task",
         variant: "destructive",
       });
     },
@@ -92,57 +75,35 @@ const Dashboard = () => {
     }
   }, [createDialogOpen, queryClient]);
 
-  // Realtime: refresh tasks with proper cleanup and user validation
+  // Realtime: refresh tasks immediately when new tasks are inserted/updated/deleted
   React.useEffect(() => {
-    if (!user?.id) {
-      console.log('[Dashboard] No user ID, skipping realtime setup');
-      return;
-    }
+    if (!user) return;
     
     console.log('[Dashboard] Setting up realtime listener for user:', user.id);
     
     const channel = supabase
-      .channel(`dashboard-tasks-${user.id}`)
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'tasks' 
-      }, (payload) => {
-        console.log('[Dashboard] Realtime change on tasks:', payload.eventType, payload);
+      .channel('public:tasks-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, (payload) => {
+        console.log('[Dashboard] Realtime change on tasks:', payload.eventType);
         // Refetch tasks so the dashboard updates instantly for both admin and employee
         queryClient.invalidateQueries({ queryKey: ['tasks'] });
         refetch();
       })
-      .subscribe((status) => {
-        console.log('[Dashboard] Realtime subscription status:', status);
-      });
+      .subscribe();
 
     return () => {
-      console.log('[Dashboard] Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
-  }, [queryClient, refetch, user?.id]);
+  }, [queryClient, refetch, user]);
 
-  // Filter tasks based on user role with safe user ID handling
+  // Filter tasks based on user role
   const userTasks = React.useMemo(() => {
-    if (!user?.id) {
-      console.warn('[Dashboard] No user ID available for task filtering');
-      return [];
-    }
-    
-    console.log('[Dashboard] Filtering tasks for user:', user.id, 'isAdmin:', isAdmin);
-    console.log('[Dashboard] Total tasks available:', tasks.length);
-    
     if (isAdmin) {
       // Admins see all tasks assigned by them
-      const adminTasks = tasks.filter((task: Task) => task.assigned_by === user.id);
-      console.log('[Dashboard] Admin tasks filtered:', adminTasks.length);
-      return adminTasks;
+      return tasks.filter((task: Task) => task.assigned_by === user?.id);
     } else {
       // Employees see all tasks assigned TO them (including team tasks)
-      const employeeTasks = tasks.filter((task: Task) => task.assigned_to === user.id);
-      console.log('[Dashboard] Employee tasks filtered:', employeeTasks.length);
-      return employeeTasks;
+      return tasks.filter((task: Task) => task.assigned_to === user?.id);
     }
   }, [tasks, isAdmin, user?.id]);
   
@@ -158,20 +119,20 @@ const Dashboard = () => {
     .sort((a: Task, b: Task) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 5);
 
-  const handleCreateTask = async (task: Partial<Task> & { attachments?: File[] }) => {
+  const handleCreateTask = (task: Partial<Task> & { attachments?: File[] }) => {
     console.log('[Dashboard] handleCreateTask called with:', task);
     
     if (!user?.id) {
       console.error('[Dashboard] No user ID available for task creation');
       toast({
-        title: "Authentication Error", 
+        title: "Error", 
         description: "You must be logged in to create tasks",
         variant: "destructive",
       });
       return;
     }
     
-    // Ensure default values for required fields with safe fallbacks
+    // Ensure default values for required fields
     const taskData = {
       title: task.title?.trim() || '',
       description: task.description?.trim() || '',
@@ -180,41 +141,25 @@ const Dashboard = () => {
       assigned_by: user.id,
       assigned_to: task.assigned_to || user.id,
       due_date: task.due_date || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      notes: task.notes || null,
-      time_limit: (task as any).time_limit || null,
+      notes: task.notes || undefined,
+      time_limit: (task as any).time_limit || undefined,
       credit_points: (task as any).credit_points || 0,
-      attachment_url: (task as any).attachment_url || null,
+      attachment_url: (task as any).attachment_url || undefined,
       attachments: task.attachments || undefined,
       assignedEmployees: (task as any).assignedEmployees || undefined,
     };
     
     console.log('[Dashboard] Final task data for creation:', taskData);
-    
-    try {
-      await createTaskMutation.mutateAsync(taskData);
-      setCreateDialogOpen(false);
-    } catch (error) {
-      console.error('[Dashboard] Task creation failed:', error);
-      // Error handling is already done in the mutation's onError
-    }
+    createTaskMutation.mutate(taskData);
   };
 
-  if (isLoading) {
+  if (isLoading || !user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        <p className="ml-4 text-muted-foreground">Loading dashboard...</p>
-      </div>
-    );
-  }
-
-  if (!user?.id) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <p className="text-muted-foreground mb-4">Please log in to access the dashboard</p>
-          <Button onClick={() => window.location.href = "/auth"}>Go to Login</Button>
-        </div>
+        <p className="ml-4 text-muted-foreground">
+          {!user ? 'Please log in to access the dashboard' : 'Loading tasks...'}
+        </p>
       </div>
     );
   }
@@ -223,7 +168,7 @@ const Dashboard = () => {
     console.error('[Dashboard] Error loading tasks:', error);
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">
-        <p className="text-destructive mb-4">Error loading tasks: {error instanceof Error ? error.message : 'Unknown error'}</p>
+        <p className="text-destructive mb-4">Error loading tasks</p>
         <Button onClick={() => refetch()}>Try Again</Button>
       </div>
     );
@@ -308,7 +253,7 @@ const Dashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {userTasks.length === 0 ? (
+            {tasks.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>No tasks assigned yet</p>
@@ -316,7 +261,8 @@ const Dashboard = () => {
               </div>
             ) : (
               <div className="space-y-3 max-h-96 overflow-y-auto">
-                {userTasks
+                {tasks
+                  .filter((task: Task) => task.assigned_by === user?.id)
                   .sort((a: Task, b: Task) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                   .map((task: Task) => (
                     <div key={task.id} className="border rounded-lg p-3 hover:bg-muted/50 transition-colors">

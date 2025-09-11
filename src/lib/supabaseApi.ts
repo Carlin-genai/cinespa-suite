@@ -33,70 +33,31 @@ function mapDbTaskToTask(row: any): Task {
 }
 
 export class SupabaseApiService {
-  // Task Management with enhanced error handling and logging
+  // Task Management
   async getTasks(): Promise<Task[]> {
-    try {
-      console.log('[SupabaseApi] Fetching all tasks...');
-      const { data, error } = await supabase
-        .from('tasks')
-        .select('*')
-        .order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-      console.log('[SupabaseApi] getTasks - Raw data:', data);
-      console.log('[SupabaseApi] getTasks - Error:', error);
-
-      if (error) {
-        console.error('[SupabaseApi] Error in getTasks:', error);
-        throw error;
-      }
-      
-      const tasks = (data || []).map(mapDbTaskToTask);
-      console.log('[SupabaseApi] getTasks - Mapped tasks:', tasks.length);
-      return tasks;
-    } catch (error) {
-      console.error('[SupabaseApi] getTasks - Exception:', error);
-      throw error;
-    }
+    if (error) throw error;
+    const tasks = (data || []).map(mapDbTaskToTask);
+    return tasks;
   }
 
-  // Get self tasks with safe user ID handling
+  // Get self tasks (tasks assigned by user to themselves)
   async getSelfTasks(): Promise<Task[]> {
-    try {
-      console.log('[SupabaseApi] Fetching self tasks...');
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
-      if (authError) {
-        console.error('[SupabaseApi] Auth error in getSelfTasks:', authError);
-        throw authError;
-      }
-      
-      if (!user?.id) {
-        console.warn('[SupabaseApi] No authenticated user found for getSelfTasks');
-        throw new Error('User not authenticated');
-      }
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user) throw new Error('User not authenticated');
 
-      console.log('[SupabaseApi] Getting self tasks for user:', user.id);
-      const { data, error } = await supabase
-        .from('tasks')
-        .select('*')
-        .or(`and(assigned_to.eq.${user.id},assigned_by.eq.${user.id}),and(assigned_to.eq.${user.id},is_self_task.eq.true)`)
-        .order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('*')
+      .or(`and(assigned_to.eq.${user.id},assigned_by.eq.${user.id}),and(assigned_to.eq.${user.id},is_self_task.eq.true)`)
+      .order('created_at', { ascending: false });
 
-      console.log('[SupabaseApi] getSelfTasks - Raw data:', data);
-      console.log('[SupabaseApi] getSelfTasks - Error:', error);
-
-      if (error) {
-        console.error('[SupabaseApi] Error in getSelfTasks:', error);
-        throw error;
-      }
-      
-      const tasks = (data || []).map(mapDbTaskToTask);
-      console.log('[SupabaseApi] getSelfTasks - Mapped tasks:', tasks.length);
-      return tasks;
-    } catch (error) {
-      console.error('[SupabaseApi] getSelfTasks - Exception:', error);
-      throw error;
-    }
+    if (error) throw error;
+    return (data || []).map(mapDbTaskToTask);
   }
 
   async createTask(task: Partial<Task> & { assignedEmployees?: string[]; attachments?: File[]; time_limit?: number; credit_points?: number; attachment_url?: string }): Promise<Task> {
@@ -187,7 +148,8 @@ export class SupabaseApiService {
         const { data, error } = await supabase
           .from('tasks')
           .insert([taskData])
-          .select();
+          .select()
+          .maybeSingle();
         
         if (error) {
           console.error('[SupabaseApi] Team task creation error:', error);
@@ -195,8 +157,7 @@ export class SupabaseApiService {
         }
         
         console.log('[SupabaseApi] Team task created:', data);
-        const createdTask = data && data.length > 0 ? data[0] : { ...taskData, id: '' };
-        return mapDbTaskToTask(createdTask);
+        return data ? mapDbTaskToTask(data) : mapDbTaskToTask({ ...taskData, id: '' });
       });
 
       const results = await Promise.all(taskPromises);
@@ -217,7 +178,8 @@ export class SupabaseApiService {
     const { data, error } = await supabase
       .from('tasks')
       .insert([taskData])
-      .select();
+      .select()
+      .maybeSingle();
     
     if (error) {
       console.error('[SupabaseApi] Single task creation error:', error);
@@ -225,79 +187,43 @@ export class SupabaseApiService {
     }
     
     console.log('[SupabaseApi] Single task created:', data);
-    const createdTask = data && data.length > 0 ? data[0] : { ...taskData, id: '' };
-    return mapDbTaskToTask(createdTask);
+    return data ? mapDbTaskToTask(data) : mapDbTaskToTask({ ...taskData, id: '' });
   }
 
   async updateTask(id: string, task: Partial<Task>): Promise<Task> {
-    try {
-      console.log('[SupabaseApi] Updating task:', id, task);
-      
-      if (!id?.trim()) {
-        throw new Error('Task ID is required for update');
-      }
-      
-      const { data, error } = await supabase
-        .from('tasks')
-        .update({
-          title: task.title,
-          description: task.description,
-          status: task.status,
-          priority: task.priority,
-          assigned_to: task.assigned_to,
-          due_date: task.due_date,
-          notes: task.notes,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id)
-        .select();
-      
-      console.log('[SupabaseApi] updateTask - Raw data:', data);
-      console.log('[SupabaseApi] updateTask - Error:', error);
-      
-      if (error) {
-        console.error('[SupabaseApi] Update task error:', error);
-        throw error;
-      }
-      
-      if (!data || data.length === 0) {
-        console.error('[SupabaseApi] No data returned from update');
-        throw new Error('Task update failed - no data returned');
-      }
-      
-      console.log('[SupabaseApi] Task updated successfully:', data[0]);
-      return mapDbTaskToTask(data[0]);
-    } catch (error) {
-      console.error('[SupabaseApi] updateTask - Exception:', error);
+    console.log('[SupabaseApi] Updating task:', id, task);
+    
+    const { data, error } = await supabase
+      .from('tasks')
+      .update({
+        title: task.title,
+        description: task.description,
+        status: task.status,
+        priority: task.priority,
+        assigned_to: task.assigned_to,
+        due_date: task.due_date,
+        notes: task.notes
+      })
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('[SupabaseApi] Update task error:', error);
       throw error;
     }
+    
+    console.log('[SupabaseApi] Task updated successfully:', data);
+    return mapDbTaskToTask(data);
   }
 
   async deleteTask(id: string): Promise<void> {
-    try {
-      console.log('[SupabaseApi] Deleting task:', id);
-      
-      if (!id?.trim()) {
-        throw new Error('Task ID is required for delete');
-      }
-      
-      const { error } = await supabase
-        .from('tasks')
-        .delete()
-        .eq('id', id);
-      
-      console.log('[SupabaseApi] deleteTask - Error:', error);
-      
-      if (error) {
-        console.error('[SupabaseApi] Delete task error:', error);
-        throw error;
-      }
-      
-      console.log('[SupabaseApi] Task deleted successfully');
-    } catch (error) {
-      console.error('[SupabaseApi] deleteTask - Exception:', error);
-      throw error;
-    }
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
   }
 
   // Reminders
