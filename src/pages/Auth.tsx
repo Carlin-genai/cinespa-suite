@@ -17,11 +17,17 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showRoleSelection, setShowRoleSelection] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState<boolean>(() => {
+    try { return localStorage.getItem('wedot_remember') !== 'false'; } catch { return true; }
+  });
   
   const { signIn, signInWithGoogle, signUp, user, userRole } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  useEffect(() => {
+    try { localStorage.setItem('wedot_remember', rememberMe ? 'true' : 'false'); } catch {}
+  }, [rememberMe]);
 
   // Check if user needs role selection
   useEffect(() => {

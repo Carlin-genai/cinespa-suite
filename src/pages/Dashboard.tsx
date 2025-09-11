@@ -126,7 +126,7 @@ const Dashboard = () => {
       <div className="flex items-center justify-between mb-8">
         <div className="text-center flex-1">
           <h1 className="text-4xl font-bold text-rose-gold-contrast mb-2">
-            Mark Technologies
+            Wedot
           </h1>
           <p className="text-muted-foreground">
             Welcome back, {profile?.full_name || user?.email}
@@ -214,7 +214,7 @@ const Dashboard = () => {
                         <h4 className="font-medium text-sm text-rose-gold-contrast">{task.title}</h4>
                         <span 
                           className={cn(
-                            "text-xs px-2 py-1 rounded text-white font-medium",
+                            "text-xs px-2 py-1 rounded text-on-color font-medium",
                             task.status === 'completed' && "bg-completed-green",
                             task.status === 'in-progress' && "bg-progress-blue", 
                             task.status === 'overdue' && "bg-overdue-red",
@@ -267,7 +267,7 @@ const Dashboard = () => {
                       <h4 className="font-medium text-sm text-rose-gold-contrast">{task.title}</h4>
                       <span 
                         className={cn(
-                          "text-xs px-2 py-1 rounded text-white font-medium",
+                          "text-xs px-2 py-1 rounded text-on-color font-medium",
                           task.status === 'completed' && "bg-completed-green",
                           task.status === 'in-progress' && "bg-progress-blue", 
                           task.status === 'overdue' && "bg-overdue-red",

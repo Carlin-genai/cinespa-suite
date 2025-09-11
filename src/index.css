@@ -68,6 +68,7 @@
     --priority-high: 270 100% 50%; /* Purple */
     --priority-medium: 210 100% 50%; /* Blue */
     --priority-low: 60 100% 50%; /* Yellow */
+    --on-color: 0 0% 98%;
   }
 
   .dark {
@@ -132,6 +133,7 @@
     --priority-high: 270 100% 50%; /* Purple */
     --priority-medium: 210 100% 50%; /* Blue */
     --priority-low: 60 100% 50%; /* Yellow */
+    --on-color: 0 0% 98%;
   }
 }
 

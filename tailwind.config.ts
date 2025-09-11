@@ -82,6 +82,7 @@ export default {
 				'charcoal-black': 'hsl(var(--text-grey))',
 				'elegant-grey': 'hsl(var(--text-grey-muted))',
 				'ivory': 'hsl(var(--background))',
+				'on-color': 'hsl(var(--on-color))',
 				// Status colors using CSS variables for theme consistency
 				'completed-green': 'hsl(var(--completed-green))',
 				'progress-blue': 'hsl(var(--progress-blue))',
