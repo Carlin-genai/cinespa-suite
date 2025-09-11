@@ -143,19 +143,17 @@ export class SupabaseApiService {
         
         console.log('[SupabaseApi] Inserting team task:', taskData);
         
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('tasks')
-          .insert([taskData])
-          .select()
-          .maybeSingle();
+          .insert([taskData]);
         
         if (error) {
           console.error('[SupabaseApi] Team task creation error:', error);
           throw error;
         }
         
-        console.log('[SupabaseApi] Team task created:', data);
-        return mapDbTaskToTask(data);
+        console.log('[SupabaseApi] Team task created');
+        return mapDbTaskToTask({ ...taskData, id: '' });
       });
 
       const results = await Promise.all(taskPromises);
@@ -172,19 +170,17 @@ export class SupabaseApiService {
     
     console.log('[SupabaseApi] Inserting single task:', taskData);
     
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('tasks')
-      .insert([taskData])
-      .select()
-      .maybeSingle();
+      .insert([taskData]);
     
     if (error) {
       console.error('[SupabaseApi] Single task creation error:', error);
       throw error;
     }
     
-    console.log('[SupabaseApi] Single task created:', data);
-    return mapDbTaskToTask(data);
+    console.log('[SupabaseApi] Single task created');
+    return mapDbTaskToTask({ ...taskData, id: '' });
   }
 
   async updateTask(id: string, task: Partial<Task>): Promise<Task> {

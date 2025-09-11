@@ -111,11 +111,15 @@ const TeamTasks = () => {
   const createTaskMutation = useMutation({
     mutationFn: async (taskData: Partial<Task> & { assignedEmployees?: string[]; attachments?: File[] }) => {
       const { assignedEmployees, attachments, ...task } = taskData;
+      const defaultDue = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
       
       if (assignedEmployees && assignedEmployees.length > 0) {
         // Create individual tasks for each assigned employee
         const taskPromises = assignedEmployees.map(employeeId => 
           apiService.createTask({
+            status: task.status || 'pending',
+            priority: task.priority || 'medium',
+            due_date: task.due_date || defaultDue,
             ...task,
             assigned_to: employeeId,
             assigned_by: user?.id,
@@ -127,6 +131,9 @@ const TeamTasks = () => {
       } else {
         // Regular task creation
         return apiService.createTask({
+          status: task.status || 'pending',
+          priority: task.priority || 'medium',
+          due_date: task.due_date || defaultDue,
           ...task,
           assigned_by: user?.id,
           attachments,
