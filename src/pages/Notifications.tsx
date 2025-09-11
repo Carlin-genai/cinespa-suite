@@ -85,10 +85,6 @@ const Notifications = () => {
     markReadMutation.mutate(id);
   };
 
-  const handleDeleteNotification = (id: string) => {
-    deleteNotificationMutation.mutate(id);
-  };
-
   const handleUpdateTaskPriority = (taskId: string, priority: string) => {
     updateTaskMutation.mutate({
       id: taskId,
