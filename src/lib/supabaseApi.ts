@@ -148,8 +148,7 @@ export class SupabaseApiService {
         const { data, error } = await supabase
           .from('tasks')
           .insert([taskData])
-          .select()
-          .maybeSingle();
+          .select();
         
         if (error) {
           console.error('[SupabaseApi] Team task creation error:', error);
@@ -157,7 +156,8 @@ export class SupabaseApiService {
         }
         
         console.log('[SupabaseApi] Team task created:', data);
-        return data ? mapDbTaskToTask(data) : mapDbTaskToTask({ ...taskData, id: '' });
+        const createdTask = data && data.length > 0 ? data[0] : { ...taskData, id: '' };
+        return mapDbTaskToTask(createdTask);
       });
 
       const results = await Promise.all(taskPromises);
@@ -178,8 +178,7 @@ export class SupabaseApiService {
     const { data, error } = await supabase
       .from('tasks')
       .insert([taskData])
-      .select()
-      .maybeSingle();
+      .select();
     
     if (error) {
       console.error('[SupabaseApi] Single task creation error:', error);
@@ -187,7 +186,8 @@ export class SupabaseApiService {
     }
     
     console.log('[SupabaseApi] Single task created:', data);
-    return data ? mapDbTaskToTask(data) : mapDbTaskToTask({ ...taskData, id: '' });
+    const createdTask = data && data.length > 0 ? data[0] : { ...taskData, id: '' };
+    return mapDbTaskToTask(createdTask);
   }
 
   async updateTask(id: string, task: Partial<Task>): Promise<Task> {
@@ -202,11 +202,11 @@ export class SupabaseApiService {
         priority: task.priority,
         assigned_to: task.assigned_to,
         due_date: task.due_date,
-        notes: task.notes
+        notes: task.notes,
+        updated_at: new Date().toISOString()
       })
       .eq('id', id)
-      .select()
-      .single();
+      .select();
     
     if (error) {
       console.error('[SupabaseApi] Update task error:', error);
@@ -214,7 +214,11 @@ export class SupabaseApiService {
     }
     
     console.log('[SupabaseApi] Task updated successfully:', data);
-    return mapDbTaskToTask(data);
+    const updatedTask = data && data.length > 0 ? data[0] : null;
+    if (!updatedTask) {
+      throw new Error('Task not found or could not be updated');
+    }
+    return mapDbTaskToTask(updatedTask);
   }
 
   async deleteTask(id: string): Promise<void> {

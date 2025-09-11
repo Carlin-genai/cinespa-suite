@@ -162,14 +162,14 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
       title: title.trim(),
       description: description.trim() || '',
       status: 'pending' as const,
-      priority,
-      assigned_to: assignedUserId,
+      priority: priority || 'medium',
+      assigned_to: assignedUserId || user.id,
       assigned_by: user.id,
-      due_date: dueDateTime.toISOString(),
-      time_limit: timeLimit ? parseInt(timeLimit) : undefined,
+      due_date: dueDateTime?.toISOString() || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      time_limit: timeLimit ? parseInt(timeLimit) : null,
       credit_points: creditPoints ? parseInt(creditPoints) : 0,
-      attachment_url: attachmentUrl || undefined,
-      notes: notes.trim() || undefined,
+      attachment_url: attachmentUrl?.trim() || null,
+      notes: notes.trim() || null,
       attachments: attachments.length > 0 ? attachments : undefined,
       ...(showEmployeeSelection && selectedEmployees.length > 0 ? { assignedEmployees: selectedEmployees } : {}),
     };
@@ -180,12 +180,11 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
       console.log('[TaskCreate] User authenticated:', !!user);
       
       // Call the onSave function passed from parent
-      const result = await onSave(taskData);
-      console.log('[TaskCreate] Task creation result:', result);
+      await onSave(taskData);
       
       toast({
-        title: "Task Created",
-        description: "Task has been created successfully!",
+        title: "Task Created Successfully",
+        description: `Task "${taskData.title}" has been created and will appear in the dashboard momentarily.`,
         variant: "default",
       });
       

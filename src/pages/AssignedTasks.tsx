@@ -11,6 +11,7 @@ import { apiService } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Task } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const AssignedTasks = () => {
   const { user, userRole } = useAuth();
@@ -25,12 +26,30 @@ const AssignedTasks = () => {
   const [ratingDialogOpen, setRatingDialogOpen] = useState(false);
   const [selectedTaskForRating, setSelectedTaskForRating] = useState<string>('');
 
-  // Fetch all tasks assigned by the current admin
-  const { data: tasks = [], isLoading, error } = useQuery({
+  // Fetch all tasks assigned by the current admin with real-time updates
+  const { data: tasks = [], isLoading, error, refetch } = useQuery({
     queryKey: ['assigned-tasks'],
     queryFn: () => apiService.getTasks(),
     enabled: userRole?.role === 'admin',
   });
+
+  // Real-time updates for assigned tasks
+  React.useEffect(() => {
+    if (userRole?.role !== 'admin' || !user) return;
+    
+    const channel = supabase
+      .channel('assigned-tasks-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, (payload) => {
+        console.log('[AssignedTasks] Realtime change:', payload.eventType);
+        queryClient.invalidateQueries({ queryKey: ['assigned-tasks'] });
+        refetch();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient, refetch, user, userRole]);
 
   // Update task mutation
   const updateTaskMutation = useMutation({
