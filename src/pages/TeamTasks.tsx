@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -293,15 +293,11 @@ const TeamTasks = () => {
     );
   }
 
-  // Group tasks by status (memoized for performance)
-  const { pendingTasks, inProgressTasks, completedTasks, overdueTasks } = useMemo(() => {
-    return {
-      pendingTasks: tasks.filter((task: Task) => task.status === 'pending'),
-      inProgressTasks: tasks.filter((task: Task) => task.status === 'in-progress'),
-      completedTasks: tasks.filter((task: Task) => task.status === 'completed'),
-      overdueTasks: tasks.filter((task: Task) => task.status === 'overdue'),
-    };
-  }, [tasks]);
+  // Group tasks by status
+  const pendingTasks = tasks.filter((task: Task) => task.status === 'pending');
+  const inProgressTasks = tasks.filter((task: Task) => task.status === 'in-progress');
+  const completedTasks = tasks.filter((task: Task) => task.status === 'completed');
+  const overdueTasks = tasks.filter((task: Task) => task.status === 'overdue');
 
   return (
     <div className="space-y-6">
