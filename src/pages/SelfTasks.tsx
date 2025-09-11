@@ -30,26 +30,57 @@ const SelfTasks = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
 
-  // ✅ Realtime updates for self-tasks
+  // ✅ Fetch self-created tasks with enhanced error handling
+  const { data: tasks = [], isLoading, error, refetch } = useQuery({
+    queryKey: ['self-tasks', user?.id],
+    queryFn: async () => {
+      try {
+        console.log('[SelfTasks] Fetching self tasks for user:', user?.id);
+        if (!user?.id) {
+          console.warn('[SelfTasks] No user ID available');
+          return [];
+        }
+        const result = await supabaseApi.getSelfTasks();
+        console.log('[SelfTasks] Self tasks fetched:', result.length);
+        return result;
+      } catch (error) {
+        console.error('[SelfTasks] Error fetching self tasks:', error);
+        throw error;
+      }
+    },
+    enabled: !!user?.id,
+    retry: 2,
+  });
+
+  // ✅ Realtime updates for self-tasks with proper cleanup
   React.useEffect(() => {
+    if (!user?.id) {
+      console.log('[SelfTasks] No user ID, skipping realtime setup');
+      return;
+    }
+
+    console.log('[SelfTasks] Setting up realtime listener for user:', user.id);
+    
     const channel = supabase
-      .channel('self-tasks-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, (payload) => {
-        console.log('[SelfTasks] Realtime change on tasks:', payload.eventType);
-        queryClient.invalidateQueries({ queryKey: ['self-tasks'] });
+      .channel(`self-tasks-${user.id}`)
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'tasks' 
+      }, (payload) => {
+        console.log('[SelfTasks] Realtime change on tasks:', payload.eventType, payload);
+        queryClient.invalidateQueries({ queryKey: ['self-tasks', user.id] });
+        refetch();
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[SelfTasks] Realtime subscription status:', status);
+      });
 
     return () => {
+      console.log('[SelfTasks] Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
-  }, [queryClient]);
-
-  // ✅ Fetch self-created tasks (tasks where user assigned to themselves)
-  const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ['self-tasks'],
-    queryFn: () => supabaseApi.getSelfTasks(),
-  });
+  }, [queryClient, refetch, user?.id]);
 
   // ✅ Create task mutation (self-assigned only)
   const createTaskMutation = useMutation({
@@ -173,6 +204,17 @@ const SelfTasks = () => {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-400"></div>
+        <p className="ml-4 text-muted-foreground">Loading your self tasks...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    console.error('[SelfTasks] Error loading tasks:', error);
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <p className="text-destructive mb-4">Error loading self tasks: {error instanceof Error ? error.message : 'Unknown error'}</p>
+        <Button onClick={() => refetch()}>Try Again</Button>
       </div>
     );
   }
@@ -247,10 +289,31 @@ const SelfTasks = () => {
         </CardContent>
       </Card>
 
-      {/* Tasks Grid */}
+      {/* Tasks Grid - Enhanced Empty State */}
       {filteredTasks.length === 0 ? (
         <Card>
-          <CardContent className="pt-6 text-center">No tasks found</CardContent>
+          <CardContent className="pt-6">
+            <div className="text-center py-12">
+              <User className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-medium text-foreground mb-2">
+                {!user?.id ? 'Authentication Required' : 'No self tasks found'}
+              </h3>
+              <p className="text-muted-foreground">
+                {!user?.id ? (
+                  'Please log in to view your tasks'
+                ) : (
+                  searchTerm ? 
+                    'No tasks match your search criteria. Try adjusting your search.' :
+                    'You haven\'t created any self tasks yet. Create one above to get started!'
+                )}
+              </p>
+              {!user?.id && (
+                <Button className="mt-4" onClick={() => window.location.href = "/auth"}>
+                  Go to Login
+                </Button>
+              )}
+            </div>
+          </CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -14,6 +14,7 @@ import { apiService } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Task } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const MyTasks = () => {
   const { user, userRole } = useAuth();
@@ -32,14 +33,53 @@ const MyTasks = () => {
 
   const isAdmin = userRole?.role === 'admin';
 
-  // Fetch tasks assigned to the current user
-  const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ['my-tasks'],
+  // Fetch tasks assigned to the current user with enhanced error handling
+  const { data: tasks = [], isLoading, error, refetch } = useQuery({
+    queryKey: ['my-tasks', user?.id],
     queryFn: async () => {
-      const allTasks = await apiService.getTasks();
-      return allTasks.filter((task: Task) => task.assigned_to === user?.id);
+      try {
+        console.log('[MyTasks] Fetching tasks for user:', user?.id);
+        if (!user?.id) {
+          console.warn('[MyTasks] No user ID available');
+          return [];
+        }
+        const allTasks = await apiService.getTasks();
+        const myTasks = allTasks.filter((task: Task) => task.assigned_to === user.id);
+        console.log('[MyTasks] Filtered tasks:', myTasks.length, 'out of', allTasks.length);
+        return myTasks;
+      } catch (error) {
+        console.error('[MyTasks] Error fetching tasks:', error);
+        throw error;
+      }
     },
+    enabled: !!user?.id,
+    retry: 2,
   });
+
+  // Realtime updates for my tasks with proper cleanup
+  React.useEffect(() => {
+    if (!user?.id) return;
+    
+    console.log('[MyTasks] Setting up realtime listener');
+    
+    const channel = supabase
+      .channel(`my-tasks-${user.id}`)
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'tasks' 
+      }, (payload) => {
+        console.log('[MyTasks] Realtime change:', payload.eventType);
+        queryClient.invalidateQueries({ queryKey: ['my-tasks', user.id] });
+        refetch();
+      })
+      .subscribe();
+
+    return () => {
+      console.log('[MyTasks] Cleaning up realtime subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient, refetch, user?.id]);
 
   // Update task mutation
   const updateTaskMutation = useMutation({
@@ -189,6 +229,17 @@ const MyTasks = () => {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <p className="ml-4 text-muted-foreground">Loading your tasks...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    console.error('[MyTasks] Error loading tasks:', error);
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <p className="text-destructive mb-4">Error loading your tasks: {error instanceof Error ? error.message : 'Unknown error'}</p>
+        <Button onClick={() => refetch()}>Try Again</Button>
       </div>
     );
   }

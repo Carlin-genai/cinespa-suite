@@ -22,17 +22,27 @@ const Dashboard = () => {
 
   const isAdmin = userRole?.role === 'admin';
 
-  // Fetch tasks from backend API
+  // Fetch tasks from backend API with enhanced error handling
   const { data: tasks = [], isLoading, error, refetch } = useQuery({
     queryKey: ['tasks'],
     queryFn: async () => {
-      console.log('[Dashboard] Fetching tasks...');
-      const result = await apiService.getTasks();
-      console.log('[Dashboard] Tasks fetched:', result.length);
-      return result;
+      try {
+        console.log('[Dashboard] Fetching tasks for user:', user?.id);
+        if (!user?.id) {
+          console.warn('[Dashboard] No authenticated user, skipping task fetch');
+          return [];
+        }
+        const result = await apiService.getTasks();
+        console.log('[Dashboard] Tasks fetched successfully:', result.length);
+        return result;
+      } catch (error) {
+        console.error('[Dashboard] Error fetching tasks:', error);
+        throw error;
+      }
     },
-    enabled: !!user, // Only fetch when user is authenticated
-    retry: 1,
+    enabled: !!user?.id, // Only fetch when user is authenticated and has ID
+    retry: 2,
+    staleTime: 30000, // Consider data fresh for 30 seconds
   });
 
   // Fetch analytics from backend
@@ -82,35 +92,57 @@ const Dashboard = () => {
     }
   }, [createDialogOpen, queryClient]);
 
-  // Realtime: refresh tasks immediately when new tasks are inserted/updated/deleted
+  // Realtime: refresh tasks with proper cleanup and user validation
   React.useEffect(() => {
-    if (!user) return;
+    if (!user?.id) {
+      console.log('[Dashboard] No user ID, skipping realtime setup');
+      return;
+    }
     
     console.log('[Dashboard] Setting up realtime listener for user:', user.id);
     
     const channel = supabase
-      .channel('public:tasks-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, (payload) => {
-        console.log('[Dashboard] Realtime change on tasks:', payload.eventType);
+      .channel(`dashboard-tasks-${user.id}`)
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'tasks' 
+      }, (payload) => {
+        console.log('[Dashboard] Realtime change on tasks:', payload.eventType, payload);
         // Refetch tasks so the dashboard updates instantly for both admin and employee
         queryClient.invalidateQueries({ queryKey: ['tasks'] });
         refetch();
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[Dashboard] Realtime subscription status:', status);
+      });
 
     return () => {
+      console.log('[Dashboard] Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
-  }, [queryClient, refetch, user]);
+  }, [queryClient, refetch, user?.id]);
 
-  // Filter tasks based on user role
+  // Filter tasks based on user role with safe user ID handling
   const userTasks = React.useMemo(() => {
+    if (!user?.id) {
+      console.warn('[Dashboard] No user ID available for task filtering');
+      return [];
+    }
+    
+    console.log('[Dashboard] Filtering tasks for user:', user.id, 'isAdmin:', isAdmin);
+    console.log('[Dashboard] Total tasks available:', tasks.length);
+    
     if (isAdmin) {
       // Admins see all tasks assigned by them
-      return tasks.filter((task: Task) => task.assigned_by === user?.id);
+      const adminTasks = tasks.filter((task: Task) => task.assigned_by === user.id);
+      console.log('[Dashboard] Admin tasks filtered:', adminTasks.length);
+      return adminTasks;
     } else {
       // Employees see all tasks assigned TO them (including team tasks)
-      return tasks.filter((task: Task) => task.assigned_to === user?.id);
+      const employeeTasks = tasks.filter((task: Task) => task.assigned_to === user.id);
+      console.log('[Dashboard] Employee tasks filtered:', employeeTasks.length);
+      return employeeTasks;
     }
   }, [tasks, isAdmin, user?.id]);
   
@@ -167,13 +199,22 @@ const Dashboard = () => {
     }
   };
 
-  if (isLoading || !user) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        <p className="ml-4 text-muted-foreground">
-          {!user ? 'Please log in to access the dashboard' : 'Loading tasks...'}
-        </p>
+        <p className="ml-4 text-muted-foreground">Loading dashboard...</p>
+      </div>
+    );
+  }
+
+  if (!user?.id) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-muted-foreground mb-4">Please log in to access the dashboard</p>
+          <Button onClick={() => window.location.href = "/auth"}>Go to Login</Button>
+        </div>
       </div>
     );
   }
@@ -182,7 +223,7 @@ const Dashboard = () => {
     console.error('[Dashboard] Error loading tasks:', error);
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">
-        <p className="text-destructive mb-4">Error loading tasks</p>
+        <p className="text-destructive mb-4">Error loading tasks: {error instanceof Error ? error.message : 'Unknown error'}</p>
         <Button onClick={() => refetch()}>Try Again</Button>
       </div>
     );
@@ -267,7 +308,7 @@ const Dashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {tasks.length === 0 ? (
+            {userTasks.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>No tasks assigned yet</p>
@@ -275,8 +316,7 @@ const Dashboard = () => {
               </div>
             ) : (
               <div className="space-y-3 max-h-96 overflow-y-auto">
-                {tasks
-                  .filter((task: Task) => task.assigned_by === user?.id)
+                {userTasks
                   .sort((a: Task, b: Task) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                   .map((task: Task) => (
                     <div key={task.id} className="border rounded-lg p-3 hover:bg-muted/50 transition-colors">
