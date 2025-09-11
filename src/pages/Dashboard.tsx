@@ -54,10 +54,6 @@ const Dashboard = () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] }); // Refresh employee list
       // Force immediate refetch
       refetch();
-      toast({
-        title: "Success",
-        description: "Task created successfully",
-      });
       setCreateDialogOpen(false);
     },
     onError: (error) => {
@@ -136,9 +132,10 @@ const Dashboard = () => {
       return;
     }
     
+    // Don't show success toast here, let the dialog handle it
     createTaskMutation.mutate({
       ...task,
-      assigned_by: user?.id,
+      assigned_by: user.id,
     });
   };
 

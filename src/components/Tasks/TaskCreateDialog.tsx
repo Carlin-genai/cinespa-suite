@@ -103,6 +103,15 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
       return;
     }
     
+    if (!user?.id) {
+      toast({
+        title: "Authentication Error",
+        description: "You must be logged in to create tasks.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     if (!isPersonalTask && !showEmployeeSelection && !assignedTo) {
       toast({
         title: "Assignment Required",
@@ -140,18 +149,27 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
 
     // Get selected employee for assignment
     const selectedEmployee = employees.find((u: any) => u.email === assignedTo || u.id === assignedTo);
-    const assignedUserId = isPersonalTask ? user?.id : (selectedEmployee?.id || assignedTo);
+    let assignedUserId = assignedTo;
+    
+    if (isPersonalTask) {
+      assignedUserId = user.id;
+    } else if (selectedEmployee?.id) {
+      assignedUserId = selectedEmployee.id;
+    } else if (!showEmployeeSelection && assignedTo) {
+      // Use the assignedTo value if it's a direct user ID
+      assignedUserId = assignedTo;
+    }
 
     const taskData = {
       title: title.trim(),
-      description: description.trim(),
+      description: description.trim() || '',
       status: 'pending' as const,
       priority,
       assigned_to: assignedUserId,
-      assigned_by: user?.id,
+      assigned_by: user.id,
       due_date: dueDateTime.toISOString(),
       time_limit: timeLimit ? parseInt(timeLimit) : undefined,
-      credit_points: creditPoints ? parseInt(creditPoints) : undefined,
+      credit_points: creditPoints ? parseInt(creditPoints) : 0,
       attachment_url: attachmentUrl || undefined,
       notes: notes.trim() || undefined,
       attachments: attachments.length > 0 ? attachments : undefined,
@@ -160,22 +178,17 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
 
     try {
       console.log('[TaskCreate] Creating task with data', taskData);
+      
+      // Call the onSave function passed from parent
       await onSave(taskData);
       
-      // Show success message
-      toast({
-        title: "Task Created Successfully!",
-        description: showEmployeeSelection 
-          ? `Team task "${title}" has been assigned to ${selectedEmployees.length} employee${selectedEmployees.length > 1 ? 's' : ''}.`
-          : `Task "${title}" has been created and assigned${!isPersonalTask ? ` to ${selectedEmployee?.name || assignedUserId}` : ''}.`,
-      });
-      
+      // Success toast will be shown by parent component
       handleClose();
     } catch (error) {
       console.error('[TaskCreate] Error creating task:', error);
       toast({
         title: "Error Creating Task",
-        description: "There was an error creating the task. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error creating the task. Please try again.",
         variant: "destructive"
       });
     }

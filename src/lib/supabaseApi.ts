@@ -63,6 +63,15 @@ export class SupabaseApiService {
   async createTask(task: Partial<Task> & { assignedEmployees?: string[]; attachments?: File[]; time_limit?: number; credit_points?: number; attachment_url?: string }): Promise<Task> {
     console.log('[SupabaseApi] Creating task - start', task);
     
+    // Validate required fields
+    if (!task.title?.trim()) {
+      throw new Error('Task title is required');
+    }
+    
+    if (!task.assigned_to) {
+      throw new Error('Task must be assigned to a user');
+    }
+    
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       console.error('[SupabaseApi] Authentication error:', authError);
