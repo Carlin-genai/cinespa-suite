@@ -206,8 +206,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('Attempting Google sign in');
     
     try {
-      // Use the actual app URL that matches Google OAuth configuration
-      const redirectUrl = window.location.origin + '/';
+      const appOrigin = window.location.origin;
+      const redirectUrl = appOrigin + '/';
       
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -217,12 +217,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             access_type: 'offline',
             prompt: 'consent',
           },
+          // Critical in preview/iframe: we handle the redirect manually
+          skipBrowserRedirect: true,
         },
       });
       
       if (error) {
         console.error('Google sign in error:', error);
         return { error };
+      }
+      
+      if (data?.url) {
+        console.log('[Auth] Redirecting to Google outside iframe...');
+        const opened = window.open(data.url, '_blank', 'noopener,noreferrer');
+        if (!opened) {
+          try {
+            if (window.top) {
+              (window.top as Window).location.href = data.url;
+            } else {
+              window.location.href = data.url;
+            }
+          } catch {
+            window.location.href = data.url;
+          }
+        }
       }
       
       console.log('Google sign in initiated successfully');
