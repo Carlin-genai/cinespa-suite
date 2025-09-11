@@ -206,7 +206,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('Attempting Google sign in');
     
     try {
-      // For Lovable projects, use the current origin without /auth path
       const redirectUrl = window.location.origin;
       
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -217,12 +216,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             access_type: 'offline',
             prompt: 'consent',
           },
+          // Critical for iframe environments (Lovable preview)
+          // We'll handle the redirect manually to avoid embedding Google in the iframe
+          skipBrowserRedirect: true,
         },
       });
       
       if (error) {
         console.error('Google sign in error:', error);
         return { error };
+      }
+
+      if (data?.url) {
+        console.log('[Auth] Redirecting to Google outside iframe...');
+        // Prefer opening in a new tab to bypass iframe X-Frame-Options
+        const opened = window.open(data.url, '_blank', 'noopener,noreferrer');
+        if (!opened) {
+          // Fallback: force top-level navigation
+          try {
+            if (window.top) {
+              (window.top as Window).location.href = data.url;
+            } else {
+              window.location.href = data.url;
+            }
+          } catch {
+            window.location.href = data.url;
+          }
+        }
       }
       
       console.log('Google sign in initiated successfully');
