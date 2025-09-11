@@ -109,8 +109,8 @@ const TeamTasks = () => {
 
   // Create task mutation
   const createTaskMutation = useMutation({
-    mutationFn: async (taskData: Partial<Task> & { assignedEmployees?: string[] }) => {
-      const { assignedEmployees, ...task } = taskData;
+    mutationFn: async (taskData: Partial<Task> & { assignedEmployees?: string[]; attachments?: File[] }) => {
+      const { assignedEmployees, attachments, ...task } = taskData;
       
       if (assignedEmployees && assignedEmployees.length > 0) {
         // Create individual tasks for each assigned employee
@@ -119,6 +119,7 @@ const TeamTasks = () => {
             ...task,
             assigned_to: employeeId,
             assigned_by: user?.id,
+            attachments,
           })
         );
         
@@ -128,6 +129,7 @@ const TeamTasks = () => {
         return apiService.createTask({
           ...task,
           assigned_by: user?.id,
+          attachments,
         });
       }
     },

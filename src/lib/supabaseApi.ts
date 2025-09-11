@@ -60,9 +60,47 @@ export class SupabaseApiService {
     return (data || []).map(mapDbTaskToTask);
   }
 
-  async createTask(task: Partial<Task> & { assignedEmployees?: string[]; time_limit?: number; credit_points?: number; attachment_url?: string }): Promise<Task> {
+  async createTask(task: Partial<Task> & { assignedEmployees?: string[]; attachments?: File[]; time_limit?: number; credit_points?: number; attachment_url?: string }): Promise<Task> {
     const user = (await supabase.auth.getUser()).data.user;
     if (!user) throw new Error('User not authenticated');
+
+    // Handle file uploads first if attachments exist
+    let uploadedAttachments: string[] = [];
+    if (task.attachments && task.attachments.length > 0) {
+      const uploadPromises = task.attachments.map(async (file, index) => {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}_${index}.${fileExt}`;
+        
+        const { data, error } = await supabase.storage
+          .from('task-attachments')
+          .upload(fileName, file);
+          
+        if (error) throw error;
+        
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('task-attachments')
+          .getPublicUrl(fileName);
+          
+        return publicUrl;
+      });
+      
+      uploadedAttachments = await Promise.all(uploadPromises);
+    }
+
+    // Prepare task data with uploaded attachments
+    const taskDataBase = {
+      title: task.title || '',
+      description: task.description || '',
+      status: task.status || 'pending',
+      priority: task.priority || 'medium',
+      due_date: task.due_date,
+      notes: task.notes,
+      time_limit: task.time_limit,
+      credit_points: task.credit_points || 0,
+      attachment_url: task.attachment_url,
+      attachments: uploadedAttachments.length > 0 ? uploadedAttachments : undefined,
+    };
 
     // For team tasks with multiple assignees, create multiple task records
     if (task.assignedEmployees && task.assignedEmployees.length > 0) {
@@ -70,17 +108,9 @@ export class SupabaseApiService {
         const { data, error } = await supabase
           .from('tasks')
           .insert([{ 
-            title: task.title || '',
-            description: task.description || '',
-            status: task.status || 'pending',
-            priority: task.priority || 'medium',
+            ...taskDataBase,
             assigned_to: employeeId,
             assigned_by: task.assigned_by || user.id,
-            due_date: task.due_date,
-            notes: task.notes,
-            time_limit: task.time_limit,
-            credit_points: task.credit_points || 0,
-            attachment_url: task.attachment_url,
           }])
           .select()
           .single();
@@ -97,17 +127,9 @@ export class SupabaseApiService {
     const { data, error } = await supabase
       .from('tasks')
       .insert([{ 
-        title: task.title || '',
-        description: task.description || '',
-        status: task.status || 'pending',
-        priority: task.priority || 'medium',
+        ...taskDataBase,
         assigned_to: task.assigned_to || user.id,
         assigned_by: task.assigned_by || user.id,
-        due_date: task.due_date,
-        notes: task.notes,
-        time_limit: task.time_limit,
-        credit_points: task.credit_points || 0,
-        attachment_url: task.attachment_url,
       }])
       .select()
       .single();

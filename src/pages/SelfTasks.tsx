@@ -130,7 +130,7 @@ const SelfTasks = () => {
     overdue: filteredTasks.filter((task) => task.status === 'overdue'),
   };
 
-  const handleCreateTask = (task: Partial<Task>) => createTaskMutation.mutate(task);
+  const handleCreateTask = (task: Partial<Task> & { attachments?: File[] }) => createTaskMutation.mutate(task);
   const handleEditTask = (task: Task) => {
     setSelectedTask(task);
     setEditDialogOpen(true);

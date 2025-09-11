@@ -104,7 +104,7 @@ const Dashboard = () => {
     .sort((a: Task, b: Task) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 5);
 
-  const handleCreateTask = (task: Partial<Task>) => {
+  const handleCreateTask = (task: Partial<Task> & { attachments?: File[] }) => {
     createTaskMutation.mutate({
       ...task,
       assigned_by: user?.id,

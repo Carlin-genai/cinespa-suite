@@ -59,7 +59,7 @@ class ApiService {
     return supabaseApi.getTasks();
   }
 
-  async createTask(task: Partial<Task>): Promise<Task> {
+  async createTask(task: Partial<Task> & { attachments?: File[] }): Promise<Task> {
     return supabaseApi.createTask(task);
   }
 

@@ -14,13 +14,14 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import TaskImageUpload from './TaskImageUpload';
 
 import { Task } from '@/types';
 
 interface TaskCreateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (task: Partial<Task> & { assignedEmployees?: string[] }) => void;
+  onSave: (task: Partial<Task> & { assignedEmployees?: string[]; attachments?: File[] }) => void;
   isPersonalTask?: boolean;
   showEmployeeSelection?: boolean;
 }
@@ -47,6 +48,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   const [creditPoints, setCreditPoints] = useState('');
   const [attachmentUrl, setAttachmentUrl] = useState('');
   const [notes, setNotes] = useState('');
+  const [attachments, setAttachments] = useState<File[]>([]);
 
   // Fetch employees from Supabase profiles
   const { data: employees = [], isLoading: loadingEmployees, error: employeeError } = useQuery({
@@ -152,6 +154,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
       credit_points: creditPoints ? parseInt(creditPoints) : undefined,
       attachment_url: attachmentUrl || undefined,
       notes: notes.trim() || undefined,
+      attachments: attachments.length > 0 ? attachments : undefined,
       ...(showEmployeeSelection && { assignedEmployees: selectedEmployees }),
     };
 
@@ -191,6 +194,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
     setCreditPoints('');
     setAttachmentUrl('');
     setNotes('');
+    setAttachments([]);
     onOpenChange(false);
   };
 
@@ -423,12 +427,19 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
           </div>
 
           <div>
-            <Label htmlFor="attachmentUrl">Attachment URL</Label>
+            <TaskImageUpload
+              onImagesChange={setAttachments}
+              maxImages={5}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="attachmentUrl">Additional Attachment URL</Label>
             <Input
               id="attachmentUrl"
               value={attachmentUrl}
               onChange={(e) => setAttachmentUrl(e.target.value)}
-              placeholder="Link to relevant documents or resources"
+              placeholder="Link to relevant documents or resources (optional)"
               className="mt-1"
             />
           </div>
