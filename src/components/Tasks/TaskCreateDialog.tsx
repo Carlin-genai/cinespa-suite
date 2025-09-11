@@ -121,13 +121,9 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
       return;
     }
 
+    // Team selection optional for admins; if none selected, will self-assign
     if (showEmployeeSelection && selectedEmployees.length === 0) {
-      toast({
-        title: "Team Members Required",
-        description: "Please select at least one employee for this team task.",
-        variant: "destructive"
-      });
-      return;
+      console.warn('[TaskCreate] No team members selected; will self-assign to current user.');
     }
     
     // Default due date if not selected: tomorrow at 5PM
@@ -157,6 +153,9 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
     } else if (!showEmployeeSelection && assignedTo) {
       // Use the assignedTo value if it's a direct user ID
       assignedUserId = assignedTo;
+    } else if (showEmployeeSelection && selectedEmployees.length === 0) {
+      // Admin creating without selection: self-assign
+      assignedUserId = user.id;
     }
 
     const taskData = {
@@ -172,7 +171,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
       attachment_url: attachmentUrl || undefined,
       notes: notes.trim() || undefined,
       attachments: attachments.length > 0 ? attachments : undefined,
-      ...(showEmployeeSelection && { assignedEmployees: selectedEmployees }),
+      ...(showEmployeeSelection && selectedEmployees.length > 0 ? { assignedEmployees: selectedEmployees } : {}),
     };
 
     try {
