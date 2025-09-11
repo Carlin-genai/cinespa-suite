@@ -46,21 +46,28 @@ const Dashboard = () => {
   const createTaskMutation = useMutation({
     mutationFn: async (task: Partial<Task> & { attachments?: File[] }) => {
       console.log('[Dashboard] Creating task:', task);
-      return await apiService.createTask(task);
+      const result = await apiService.createTask(task);
+      console.log('[Dashboard] Task creation API result:', result);
+      return result;
     },
     onSuccess: (data) => {
       console.log('[Dashboard] Task created successfully:', data);
+      // Invalidate and refetch tasks immediately
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['employees'] }); // Refresh employee list
-      // Force immediate refetch
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
       refetch();
-      setCreateDialogOpen(false);
+      
+      toast({
+        title: "Task Created",
+        description: `Task "${data.title}" created successfully and should appear below.`,
+        variant: "default",
+      });
     },
     onError: (error) => {
       console.error('[Dashboard] Create task error:', error);
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create task",
+        title: "Task Creation Failed",
+        description: error instanceof Error ? error.message : "Failed to create task. Please check your permissions and try again.",
         variant: "destructive",
       });
     },
@@ -119,20 +126,20 @@ const Dashboard = () => {
     .sort((a: Task, b: Task) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 5);
 
-  const handleCreateTask = (task: Partial<Task> & { attachments?: File[] }) => {
+  const handleCreateTask = async (task: Partial<Task> & { attachments?: File[] }) => {
     console.log('[Dashboard] handleCreateTask called with:', task);
     
     if (!user?.id) {
       console.error('[Dashboard] No user ID available for task creation');
       toast({
-        title: "Error", 
+        title: "Authentication Error", 
         description: "You must be logged in to create tasks",
         variant: "destructive",
       });
       return;
     }
     
-    // Ensure default values for required fields
+    // Ensure default values for required fields with safe fallbacks
     const taskData = {
       title: task.title?.trim() || '',
       description: task.description?.trim() || '',
@@ -141,16 +148,23 @@ const Dashboard = () => {
       assigned_by: user.id,
       assigned_to: task.assigned_to || user.id,
       due_date: task.due_date || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      notes: task.notes || undefined,
-      time_limit: (task as any).time_limit || undefined,
+      notes: task.notes || null,
+      time_limit: (task as any).time_limit || null,
       credit_points: (task as any).credit_points || 0,
-      attachment_url: (task as any).attachment_url || undefined,
+      attachment_url: (task as any).attachment_url || null,
       attachments: task.attachments || undefined,
       assignedEmployees: (task as any).assignedEmployees || undefined,
     };
     
     console.log('[Dashboard] Final task data for creation:', taskData);
-    createTaskMutation.mutate(taskData);
+    
+    try {
+      await createTaskMutation.mutateAsync(taskData);
+      setCreateDialogOpen(false);
+    } catch (error) {
+      console.error('[Dashboard] Task creation failed:', error);
+      // Error handling is already done in the mutation's onError
+    }
   };
 
   if (isLoading || !user) {
