@@ -12,6 +12,7 @@ import { Task } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import AuthGuard from '@/components/AuthGuard';
 
 const Dashboard = () => {
   const { user, profile, userRole } = useAuth();
@@ -22,9 +23,16 @@ const Dashboard = () => {
   const isAdmin = userRole?.role === 'admin';
 
   // Fetch tasks from backend API
-  const { data: tasks = [], isLoading } = useQuery({
+  const { data: tasks = [], isLoading, error, refetch } = useQuery({
     queryKey: ['tasks'],
-    queryFn: () => apiService.getTasks(),
+    queryFn: async () => {
+      console.log('[Dashboard] Fetching tasks...');
+      const result = await apiService.getTasks();
+      console.log('[Dashboard] Tasks fetched:', result.length);
+      return result;
+    },
+    enabled: !!user, // Only fetch when user is authenticated
+    retry: 1,
   });
 
   // Fetch analytics from backend
@@ -36,10 +44,16 @@ const Dashboard = () => {
 
   // Create task mutation
   const createTaskMutation = useMutation({
-    mutationFn: (task: Partial<Task>) => apiService.createTask(task),
-    onSuccess: () => {
+    mutationFn: async (task: Partial<Task> & { attachments?: File[] }) => {
+      console.log('[Dashboard] Creating task:', task);
+      return await apiService.createTask(task);
+    },
+    onSuccess: (data) => {
+      console.log('[Dashboard] Task created successfully:', data);
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['employees'] }); // Refresh employee list
+      // Force immediate refetch
+      refetch();
       toast({
         title: "Success",
         description: "Task created successfully",
@@ -47,12 +61,12 @@ const Dashboard = () => {
       setCreateDialogOpen(false);
     },
     onError: (error) => {
+      console.error('[Dashboard] Create task error:', error);
       toast({
         title: "Error",
-        description: "Failed to create task",
+        description: error instanceof Error ? error.message : "Failed to create task",
         variant: "destructive",
       });
-      console.error('Create task error:', error);
     },
   });
 
@@ -67,19 +81,24 @@ const Dashboard = () => {
 
   // Realtime: refresh tasks immediately when new tasks are inserted/updated/deleted
   React.useEffect(() => {
+    if (!user) return;
+    
+    console.log('[Dashboard] Setting up realtime listener for user:', user.id);
+    
     const channel = supabase
       .channel('public:tasks-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, (payload) => {
         console.log('[Dashboard] Realtime change on tasks:', payload.eventType);
         // Refetch tasks so the dashboard updates instantly for both admin and employee
         queryClient.invalidateQueries({ queryKey: ['tasks'] });
+        refetch();
       })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [queryClient]);
+  }, [queryClient, refetch, user]);
 
   // Filter tasks based on user role
   const userTasks = React.useMemo(() => {
@@ -105,56 +124,82 @@ const Dashboard = () => {
     .slice(0, 5);
 
   const handleCreateTask = (task: Partial<Task> & { attachments?: File[] }) => {
+    console.log('[Dashboard] handleCreateTask called with:', task);
+    
+    if (!user?.id) {
+      console.error('[Dashboard] No user ID available for task creation');
+      toast({
+        title: "Error", 
+        description: "You must be logged in to create tasks",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     createTaskMutation.mutate({
       ...task,
       assigned_by: user?.id,
     });
   };
 
-  if (isLoading) {
+  if (isLoading || !user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        <p className="ml-4 text-muted-foreground">Loading tasks...</p>
+        <p className="ml-4 text-muted-foreground">
+          {!user ? 'Please log in to access the dashboard' : 'Loading tasks...'}
+        </p>
+      </div>
+    );
+  }
+
+  if (error) {
+    console.error('[Dashboard] Error loading tasks:', error);
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <p className="text-destructive mb-4">Error loading tasks</p>
+        <Button onClick={() => refetch()}>Try Again</Button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header with Company Name and Add Task Button */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="text-center flex-1">
-          <h1 className="text-4xl font-bold text-rose-gold-contrast mb-2">
-            Wedot
-          </h1>
-          <p className="text-muted-foreground">
-            Welcome back, {profile?.full_name || user?.email}
-          </p>
-          <div className="flex items-center justify-center gap-2 mt-2">
-            {isAdmin ? (
-              <div className="flex items-center gap-1 px-3 py-1 bg-rose-gold/10 text-rose-gold rounded-full text-sm">
-                <Shield className="h-4 w-4" />
-                Administrator
-              </div>
-            ) : (
-              <div className="flex items-center gap-1 px-3 py-1 bg-progress-blue/15 text-progress-blue rounded-full text-sm border border-progress-blue/30">
-                <User className="h-4 w-4" />
-                Employee
-              </div>
-            )}
+    <AuthGuard requireAuth={true}>
+      <div className="space-y-6">
+        {/* Header with Company Name and Add Task Button */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="text-center flex-1">
+            <h1 className="text-4xl font-bold text-rose-gold-contrast mb-2">
+              Wedot
+            </h1>
+            <p className="text-muted-foreground">
+              Welcome back, {profile?.full_name || user?.email}
+            </p>
+            <div className="flex items-center justify-center gap-2 mt-2">
+              {isAdmin ? (
+                <div className="flex items-center gap-1 px-3 py-1 bg-rose-gold/10 text-rose-gold rounded-full text-sm">
+                  <Shield className="h-4 w-4" />
+                  Administrator
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 px-3 py-1 bg-progress-blue/15 text-progress-blue rounded-full text-sm border border-progress-blue/30">
+                  <User className="h-4 w-4" />
+                  Employee
+                </div>
+              )}
+            </div>
           </div>
+          {isAdmin && (
+            <Button
+              onClick={() => setCreateDialogOpen(true)}
+              className="bg-rose-gold hover:bg-rose-gold-dark text-rose-gold-foreground ml-4"
+              disabled={createTaskMutation.isPending}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              {createTaskMutation.isPending ? 'Creating...' : 'Add Task'}
+            </Button>
+          )}
         </div>
-        {isAdmin && (
-          <Button
-            onClick={() => setCreateDialogOpen(true)}
-            className="bg-rose-gold hover:bg-rose-gold-dark text-rose-gold-foreground ml-4"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Add Task
-          </Button>
-        )}
-      </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -330,7 +375,8 @@ const Dashboard = () => {
         onOpenChange={setCreateDialogOpen}
         onSave={handleCreateTask}
       />
-    </div>
+      </div>
+    </AuthGuard>
   );
 };
 

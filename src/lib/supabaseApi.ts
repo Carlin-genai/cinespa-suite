@@ -61,31 +61,48 @@ export class SupabaseApiService {
   }
 
   async createTask(task: Partial<Task> & { assignedEmployees?: string[]; attachments?: File[]; time_limit?: number; credit_points?: number; attachment_url?: string }): Promise<Task> {
-    const user = (await supabase.auth.getUser()).data.user;
-    if (!user) throw new Error('User not authenticated');
+    console.log('[SupabaseApi] Creating task - start', task);
+    
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      console.error('[SupabaseApi] Authentication error:', authError);
+      throw new Error('User not authenticated');
+    }
+    
+    console.log('[SupabaseApi] Authenticated user:', user.id);
 
     // Handle file uploads first if attachments exist
     let uploadedAttachments: string[] = [];
     if (task.attachments && task.attachments.length > 0) {
-      const uploadPromises = task.attachments.map(async (file, index) => {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${user.id}/${Date.now()}_${index}.${fileExt}`;
-        
-        const { data, error } = await supabase.storage
-          .from('task-attachments')
-          .upload(fileName, file);
+      console.log('[SupabaseApi] Uploading attachments', task.attachments);
+      try {
+        const uploadPromises = task.attachments.map(async (file, index) => {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${user.id}/${Date.now()}_${index}.${fileExt}`;
           
-        if (error) throw error;
-        
-        // Get public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from('task-attachments')
-          .getPublicUrl(fileName);
+          const { data, error } = await supabase.storage
+            .from('task-attachments')
+            .upload(fileName, file);
+            
+          if (error) {
+            console.error('[SupabaseApi] File upload error:', error);
+            throw error;
+          }
           
-        return publicUrl;
-      });
-      
-      uploadedAttachments = await Promise.all(uploadPromises);
+          // Get public URL
+          const { data: { publicUrl } } = supabase.storage
+            .from('task-attachments')
+            .getPublicUrl(fileName);
+            
+          return publicUrl;
+        });
+        
+        uploadedAttachments = await Promise.all(uploadPromises);
+        console.log('[SupabaseApi] Uploaded attachments:', uploadedAttachments);
+      } catch (error) {
+        console.error('[SupabaseApi] Attachment upload failed:', error);
+        throw error;
+      }
     }
 
     // Prepare task data with uploaded attachments
@@ -102,39 +119,62 @@ export class SupabaseApiService {
       attachments: uploadedAttachments.length > 0 ? uploadedAttachments : undefined,
     };
 
+    console.log('[SupabaseApi] Preparing task data:', taskDataBase);
+
     // For team tasks with multiple assignees, create multiple task records
     if (task.assignedEmployees && task.assignedEmployees.length > 0) {
+      console.log('[SupabaseApi] Creating team tasks for employees:', task.assignedEmployees);
+      
       const taskPromises = task.assignedEmployees.map(async (employeeId) => {
+        const taskData = { 
+          ...taskDataBase,
+          assigned_to: employeeId,
+          assigned_by: task.assigned_by || user.id,
+        };
+        
+        console.log('[SupabaseApi] Inserting team task:', taskData);
+        
         const { data, error } = await supabase
           .from('tasks')
-          .insert([{ 
-            ...taskDataBase,
-            assigned_to: employeeId,
-            assigned_by: task.assigned_by || user.id,
-          }])
+          .insert([taskData])
           .select()
           .single();
         
-        if (error) throw error;
+        if (error) {
+          console.error('[SupabaseApi] Team task creation error:', error);
+          throw error;
+        }
+        
+        console.log('[SupabaseApi] Team task created:', data);
         return mapDbTaskToTask(data);
       });
 
       const results = await Promise.all(taskPromises);
+      console.log('[SupabaseApi] All team tasks created:', results.length);
       return results[0]; // Return the first created task
     }
 
     // Single task creation
+    const taskData = { 
+      ...taskDataBase,
+      assigned_to: task.assigned_to || user.id,
+      assigned_by: task.assigned_by || user.id,
+    };
+    
+    console.log('[SupabaseApi] Inserting single task:', taskData);
+    
     const { data, error } = await supabase
       .from('tasks')
-      .insert([{ 
-        ...taskDataBase,
-        assigned_to: task.assigned_to || user.id,
-        assigned_by: task.assigned_by || user.id,
-      }])
+      .insert([taskData])
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('[SupabaseApi] Single task creation error:', error);
+      throw error;
+    }
+    
+    console.log('[SupabaseApi] Single task created:', data);
     return mapDbTaskToTask(data);
   }
 
