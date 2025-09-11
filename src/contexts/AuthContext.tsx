@@ -206,10 +206,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('Attempting Google sign in');
     
     try {
+      // For Lovable projects, use the current origin without /auth path
+      const redirectUrl = window.location.origin;
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth`,
+          redirectTo: redirectUrl,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       });
       
