@@ -81,7 +81,7 @@ const RoleSelection: React.FC<RoleSelectionProps> = ({ onRoleSelected }) => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-4xl">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Welcome to Mark Technologies</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Welcome to Wedot</h1>
           <p className="text-muted-foreground">Please select your role to continue</p>
         </div>
 

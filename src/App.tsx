@@ -9,6 +9,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import Layout from "./components/Layout/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
+import NotificationManager from "./components/Notifications/NotificationManager";
 import Dashboard from "./pages/Dashboard";
 import MyTasks from "./pages/MyTasks";
 import TeamTasks from "./pages/TeamTasks";
@@ -27,6 +28,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <AuthProvider>
+        <NotificationManager />
         <TooltipProvider>
           <Toaster />
           <Sonner />

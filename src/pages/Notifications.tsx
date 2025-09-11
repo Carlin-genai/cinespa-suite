@@ -1,16 +1,24 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Check, AlertTriangle, Info, Calendar, Trash2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Bell, Check, AlertTriangle, Info, Calendar, Trash2, Edit, Clock } from 'lucide-react';
 import { apiService } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 const Notifications = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user, userRole } = useAuth();
+  const [priorityFilter, setPriorityFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const isAdmin = userRole?.role === 'admin';
 
   // Fetch notifications from backend
   const { data: notifications = [], isLoading } = useQuery({
@@ -22,6 +30,35 @@ const Notifications = () => {
   const { data: reminders = [] } = useQuery({
     queryKey: ['reminders'],
     queryFn: () => apiService.getReminders(),
+  });
+
+  // Fetch tasks for admin notification management
+  const { data: tasks = [] } = useQuery({
+    queryKey: ['tasks'],
+    queryFn: () => apiService.getTasks(),
+    enabled: isAdmin,
+  });
+
+  // Update task mutation (for admin editing due dates and priority)
+  const updateTaskMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: any }) => 
+      apiService.updateTask(id, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      toast({
+        title: "Success",
+        description: "Task updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update task",
+        variant: "destructive",
+      });
+      console.error('Update task error:', error);
+    },
   });
 
   // Mark notification as read mutation
@@ -48,6 +85,24 @@ const Notifications = () => {
     markReadMutation.mutate(id);
   };
 
+  const handleDeleteNotification = (id: string) => {
+    deleteNotificationMutation.mutate(id);
+  };
+
+  const handleUpdateTaskPriority = (taskId: string, priority: string) => {
+    updateTaskMutation.mutate({
+      id: taskId,
+      updates: { priority }
+    });
+  };
+
+  const handleUpdateTaskDueDate = (taskId: string, dueDate: string) => {
+    updateTaskMutation.mutate({
+      id: taskId,
+      updates: { due_date: dueDate }
+    });
+  };
+
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'task':
@@ -67,6 +122,22 @@ const Notifications = () => {
     new Date(r.reminder_time) > new Date() && !r.is_sent
   );
 
+  // For admin: get tasks sorted by priority (High to Low)
+  const priorityOrder = { 'critical': 4, 'high': 3, 'medium': 2, 'low': 1 };
+  const adminTasks = isAdmin ? tasks
+    .filter((task: any) => task.assigned_by === user?.id)
+    .filter((task: any) => {
+      const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesPriority = priorityFilter === 'all' || task.priority === priorityFilter;
+      return matchesSearch && matchesPriority;
+    })
+    .sort((a: any, b: any) => priorityOrder[b.priority] - priorityOrder[a.priority]) : [];
+
+  // For employee: get notifications related to their tasks
+  const employeeTaskNotifications = !isAdmin ? unreadNotifications.filter((n: any) => 
+    n.type === 'task_assigned' || n.type === 'task_due_soon' || n.type === 'task_overdue'
+  ) : [];
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -81,7 +152,7 @@ const Notifications = () => {
         <div>
           <h1 className="text-3xl font-bold font-montserrat text-foreground">Notifications</h1>
           <p className="text-muted-foreground font-opensans">
-            Stay updated with your tasks and reminders
+            {isAdmin ? 'Manage tasks and view notifications' : 'Stay updated with your tasks and reminders'}
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -92,6 +163,159 @@ const Notifications = () => {
           )}
         </div>
       </div>
+
+      {/* Admin Task Management Section */}
+      {isAdmin && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-montserrat flex items-center gap-2">
+              <Clock className="h-5 w-5 text-rose-gold" />
+              Task Management (Priority: High to Low)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/* Filters for Admin */}
+            <div className="flex gap-4 mb-4">
+              <Input
+                placeholder="Search tasks..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="max-w-sm"
+              />
+              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Filter by priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Priority</SelectItem>
+                  <SelectItem value="critical">Critical</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="low">Low</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-3">
+              {adminTasks.length === 0 ? (
+                <p className="text-muted-foreground text-center py-4">
+                  No tasks found matching your criteria
+                </p>
+              ) : (
+                adminTasks.map((task: any) => (
+                  <div
+                    key={task.id}
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="font-medium text-foreground">{task.title}</h4>
+                        <Badge 
+                          variant={task.priority === 'critical' ? 'destructive' : 'secondary'}
+                          className={`text-xs ${
+                            task.priority === 'critical' ? 'bg-red-500 text-white' :
+                            task.priority === 'high' ? 'bg-orange-500 text-white' :
+                            task.priority === 'medium' ? 'bg-yellow-500 text-white' :
+                            'bg-green-500 text-white'
+                          }`}
+                        >
+                          {task.priority.toUpperCase()}
+                        </Badge>
+                        <Badge variant="outline">
+                          {task.status.replace('-', ' ').toUpperCase()}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Due: {task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No due date'}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Select
+                        value={task.priority}
+                        onValueChange={(value) => handleUpdateTaskPriority(task.id, value)}
+                      >
+                        <SelectTrigger className="w-[120px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                          <SelectItem value="critical">Critical</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          const newDate = prompt('Enter new due date (YYYY-MM-DD):', 
+                            task.due_date ? task.due_date.split('T')[0] : '');
+                          if (newDate) {
+                            handleUpdateTaskDueDate(task.id, newDate + 'T23:59:59');
+                          }
+                        }}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Employee Task Notifications */}
+      {!isAdmin && employeeTaskNotifications.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-montserrat flex items-center gap-2">
+              <Bell className="h-5 w-5 text-rose-gold" />
+              Your Task Notifications
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {employeeTaskNotifications.map((notification: any) => (
+                <div
+                  key={notification.id}
+                  className="flex items-start gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex-shrink-0 mt-1">
+                    {getNotificationIcon(notification.type)}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-semibold font-opensans text-foreground">
+                          {notification.title}
+                        </h3>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {notification.message}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          {new Date(notification.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleMarkAsRead(notification.id)}
+                          className="border-rose-gold text-rose-gold hover:bg-rose-gold hover:text-white"
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Upcoming Reminders */}
       {upcomingReminders.length > 0 && (

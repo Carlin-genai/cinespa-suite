@@ -9,6 +9,7 @@ import { Plus, Search, CheckCircle, XCircle, AlertCircle, Clock, User, Star } fr
 import TaskCard from '@/components/Tasks/TaskCard';
 import TaskEditDialog from '@/components/Tasks/TaskEditDialog';
 import AdminRatingDialog from '@/components/Tasks/AdminRatingDialog';
+import CreditPointsDialog from '@/components/Admin/CreditPointsDialog';
 import { apiService } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Task } from '@/types';
@@ -22,7 +23,9 @@ const MyTasks = () => {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [ratingDialogOpen, setRatingDialogOpen] = useState(false);
+  const [creditPointsDialogOpen, setCreditPointsDialogOpen] = useState(false);
   const [selectedTaskForRating, setSelectedTaskForRating] = useState<Task | null>(null);
+  const [selectedTaskForCredits, setSelectedTaskForCredits] = useState<Task | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
@@ -145,9 +148,27 @@ const MyTasks = () => {
   const handleSetRating = (taskId: string, rating: number, comment: string) => {
     const task = tasks.find(t => t.id === taskId);
     if (task) {
-      setSelectedTaskForRating(task);
-      setRatingDialogOpen(true);
+      if (task.status === 'completed' && isAdmin) {
+        // Open credit points dialog instead
+        setSelectedTaskForCredits(task);
+        setCreditPointsDialogOpen(true);
+      } else {
+        setSelectedTaskForRating(task);
+        setRatingDialogOpen(true);
+      }
     }
+  };
+
+  const handleSaveCreditPoints = (taskId: string, creditPoints: number, comment: string) => {
+    updateTaskMutation.mutate({
+      id: taskId,
+      updates: {
+        credit_points: creditPoints,
+        admin_comment: comment,
+      },
+    });
+    setCreditPointsDialogOpen(false);
+    setSelectedTaskForCredits(null);
   };
 
   const handleSaveRating = (rating: number, comment: string) => {
@@ -398,6 +419,13 @@ const MyTasks = () => {
         onOpenChange={setRatingDialogOpen}
         onSave={handleSaveRating}
         task={selectedTaskForRating}
+      />
+
+      <CreditPointsDialog
+        task={selectedTaskForCredits}
+        open={creditPointsDialogOpen}
+        onOpenChange={setCreditPointsDialogOpen}
+        onSave={handleSaveCreditPoints}
       />
     </div>
   );

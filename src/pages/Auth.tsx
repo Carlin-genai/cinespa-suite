@@ -17,6 +17,7 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showRoleSelection, setShowRoleSelection] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   
   const { signIn, signInWithGoogle, signUp, user, userRole } = useAuth();
   const navigate = useNavigate();
@@ -141,10 +142,10 @@ const Auth = () => {
           <CardHeader className="text-center">
             <div className="mb-4">
               <h1 className="font-bold text-3xl text-rose-gold-contrast mb-2 font-montserrat">
-                Mark Technologies
+                Wedot
               </h1>
               <p className="text-sm text-muted-foreground font-opensans">
-                Task Management & Performance Tracking
+                We do it Together
               </p>
             </div>
             <CardTitle className="text-xl text-rose-gold-contrast font-montserrat">
@@ -204,8 +205,22 @@ const Auth = () => {
                   </Button>
                 </div>
               </div>
+
+              {/* Remember Me Checkbox */}
+              <div className="flex items-center space-x-2">
+                <input
+                  id="remember"
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="rounded border-border"
+                />
+                <Label htmlFor="remember" className="text-sm">
+                  Remember me
+                </Label>
+              </div>
               
-              <Button 
+              <Button
                 type="submit" 
                 disabled={loading} 
                 className="w-full bg-rose-gold hover:bg-rose-gold-dark text-rose-gold-foreground transition-all duration-300 shadow-lg hover:shadow-rose-gold/25 font-opensans"

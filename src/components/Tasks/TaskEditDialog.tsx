@@ -12,6 +12,8 @@ import { CalendarIcon, Save, RotateCcw, Trash2, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Task } from '@/types';
+import TaskImageUpload from './TaskImageUpload';
+import { apiService } from '@/lib/api';
 
 interface TaskEditDialogProps {
   task: Task | null;
@@ -34,6 +36,7 @@ const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
 }) => {
   const [editedTask, setEditedTask] = useState<Task | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
 
   React.useEffect(() => {
     if (task) {
@@ -160,6 +163,13 @@ const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
               placeholder="Add any notes about this task..."
             />
           </div>
+
+          {/* Image Upload Section */}
+          <TaskImageUpload
+            onImagesChange={setSelectedImages}
+            existingImages={editedTask.attachments || []}
+            maxImages={5}
+          />
           
           <div className="flex justify-between pt-4">
             <div className="flex gap-2">
