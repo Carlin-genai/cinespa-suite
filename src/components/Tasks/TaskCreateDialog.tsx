@@ -176,12 +176,20 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
     };
 
     try {
-      console.log('[TaskCreate] Creating task with data', taskData);
+      console.log('[TaskCreate] Creating task with data:', taskData);
+      console.log('[TaskCreate] User ID:', user?.id);
+      console.log('[TaskCreate] User authenticated:', !!user);
       
       // Call the onSave function passed from parent
-      await onSave(taskData);
+      const result = await onSave(taskData);
+      console.log('[TaskCreate] Task creation result:', result);
       
-      // Success toast will be shown by parent component
+      toast({
+        title: "Task Created",
+        description: "Task has been created successfully!",
+        variant: "default",
+      });
+      
       handleClose();
     } catch (error) {
       console.error('[TaskCreate] Error creating task:', error);
@@ -400,7 +408,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
           )}
           
           <div>
-            <Label>Due Date & Time *</Label>
+            <Label>Due Date & Time</Label>
             <div className="flex gap-2 mt-1">
               <Popover>
                 <PopoverTrigger asChild>
@@ -412,7 +420,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                    {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date (optional)</span>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -435,6 +443,9 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
                 />
               </div>
             </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              If no date is selected, task will be due tomorrow at 5 PM
+            </p>
           </div>
 
           <div>
