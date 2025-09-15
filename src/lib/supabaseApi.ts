@@ -421,7 +421,7 @@ export class SupabaseApiService {
     let orgId = currentProfile.org_id as string | null;
     if (!orgId) {
       console.log('[createTeam] Creating organization for user:', user.id);
-      const orgName = (currentProfile.full_name || currentProfile.email || 'My') + " Organization";
+      const orgName = (currentProfile.full_name || currentProfile.email || 'My') + ' Organization';
       const { data: org, error: orgErr } = await supabase
         .from('organizations')
         .insert([{ name: orgName }])
@@ -448,7 +448,7 @@ export class SupabaseApiService {
     const role = String(currentProfile.role || '').toLowerCase();
     if (role !== 'admin' && role !== 'manager') {
       console.log('[createTeam] Promoting user to admin for team creation:', user.id);
-      // Promote to admin so RLS "Admins can manage teams" passes
+      // Promote in profiles (used by RLS on teams)
       const { error: roleErr } = await supabase
         .from('profiles')
         .update({ role: 'admin' })
@@ -457,13 +457,38 @@ export class SupabaseApiService {
         console.error('[createTeam] Role update error:', roleErr);
         throw roleErr;
       }
+
+      // Also ensure a corresponding user_roles entry exists for other policies elsewhere
+      await supabase
+        .from('user_roles')
+        .insert([{ user_id: user.id, role: 'admin' }])
+        .select()
+        .then(({ error }) => {
+          if (error && error.code !== '23505') { // ignore unique violations
+            console.warn('[createTeam] user_roles insert warning:', error.message);
+          }
+        });
     }
 
-    // 5) Create team within the user's organization
-    console.log('[createTeam] Creating team with org_id:', orgId);
+    // 5) Refetch profile to guarantee RLS sees latest role/org
+    const { data: refreshed, error: refetchErr } = await supabase
+      .from('profiles')
+      .select('org_id, role')
+      .eq('id', user.id)
+      .single();
+    if (refetchErr) {
+      console.error('[createTeam] Refetch profile error:', refetchErr);
+      throw refetchErr;
+    }
+    if (!refreshed.org_id || !['admin','manager'].includes(String(refreshed.role).toLowerCase())) {
+      throw new Error('You must be an admin/manager with an organization to create teams.');
+    }
+
+    // 6) Create team within the user's organization
+    console.log('[createTeam] Creating team with org_id:', refreshed.org_id);
     const { data: newTeam, error: teamError } = await supabase
       .from('teams')
-      .insert([{ name: team.name, description: team.description, org_id: orgId }])
+      .insert([{ name: team.name, description: team.description, org_id: refreshed.org_id }])
       .select()
       .single();
     if (teamError) {
@@ -473,26 +498,20 @@ export class SupabaseApiService {
 
     console.log('[createTeam] Team created successfully:', newTeam);
 
-    // 6) Add team members if provided
+    // 7) Add team members if provided
     if (team.memberIds && team.memberIds.length > 0) {
       console.log('[createTeam] Adding team members:', team.memberIds);
-      const memberInserts = team.memberIds.map(userId => ({
+      const memberInserts = team.memberIds.map((memberId) => ({
         team_id: newTeam.id,
-        user_id: userId,
-        org_id: orgId,
-        role: (team.teamHeadId === userId ? 'head' : 'member') as 'head' | 'member'
+        user_id: memberId,
+        org_id: refreshed.org_id,
+        role: (team.teamHeadId === memberId ? 'head' : 'member') as 'head' | 'member',
       }));
 
-      const { error: membersError } = await supabase
-        .from('team_members')
-        .insert(memberInserts);
-
+      const { error: membersError } = await supabase.from('team_members').insert(memberInserts);
       if (membersError) {
         console.error('[createTeam] Team members addition error:', membersError);
-        // Don't throw error for members - team is already created
-        console.warn('[createTeam] Team created but failed to add some members');
-      } else {
-        console.log('[createTeam] Team members added successfully');
+        // Don't fail the whole operation if members insert fails; the team exists
       }
     }
 

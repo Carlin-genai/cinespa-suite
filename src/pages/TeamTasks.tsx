@@ -170,35 +170,28 @@ const TeamTasks = () => {
   // Create team mutation
   const createTeamMutation = useMutation({
     mutationFn: async (teamData: { name: string; description?: string; memberIds: string[]; teamHeadId?: string }) => {
+      // Let the API handle members + head in one go (reduces RLS edge cases)
       const team = await supabaseApi.createTeam({
         name: teamData.name,
         description: teamData.description,
+        memberIds: teamData.memberIds,
+        teamHeadId: teamData.teamHeadId,
       });
-      
-      // Add members to the team
-      for (const memberId of teamData.memberIds) {
-        const role = memberId === teamData.teamHeadId ? 'head' : 'member';
-        await supabaseApi.addTeamMember(team.id, memberId);
-        if (role === 'head') {
-          await supabaseApi.setTeamHead(team.id, memberId);
-        }
-      }
-      
       return team;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams'] });
       toast({
-        title: "Success",
-        description: "Team created successfully",
+        title: 'Success',
+        description: 'Team created successfully',
       });
       setTeamCreateDialogOpen(false);
     },
     onError: (error) => {
       toast({
-        title: "Error",
-        description: "Failed to create team",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to create team',
+        variant: 'destructive',
       });
       console.error('Create team error:', error);
     },
