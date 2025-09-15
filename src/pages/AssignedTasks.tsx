@@ -1,17 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Users, User, Bell, Settings, AlertCircle, RefreshCw } from 'lucide-react';
 import TaskCard from '@/components/Tasks/TaskCard';
 import TaskEditDialog from '@/components/Tasks/TaskEditDialog';
 import ReminderDialog from '@/components/Tasks/ReminderDialog';
 import AdminRatingDialog from '@/components/Tasks/AdminRatingDialog';
+import StatusFilter, { StatusFilterType } from '@/components/Tasks/StatusFilter';
+import TeamTaskDetailPanel from '@/components/Tasks/TeamTaskDetailPanel';
 import { apiService } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Task } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { useTasks } from '@/hooks/useTasks';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 const AssignedTasks = () => {
   const { user, userRole } = useAuth();
@@ -25,6 +30,10 @@ const AssignedTasks = () => {
   const [reminderTaskTitle, setReminderTaskTitle] = useState<string>('');
   const [ratingDialogOpen, setRatingDialogOpen] = useState(false);
   const [selectedTaskForRating, setSelectedTaskForRating] = useState<string>('');
+  const [individualFilter, setIndividualFilter] = useState<StatusFilterType>('all');
+  const [teamFilter, setTeamFilter] = useState<StatusFilterType>('all');
+  const [teamTaskDetailOpen, setTeamTaskDetailOpen] = useState(false);
+  const [selectedTeamTask, setSelectedTeamTask] = useState<Task | null>(null);
 
   // Use the new useTasks hook for tasks assigned by current admin
   const { data: tasks = [], loading, error, reload } = useTasks('assigned');
@@ -218,61 +227,144 @@ const AssignedTasks = () => {
     );
   }
 
-  // Filter tasks assigned by the current admin
-  const assignedTasks = tasks.filter((task: Task) => task.assigned_by === user?.id);
-  
-  // Separate individual and team tasks
-  const individualTasks = assignedTasks.filter((task: Task) => !task.team_id);
-  const teamTasks = assignedTasks.filter((task: Task) => task.team_id);
+  // Filter and process tasks
+  const processedTasks = useMemo(() => {
+    const assignedTasks = tasks.filter((task: Task) => task.assigned_by === user?.id);
+    
+    // Separate individual and team tasks
+    const individualTasks = assignedTasks.filter((task: Task) => !task.team_id);
+    const teamTasks = assignedTasks.filter((task: Task) => task.team_id);
 
-  // Group tasks by status for both individual and team
-  const groupTasksByStatus = (tasksList: Task[]) => ({
-    pending: tasksList.filter((task: Task) => task.status === 'pending'),
-    inProgress: tasksList.filter((task: Task) => task.status === 'in-progress'),
-    completed: tasksList.filter((task: Task) => task.status === 'completed'),
-    overdue: tasksList.filter((task: Task) => task.status === 'overdue'),
-  });
+    // Apply status filters
+    const filterTasksByStatus = (tasksList: Task[], filter: StatusFilterType) => {
+      if (filter === 'all') return tasksList;
+      return tasksList.filter((task: Task) => task.status === filter);
+    };
 
-  const individualTaskGroups = groupTasksByStatus(individualTasks);
-  const teamTaskGroups = groupTasksByStatus(teamTasks);
+    const filteredIndividualTasks = filterTasksByStatus(individualTasks, individualFilter);
+    const filteredTeamTasks = filterTasksByStatus(teamTasks, teamFilter);
 
-  const renderTaskSection = (title: string, tasks: Task[], colorClass: string) => {
-    if (tasks.length === 0) return null;
+    // Group tasks by status for counts
+    const getStatusCounts = (tasksList: Task[]) => ({
+      pending: tasksList.filter((task: Task) => task.status === 'pending').length,
+      'in-progress': tasksList.filter((task: Task) => task.status === 'in-progress').length,
+      completed: tasksList.filter((task: Task) => task.status === 'completed').length,
+      overdue: tasksList.filter((task: Task) => task.status === 'overdue').length,
+    });
+
+    return {
+      individualTasks: filteredIndividualTasks,
+      teamTasks: filteredTeamTasks,
+      individualCounts: getStatusCounts(individualTasks),
+      teamCounts: getStatusCounts(teamTasks),
+      allIndividualTasks: individualTasks,
+      allTeamTasks: teamTasks
+    };
+  }, [tasks, user?.id, individualFilter, teamFilter]);
+
+  const handleTeamTaskClick = (task: Task) => {
+    setSelectedTeamTask(task);
+    setTeamTaskDetailOpen(true);
+  };
+
+  const renderIndividualTaskCard = (task: Task) => (
+    <div key={task.id} className="relative group">
+      <TaskCard
+        task={task}
+        onEdit={handleEditTask}
+        onDelete={handleDeleteTask}
+        showAdminFeatures={true}
+        onSetRating={handleSetRating}
+      />
+      <Button
+        size="sm"
+        variant="outline"
+        className="absolute top-2 right-16 opacity-0 group-hover:opacity-100 transition-opacity border-rose-gold text-rose-gold hover:bg-rose-gold hover:text-white"
+        onClick={() => handleSetReminder(task.id, task.title)}
+      >
+        <Bell className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+
+  const TeamTaskCard: React.FC<{ task: Task }> = ({ task }) => {
+    const { data: assigneeProfile } = useUserProfile(task.assigned_to);
+    
+    const getStatusColor = (status: string) => {
+      switch (status) {
+        case 'completed': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100';
+        case 'in-progress': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100';
+        case 'overdue': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100';
+        default: return 'bg-secondary text-secondary-foreground';
+      }
+    };
+
+    const getInitials = (name: string) => {
+      return name
+        .split(' ')
+        .map(word => word.charAt(0))
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+    };
+
+    const formatDate = (dateString: string | null) => {
+      if (!dateString) return 'Not set';
+      return new Date(dateString).toLocaleDateString();
+    };
+
+    const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'completed';
 
     return (
-      <div>
-        <h2 className={`text-xl font-semibold mb-4 flex items-center gap-2 ${colorClass}`}>
-          {title} ({tasks.length})
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {tasks.map((task: Task) => (
-            <div key={task.id} className="relative group">
-              <TaskCard
-                task={task}
-                onEdit={handleEditTask}
-                onDelete={handleDeleteTask}
-                showAdminFeatures={true}
-                onSetRating={handleSetRating}
-              />
-              <Button
-                size="sm"
-                variant="outline"
-                className="absolute top-2 right-16 opacity-0 group-hover:opacity-100 transition-opacity border-rose-gold text-rose-gold hover:bg-rose-gold hover:text-white"
-                onClick={() => handleSetReminder(task.id, task.title)}
-              >
-                <Bell className="h-4 w-4" />
-              </Button>
+      <div 
+        className="p-4 border rounded-lg hover:shadow-md transition-shadow cursor-pointer bg-card"
+        onClick={() => handleTeamTaskClick(task)}
+      >
+        <div className="space-y-3">
+          {/* Team Badge and Title */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100">
+                <Users className="h-3 w-3 mr-1" />
+                Team Task
+              </Badge>
+              <Badge className={getStatusColor(task.status || 'pending')}>
+                {task.status?.replace('-', ' ') || 'Pending'}
+              </Badge>
             </div>
-          ))}
+            <h3 className="font-semibold font-montserrat">{task.title}</h3>
+          </div>
+
+          {/* Assigned Member */}
+          <div className="flex items-center gap-2">
+            <Avatar className="h-6 w-6">
+              <AvatarFallback className="text-xs">
+                {getInitials(assigneeProfile?.full_name || assigneeProfile?.email || 'U')}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-sm text-muted-foreground">
+              {assigneeProfile?.full_name || assigneeProfile?.email || 'Unknown User'}
+            </span>
+          </div>
+
+          {/* Dates */}
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>Due: {formatDate(task.due_date)}</span>
+            <span>Created: {formatDate(task.created_at)}</span>
+          </div>
+
+          {isOverdue && (
+            <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100">
+              Overdue
+            </Badge>
+          )}
         </div>
       </div>
     );
   };
 
-  const renderTasksByType = (taskGroups: any, type: string) => {
-    const totalTasks = Object.values(taskGroups).reduce((sum: number, tasks: any) => sum + tasks.length, 0);
-
-    if (totalTasks === 0) {
+  const renderTasksContent = (tasks: Task[], type: 'individual' | 'team') => {
+    if (tasks.length === 0) {
       return (
         <div className="text-center py-12">
           <div className="mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
@@ -282,20 +374,24 @@ const AssignedTasks = () => {
               <Users className="h-12 w-12 text-muted-foreground" />
             )}
           </div>
-          <h3 className="text-lg font-semibold font-montserrat mb-2">No {type} tasks assigned</h3>
+          <h3 className="text-lg font-semibold font-montserrat mb-2">
+            No {type} tasks {individualFilter === 'all' && teamFilter === 'all' ? 'assigned' : `matching "${type === 'individual' ? individualFilter : teamFilter}" filter`}
+          </h3>
           <p className="text-muted-foreground font-opensans">
-            You haven't assigned any {type} tasks yet.
+            {individualFilter === 'all' && teamFilter === 'all' 
+              ? `You haven't assigned any ${type} tasks yet.`
+              : `Try adjusting the filter to see more tasks.`
+            }
           </p>
         </div>
       );
     }
 
     return (
-      <div className="space-y-8">
-        {renderTaskSection('Overdue Tasks', taskGroups.overdue, 'text-overdue-red')}
-        {renderTaskSection('In Progress', taskGroups.inProgress, 'text-progress-blue')}
-        {renderTaskSection('Pending', taskGroups.pending, 'text-foreground')}
-        {renderTaskSection('Completed', taskGroups.completed, 'text-completed-green')}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {tasks.map((task: Task) => 
+          type === 'individual' ? renderIndividualTaskCard(task) : <TeamTaskCard key={task.id} task={task} />
+        )}
       </div>
     );
   };
@@ -315,20 +411,40 @@ const AssignedTasks = () => {
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="individual" className="flex items-center gap-2">
             <User className="h-4 w-4" />
-            Individual ({individualTasks.length})
+            Individual Tasks ({processedTasks.allIndividualTasks.length})
           </TabsTrigger>
           <TabsTrigger value="team" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
-            Team ({teamTasks.length})
+            Team Tasks ({processedTasks.allTeamTasks.length})
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="individual" className="space-y-6">
-          {renderTasksByType(individualTaskGroups, 'individual')}
+          {/* Status Filters */}
+          <div className="space-y-4">
+            <StatusFilter
+              activeFilter={individualFilter}
+              onFilterChange={setIndividualFilter}
+              counts={processedTasks.individualCounts}
+            />
+          </div>
+          
+          {/* Tasks Content */}
+          {renderTasksContent(processedTasks.individualTasks, 'individual')}
         </TabsContent>
 
         <TabsContent value="team" className="space-y-6">
-          {renderTasksByType(teamTaskGroups, 'team')}
+          {/* Status Filters */}
+          <div className="space-y-4">
+            <StatusFilter
+              activeFilter={teamFilter}
+              onFilterChange={setTeamFilter}  
+              counts={processedTasks.teamCounts}
+            />
+          </div>
+          
+          {/* Tasks Content */}
+          {renderTasksContent(processedTasks.teamTasks, 'team')}
         </TabsContent>
       </Tabs>
 
@@ -356,6 +472,12 @@ const AssignedTasks = () => {
         onOpenChange={setRatingDialogOpen}
         onSave={handleSaveRating}
         task={tasks.find((t: Task) => t.id === selectedTaskForRating) || null}
+      />
+
+      <TeamTaskDetailPanel
+        task={selectedTeamTask}
+        open={teamTaskDetailOpen}
+        onOpenChange={setTeamTaskDetailOpen}
       />
     </div>
   );
