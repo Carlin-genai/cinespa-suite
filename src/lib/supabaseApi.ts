@@ -521,22 +521,19 @@ export class SupabaseApiService {
     const user = (await supabase.auth.getUser()).data.user;
     if (!user) throw new Error('User not authenticated');
 
-    // Get user's org_id from profile
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('org_id')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError) throw profileError;
-
+    console.log('[supabaseApi] Fetching all users without org_id filter');
+    
     const { data, error } = await supabase
       .from('profiles')
       .select('id, full_name, email, role')
-      .eq('org_id', profile.org_id)
       .order('full_name', { ascending: true });
     
-    if (error) throw error;
+    if (error) {
+      console.error('[supabaseApi] Error fetching users:', error);
+      throw error;
+    }
+    
+    console.log('[supabaseApi] Fetched users:', data?.length || 0);
     return data || [];
   }
 
