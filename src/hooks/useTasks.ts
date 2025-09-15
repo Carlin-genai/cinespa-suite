@@ -98,7 +98,8 @@ export const useTasks = (kind: TaskKind, params: TaskParams = {}) => {
     },
     enabled: !!user && (kind !== 'assigned' || userRole?.role === 'admin'),
     retry: 2,
-    staleTime: 1000 * 30, // 30 seconds
+    staleTime: 1000 * 60 * 2, // 2 minutes for better caching
+    gcTime: 1000 * 60 * 10, // Keep in cache for 10 minutes
   });
 
   // Real-time subscriptions

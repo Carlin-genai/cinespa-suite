@@ -17,11 +17,16 @@ import { Task } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { useTasks } from '@/hooks/useTasks';
 import { groupTeamTasks, getIndividualTasks, GroupedTeamTask } from '@/lib/teamTaskUtils';
+import { TaskGridSkeleton, TeamGridSkeleton } from '@/components/ui/task-skeleton';
+import { useTeamsRealTimeSync } from '@/hooks/useRealTimeSync';
 
 const TeamTasks = () => {
   const { user, userRole } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Real-time sync for teams
+  useTeamsRealTimeSync();
   
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -36,10 +41,12 @@ const TeamTasks = () => {
   // Use the new useTasks hook for team tasks
   const { data: tasks = [], loading, error, reload } = useTasks('team');
 
-  // Fetch teams
+  // Fetch teams with optimized caching
   const { data: teams = [], isLoading: teamsLoading } = useQuery({
     queryKey: ['teams'],
     queryFn: () => supabaseApi.getTeams(),
+    staleTime: 1000 * 60 * 5, // 5 minutes for teams
+    gcTime: 1000 * 60 * 15, // Keep in cache for 15 minutes
   });
 
   // Update task mutation
@@ -162,7 +169,7 @@ const TeamTasks = () => {
 
   // Create team mutation
   const createTeamMutation = useMutation({
-    mutationFn: async (teamData: { name: string; description?: string; memberIds: string[] }) => {
+    mutationFn: async (teamData: { name: string; description?: string; memberIds: string[]; teamHeadId?: string }) => {
       const team = await supabaseApi.createTeam({
         name: teamData.name,
         description: teamData.description,
@@ -170,7 +177,11 @@ const TeamTasks = () => {
       
       // Add members to the team
       for (const memberId of teamData.memberIds) {
+        const role = memberId === teamData.teamHeadId ? 'head' : 'member';
         await supabaseApi.addTeamMember(team.id, memberId);
+        if (role === 'head') {
+          await supabaseApi.setTeamHead(team.id, memberId);
+        }
       }
       
       return team;
@@ -267,7 +278,7 @@ const TeamTasks = () => {
     createTaskMutation.mutate(taskData);
   };
 
-  const handleCreateTeam = (teamData: { name: string; description?: string; memberIds: string[] }) => {
+  const handleCreateTeam = (teamData: { name: string; description?: string; memberIds: string[]; teamHeadId?: string }) => {
     createTeamMutation.mutate(teamData);
   };
 
@@ -284,13 +295,8 @@ const TeamTasks = () => {
   const canCreateTasks = userRole?.role === 'admin';
   const canManageTeams = ['admin', 'manager'].includes(userRole?.role || '');
 
-  if (loading || teamsLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+  // Skeleton loading state
+  const showSkeletonLoading = loading || teamsLoading;
 
   if (error) {
     return (
@@ -380,7 +386,14 @@ const TeamTasks = () => {
                 No individual tasks have been created yet.
               </p>
             </div>
-          ) : (
+           ) : showSkeletonLoading ? (
+            <div className="space-y-8">
+              <div>
+                <h2 className="text-xl font-semibold mb-4">Loading Individual Tasks...</h2>
+                <TaskGridSkeleton count={6} />
+              </div>
+            </div>
+           ) : (
             <div className="space-y-8">
               {individualTaskGroups.overdue.length > 0 && (
                 <div>
@@ -523,6 +536,13 @@ const TeamTasks = () => {
               <p className="text-muted-foreground font-opensans mb-4">
                 No team tasks have been created yet.
               </p>
+            </div>
+          ) : showSkeletonLoading ? (
+            <div className="space-y-8">
+              <div>
+                <h2 className="text-xl font-semibold mb-4">Loading Team Tasks...</h2>
+                <TaskGridSkeleton count={6} />
+              </div>
             </div>
           ) : (
             <div className="space-y-8">
@@ -673,6 +693,11 @@ const TeamTasks = () => {
                   <Plus className="h-4 w-4 mr-2" />
                   Create First Team
                 </Button>
+              </div>
+            ) : showSkeletonLoading ? (
+              <div>
+                <h2 className="text-xl font-semibold mb-4">Loading Teams...</h2>
+                <TeamGridSkeleton count={4} />
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

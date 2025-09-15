@@ -10,13 +10,15 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery } from '@tanstack/react-query';
 import { supabaseApi } from '@/lib/supabaseApi';
 import { useToast } from '@/hooks/use-toast';
-import { Check, ChevronDown, X } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useTeamsRealTimeSync, useUsersRealTimeSync } from '@/hooks/useRealTimeSync';
+import { Check, ChevronDown, X, Crown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface TeamCreateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (team: { name: string; description?: string; memberIds: string[] }) => void;
+  onSave: (team: { name: string; description?: string; memberIds: string[]; teamHeadId?: string }) => void;
 }
 
 const TeamCreateDialog: React.FC<TeamCreateDialogProps> = ({
@@ -28,12 +30,19 @@ const TeamCreateDialog: React.FC<TeamCreateDialogProps> = ({
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const [teamHead, setTeamHead] = useState<string>('');
 
-  // Fetch available users
+  // Real-time sync for teams and users
+  useTeamsRealTimeSync();
+  useUsersRealTimeSync();
+
+  // Fetch available users with optimized caching and real-time sync
   const { data: users = [], isLoading: usersLoading } = useQuery({
     queryKey: ['users'],
     queryFn: () => supabaseApi.getUsers(),
     enabled: open,
+    staleTime: 1000 * 60 * 3, // 3 minutes caching for users
+    gcTime: 1000 * 60 * 10, // Keep in cache for 10 minutes
   });
 
   const handleSave = () => {
@@ -50,18 +59,21 @@ const TeamCreateDialog: React.FC<TeamCreateDialogProps> = ({
       name: name.trim(),
       description: description.trim() || undefined,
       memberIds: selectedMembers,
+      teamHeadId: teamHead,
     });
 
     // Reset form
     setName('');
     setDescription('');
     setSelectedMembers([]);
+    setTeamHead('');
   };
 
   const handleCancel = () => {
     setName('');
     setDescription('');
     setSelectedMembers([]);
+    setTeamHead('');
     onOpenChange(false);
   };
 
@@ -112,6 +124,35 @@ const TeamCreateDialog: React.FC<TeamCreateDialogProps> = ({
                 rows={3}
               />
             </div>
+          </div>
+
+          {/* Team Head Selection */}
+          <div className="space-y-2">
+            <Label className="font-opensans font-medium flex items-center gap-2">
+              <Crown className="h-4 w-4 text-amber-500" />
+              Team Head (Optional)
+            </Label>
+            <Select value={teamHead} onValueChange={setTeamHead}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select team head..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">No team head</SelectItem>
+                {users.filter(user => selectedMembers.includes(user.id)).map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    <div className="flex items-center gap-2">
+                      <Crown className="h-3 w-3 text-amber-500" />
+                      {user.full_name || user.email}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {teamHead && !selectedMembers.includes(teamHead) && (
+              <p className="text-xs text-amber-600">
+                Team head must be selected as a team member first
+              </p>
+            )}
           </div>
 
           {/* Team Members Selection */}

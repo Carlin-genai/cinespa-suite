@@ -14,6 +14,7 @@ import { Task } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { useTasks } from '@/hooks/useTasks';
 import { groupTeamTasks, getIndividualTasks, GroupedTeamTask } from '@/lib/teamTaskUtils';
+import { TaskGridSkeleton } from '@/components/ui/task-skeleton';
 
 const AssignedTasks = () => {
   const { user, userRole } = useAuth();
@@ -31,10 +32,12 @@ const AssignedTasks = () => {
   // Use the new useTasks hook for tasks assigned by current admin
   const { data: tasks = [], loading, error, reload } = useTasks('assigned');
 
-  // Fetch teams for grouping team tasks
-  const { data: teams = [] } = useQuery({
+  // Fetch teams for grouping team tasks with optimized caching
+  const { data: teams = [], isLoading: teamsLoading } = useQuery({
     queryKey: ['teams'],
     queryFn: () => supabaseApi.getTeams(),
+    staleTime: 1000 * 60 * 5, // 5 minutes for teams
+    gcTime: 1000 * 60 * 15, // Keep in cache for 15 minutes
   });
 
   // Update task mutation
@@ -204,10 +207,25 @@ const AssignedTasks = () => {
     );
   }
 
-  if (loading) {
+  // Skeleton loading state
+  const showSkeletonLoading = loading || teamsLoading;
+
+  if (showSkeletonLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold font-montserrat text-foreground">Assigned Tasks</h1>
+            <p className="text-muted-foreground font-opensans">Loading tasks you've assigned...</p>
+          </div>
+        </div>
+        
+        <div className="space-y-8">
+          <div>
+            <h2 className="text-xl font-semibold mb-4">Loading Tasks...</h2>
+            <TaskGridSkeleton count={6} />
+          </div>
+        </div>
       </div>
     );
   }
