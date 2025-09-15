@@ -15,7 +15,6 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { supabaseApi } from '@/lib/supabaseApi';
 import TaskImageUpload from './TaskImageUpload';
 
 import { Task } from '@/types';
@@ -86,10 +85,6 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
     enabled: open,
     retry: 1,
   });
-
-  // Team and members not required for this dialog anymore; using unified employee list
-  // const { data: teams = [], isLoading: loadingTeams, error: teamsError } = { data: [], isLoading: false, error: null } as any;
-  // const { data: teamMembers = [], isLoading: loadingTeamMembers } = { data: [], isLoading: false } as any;
 
   // Show loading or error state for employees
   React.useEffect(() => {
@@ -195,7 +190,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
       
       toast({
         title: "Task Created Successfully",
-        description: `Team task "${taskData.title}" has been created and will appear in the dashboard momentarily.`,
+        description: `${taskType === 'team' ? 'Team' : 'Individual'} task "${taskData.title}" has been created and will appear in the dashboard momentarily.`,
         variant: "default",
       });
       
@@ -256,9 +251,13 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
         
-        {/* Task Type Tabs - Only show Team Task option */}
-        <Tabs value="team" onValueChange={() => {}} className="flex-1 flex flex-col">
-          <TabsList className="grid w-full grid-cols-1 mb-4">
+        {/* Task Type Tabs */}
+        <Tabs value={taskType} onValueChange={(v) => setTaskType(v as 'individual' | 'team')} className="flex-1 flex flex-col">
+          <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsTrigger value="individual" className="flex items-center gap-2">
+              <User className="h-4 w-4" />
+              Individual Task
+            </TabsTrigger>
             <TabsTrigger value="team" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               Team Task
@@ -342,97 +341,67 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
               />
             </div>
 
-            {/* Only Team Task content */}
-
-            <TabsContent value="team" className="space-y-4 mt-0">
-              {/* Team Selection */}
+            {/* Individual Task content: single-select employee */}
+            <TabsContent value="individual" className="space-y-4 mt-0">
               <div>
-                <Label htmlFor="team">Select Team *</Label>
-                <Select value={selectedTeam} onValueChange={setSelectedTeam}>
+                <Label htmlFor="assignee">Assign To *</Label>
+                <Select value={assignedTo} onValueChange={setAssignedTo} disabled={loadingEmployees}>
                   <SelectTrigger className="mt-1">
-                    <SelectValue placeholder={
-                      loadingTeams ? "Loading teams..." : 
-                      teams.length === 0 ? "No teams found" :
-                      "Select team to assign task"
-                    } />
+                    <SelectValue placeholder={loadingEmployees ? 'Loading employees...' : 'Select an employee'} />
                   </SelectTrigger>
                   <SelectContent className="z-50 bg-background border shadow-md">
-                    {loadingTeams ? (
-                      <SelectItem value="loading" disabled>
-                        Loading teams...
-                      </SelectItem>
-                    ) : teams.length === 0 ? (
-                      <SelectItem value="none" disabled>
-                        No teams available
-                      </SelectItem>
+                    {loadingEmployees ? (
+                      <SelectItem value="loading" disabled>Loading...</SelectItem>
+                    ) : employees.length === 0 ? (
+                      <SelectItem value="none" disabled>No employees found</SelectItem>
                     ) : (
-                      teams.map((team: any) => (
-                        <SelectItem key={team.id} value={team.id}>
-                          {team.name}
-                          {team.description && <span className="text-muted-foreground ml-2">- {team.description}</span>}
-                        </SelectItem>
+                      employees.map((e: any) => (
+                        <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
                       ))
                     )}
                   </SelectContent>
                 </Select>
-                {teamsError && (
-                  <p className="text-xs text-destructive mt-1">
-                    Failed to load teams. Please refresh and try again.
-                  </p>
+              </div>
+            </TabsContent>
+
+            {/* Team Task content: multi-select employees */}
+            <TabsContent value="team" className="space-y-4 mt-0">
+              <div>
+                <Label>Select Employees * ({selectedEmployees.length} selected)</Label>
+                {loadingEmployees ? (
+                  <div className="text-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                  </div>
+                ) : (
+                  <div className="max-h-48 overflow-y-auto border rounded-lg p-4 space-y-3 mt-1">
+                    {employees.length === 0 ? (
+                      <p className="text-muted-foreground text-center py-4">No employees found</p>
+                    ) : (
+                      employees.map((emp: any) => (
+                        <div key={emp.id} className="flex items-center space-x-3">
+                          <input
+                            type="checkbox"
+                            id={`emp-${emp.id}`}
+                            checked={selectedEmployees.includes(emp.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedEmployees(prev => [...prev, emp.id]);
+                              } else {
+                                setSelectedEmployees(prev => prev.filter(id => id !== emp.id));
+                              }
+                            }}
+                            className="rounded border-gray-300"
+                          />
+                          <Label htmlFor={`emp-${emp.id}`} className="flex-1 cursor-pointer">
+                            <div className="font-medium">{emp.name}</div>
+                            <div className="text-sm text-muted-foreground">{emp.email}</div>
+                          </Label>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 )}
               </div>
-
-              {/* Team Members Selection */}
-              {selectedTeam && (
-                <div>
-                  <Label>Select Team Members * ({selectedTeamMembers.length} selected)</Label>
-                  {loadingTeamMembers ? (
-                    <div className="text-center py-4">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-                    </div>
-                  ) : (
-                    <div className="max-h-48 overflow-y-auto border rounded-lg p-4 space-y-3 mt-1">
-                      {teamMembers.length === 0 ? (
-                        <p className="text-muted-foreground text-center py-4">
-                          No team members found
-                        </p>
-                      ) : (
-                        teamMembers.map((member: any) => (
-                          <div key={member.user_id} className="flex items-center space-x-3">
-                            <input
-                              type="checkbox"
-                              id={`team-member-${member.user_id}`}
-                              checked={selectedTeamMembers.includes(member.user_id)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedTeamMembers(prev => [...prev, member.user_id]);
-                                } else {
-                                  setSelectedTeamMembers(prev => prev.filter(id => id !== member.user_id));
-                                }
-                              }}
-                              className="rounded border-gray-300"
-                            />
-                            <Label
-                              htmlFor={`team-member-${member.user_id}`}
-                              className="flex-1 cursor-pointer"
-                            >
-                              <div>
-                                <div className="font-medium flex items-center gap-2">
-                                  {member.profiles?.full_name || member.profiles?.email}
-                                  {member.role === 'head' && (
-                                    <span className="text-xs bg-rose-gold/15 text-rose-gold px-1 rounded border border-rose-gold/30">Team Head</span>
-                                  )}
-                                </div>
-                                <div className="text-sm text-muted-foreground">{member.profiles?.email}</div>
-                              </div>
-                            </Label>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
             </TabsContent>
             
             <div>
