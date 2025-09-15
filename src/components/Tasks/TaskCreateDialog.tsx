@@ -38,6 +38,9 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   const { user } = useAuth();
   const { toast } = useToast();
 
+  // Task type tab state
+  const [taskType, setTaskType] = useState<'individual' | 'team'>('individual');
+
   // Form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -89,7 +92,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   const { data: teams = [], isLoading: loadingTeams, error: teamsError } = useQuery({
     queryKey: ['teams'],
     queryFn: () => supabaseApi.getTeams(),
-    enabled: open,
+    enabled: open && taskType === 'team',
     retry: 1,
   });
 
@@ -97,7 +100,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   const { data: teamMembers = [], isLoading: loadingTeamMembers } = useQuery({
     queryKey: ['teamMembers', selectedTeam],
     queryFn: () => supabaseApi.getTeamMembers(selectedTeam),
-    enabled: open && !!selectedTeam,
+    enabled: open && taskType === 'team' && !!selectedTeam,
     retry: 1,
   });
 
@@ -132,23 +135,40 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
       return;
     }
     
-    // Validation for team tasks  
-    if (!selectedTeam) {
+    // Validation for individual tasks
+    if (taskType === 'individual' && !isPersonalTask && !showEmployeeSelection && !assignedTo) {
       toast({
-        title: "Team Required",
-        description: "Please select a team for this task.",
+        title: "Assignment Required",
+        description: "Please select an employee to assign this task to.",
         variant: "destructive"
       });
       return;
     }
 
-    if (selectedTeamMembers.length === 0) {
-      toast({
-        title: "Team Members Required",
-        description: "Please select at least one team member.",
-        variant: "destructive"
-      });
-      return;
+    // Validation for team tasks
+    if (taskType === 'team') {
+      if (!selectedTeam) {
+        toast({
+          title: "Team Required",
+          description: "Please select a team for this task.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (selectedTeamMembers.length === 0) {
+        toast({
+          title: "Team Members Required",
+          description: "Please select at least one team member.",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+
+    // Team selection optional for admins; if none selected, will self-assign
+    if (showEmployeeSelection && selectedEmployees.length === 0 && taskType === 'individual') {
+      console.warn('[TaskCreate] No employees selected; will self-assign to current user.');
     }
     
     // Default due date if not selected: tomorrow at 5PM
@@ -181,10 +201,33 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
       attachments: attachments.length > 0 ? attachments : undefined,
     };
 
+    // Handle individual task assignment
+    if (taskType === 'individual') {
+      const selectedEmployee = employees.find((u: any) => u.email === assignedTo || u.id === assignedTo);
+      let assignedUserId = assignedTo;
+      
+      if (isPersonalTask) {
+        assignedUserId = user.id;
+      } else if (selectedEmployee?.id) {
+        assignedUserId = selectedEmployee.id;
+      } else if (!showEmployeeSelection && assignedTo) {
+        assignedUserId = assignedTo;
+      } else if (showEmployeeSelection && selectedEmployees.length > 0) {
+        taskData.assignedEmployees = selectedEmployees;
+        assignedUserId = selectedEmployees[0]; // Primary assignee
+      } else if (showEmployeeSelection && selectedEmployees.length === 0) {
+        assignedUserId = user.id;
+      }
+
+      taskData.assigned_to = assignedUserId || user.id;
+    }
+
     // Handle team task assignment
-    taskData.assignedEmployees = selectedTeamMembers;
-    taskData.assigned_to = selectedTeamMembers[0]; // Primary assignee
-    taskData.team_id = selectedTeam;
+    if (taskType === 'team') {
+      taskData.assignedEmployees = selectedTeamMembers;
+      taskData.assigned_to = selectedTeamMembers[0]; // Primary assignee
+      taskData.team_id = selectedTeam;
+    }
 
     try {
       console.log('[TaskCreate] Creating task with data:', taskData);
@@ -196,7 +239,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
       
       toast({
         title: "Task Created Successfully",
-        description: `Team task "${taskData.title}" has been created and will appear in the dashboard momentarily.`,
+        description: `${taskType === 'team' ? 'Team task' : 'Task'} "${taskData.title}" has been created and will appear in the dashboard momentarily.`,
         variant: "default",
       });
       
@@ -213,6 +256,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
 
   const handleClose = () => {
     // Reset form
+    setTaskType('individual');
     setTitle('');
     setDescription('');
     setPriority('medium');
@@ -250,9 +294,13 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
           </DialogTitle>
         </DialogHeader>
         
-        {/* Task Type - Only Team Tasks */}
-        <Tabs value="team" onValueChange={() => {}} className="flex-1 flex flex-col">
-          <TabsList className="grid w-full grid-cols-1 mb-4">
+        {/* Task Type Tabs */}
+        <Tabs value={taskType} onValueChange={(value: 'individual' | 'team') => setTaskType(value)} className="flex-1 flex flex-col">
+          <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsTrigger value="individual" className="flex items-center gap-2">
+              <User className="h-4 w-4" />
+              Individual Task
+            </TabsTrigger>
             <TabsTrigger value="team" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               Team Task
@@ -608,7 +656,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
             className="bg-rose-gold hover:bg-rose-gold-dark text-rose-gold-foreground"
           >
             <Save className="mr-2 h-4 w-4" />
-            Create Team Task
+            Create {taskType === 'team' ? 'Team ' : ''}Task
           </Button>
         </div>
       </DialogContent>
