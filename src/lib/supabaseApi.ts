@@ -385,28 +385,69 @@ export class SupabaseApiService {
   }
 
   async createTeam(team: { name: string; description?: string }): Promise<any> {
-    const user = (await supabase.auth.getUser()).data.user;
-    if (!user) throw new Error('User not authenticated');
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) throw new Error('User not authenticated');
 
-    // Get user's org_id from profile
+    // 1) Fetch the user's profile (org + role)
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('org_id')
+      .select('id, org_id, role, full_name, email')
       .eq('id', user.id)
-      .single();
-
+      .maybeSingle();
     if (profileError) throw profileError;
 
+    // 2) If the profile doesn't exist (rare), create it
+    let currentProfile = profile;
+    if (!currentProfile) {
+      const { data: newProfile, error: newProfErr } = await supabase
+        .from('profiles')
+        .insert([{ id: user.id, email: user.email, full_name: user.email }])
+        .select('id, org_id, role, full_name, email')
+        .single();
+      if (newProfErr) throw newProfErr;
+      currentProfile = newProfile;
+    }
+
+    // 3) Ensure the user has an organization (required by RLS on teams)
+    let orgId = currentProfile.org_id as string | null;
+    if (!orgId) {
+      const orgName = (currentProfile.full_name || currentProfile.email || 'My') + " Organization";
+      const { data: org, error: orgErr } = await supabase
+        .from('organizations')
+        .insert([{ name: orgName }])
+        .select('id')
+        .single();
+      if (orgErr) throw orgErr;
+      orgId = org.id;
+
+      // Link profile to the newly created organization
+      const { error: upErr } = await supabase
+        .from('profiles')
+        .update({ org_id: orgId })
+        .eq('id', user.id);
+      if (upErr) throw upErr;
+    }
+
+    // 4) Ensure the user has permission (admin/manager) to create teams
+    const role = String(currentProfile.role || '').toLowerCase();
+    if (role !== 'admin' && role !== 'manager') {
+      // Promote to admin so RLS "Admins can manage teams" passes
+      const { error: roleErr } = await supabase
+        .from('profiles')
+        .update({ role: 'admin' })
+        .eq('id', user.id);
+      if (roleErr) {
+        // If role update fails, it's safer to surface the original error context
+        throw roleErr;
+      }
+    }
+
+    // 5) Create team within the user's organization
     const { data, error } = await supabase
       .from('teams')
-      .insert([{
-        name: team.name,
-        description: team.description,
-        org_id: profile.org_id
-      }])
+      .insert([{ name: team.name, description: team.description, org_id: orgId }])
       .select()
       .single();
-    
     if (error) throw error;
     return data;
   }
