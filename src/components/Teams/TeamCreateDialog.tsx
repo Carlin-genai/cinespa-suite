@@ -31,6 +31,7 @@ const TeamCreateDialog: React.FC<TeamCreateDialogProps> = ({
   const [description, setDescription] = useState('');
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [teamHead, setTeamHead] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Real-time sync for teams and users
   useTeamsRealTimeSync();
@@ -67,6 +68,7 @@ const TeamCreateDialog: React.FC<TeamCreateDialogProps> = ({
     setDescription('');
     setSelectedMembers([]);
     setTeamHead('');
+    setSearchTerm('');
   };
 
   const handleCancel = () => {
@@ -74,6 +76,7 @@ const TeamCreateDialog: React.FC<TeamCreateDialogProps> = ({
     setDescription('');
     setSelectedMembers([]);
     setTeamHead('');
+    setSearchTerm('');
     onOpenChange(false);
   };
 
@@ -198,47 +201,60 @@ const TeamCreateDialog: React.FC<TeamCreateDialogProps> = ({
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-full p-0" align="start">
-                <Command>
-                  <CommandInput placeholder="Search employees..." />
+                <Command shouldFilter={false}>
+                  <CommandInput 
+                    placeholder="Search employees..." 
+                    value={searchTerm}
+                    onValueChange={setSearchTerm}
+                  />
                   <CommandList>
-                    <CommandEmpty>No employees found.</CommandEmpty>
+                    <CommandEmpty>
+                      {users.length === 0 ? "No employees found." : "No employees match your search."}
+                    </CommandEmpty>
                     <CommandGroup>
-                      {users.map((user) => {
-                        const isSelected = selectedMembers.includes(user.id);
-                        return (
-                          <CommandItem
-                            key={user.id}
-                            value={user.full_name || user.email}
-                            onSelect={() => {
-                              if (isSelected) {
-                                removeMember(user.id);
-                              } else {
-                                addMember(user.id);
-                              }
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                isSelected ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            <div className="flex-1">
-                              <div className="font-medium">
-                                {user.full_name || 'Unnamed User'}
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                {user.email}
-                              </div>
-                              {user.role && (
-                                <div className="text-xs text-muted-foreground capitalize">
-                                  {user.role}
+                      {users
+                        .filter((user) => {
+                          if (!searchTerm) return true;
+                          const name = user.full_name?.toLowerCase() || '';
+                          const email = user.email?.toLowerCase() || '';
+                          return name.includes(searchTerm.toLowerCase()) || email.includes(searchTerm.toLowerCase());
+                        })
+                        .map((user) => {
+                          const isSelected = selectedMembers.includes(user.id);
+                          return (
+                            <CommandItem
+                              key={user.id}
+                              value={user.full_name || user.email}
+                              onSelect={() => {
+                                if (isSelected) {
+                                  removeMember(user.id);
+                                } else {
+                                  addMember(user.id);
+                                }
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  isSelected ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <div className="flex-1">
+                                <div className="font-medium">
+                                  {user.full_name || 'Unnamed User'}
                                 </div>
-                              )}
-                            </div>
-                          </CommandItem>
-                        );
-                      })}
+                                <div className="text-sm text-muted-foreground">
+                                  {user.email}
+                                </div>
+                                {user.role && (
+                                  <div className="text-xs text-muted-foreground capitalize">
+                                    {user.role}
+                                  </div>
+                                )}
+                              </div>
+                            </CommandItem>
+                          );
+                        })}
                     </CommandGroup>
                   </CommandList>
                 </Command>
