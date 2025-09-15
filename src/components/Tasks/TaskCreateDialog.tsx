@@ -38,8 +38,8 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Task type tab state
-  const [taskType, setTaskType] = useState<'individual' | 'team'>('individual');
+  // Task type tab state - Force team task only
+  const [taskType, setTaskType] = useState<'individual' | 'team'>('team');
 
   // Form state
   const [title, setTitle] = useState('');
@@ -92,7 +92,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   const { data: teams = [], isLoading: loadingTeams, error: teamsError } = useQuery({
     queryKey: ['teams'],
     queryFn: () => supabaseApi.getTeams(),
-    enabled: open && taskType === 'team',
+    enabled: open, // Always enabled since we only do team tasks now
     retry: 1,
   });
 
@@ -100,7 +100,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   const { data: teamMembers = [], isLoading: loadingTeamMembers } = useQuery({
     queryKey: ['teamMembers', selectedTeam],
     queryFn: () => supabaseApi.getTeamMembers(selectedTeam),
-    enabled: open && taskType === 'team' && !!selectedTeam,
+    enabled: open && !!selectedTeam, // Remove taskType check since we only do team tasks
     retry: 1,
   });
 
@@ -135,35 +135,23 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
       return;
     }
     
-    // Validation for individual tasks
-    if (taskType === 'individual' && !isPersonalTask && !showEmployeeSelection && !assignedTo) {
+    // Validation for team tasks only
+    if (!selectedTeam) {
       toast({
-        title: "Assignment Required",
-        description: "Please select an employee to assign this task to.",
+        title: "Team Required",
+        description: "Please select a team for this task.",
         variant: "destructive"
       });
       return;
     }
 
-    // Validation for team tasks
-    if (taskType === 'team') {
-      if (!selectedTeam) {
-        toast({
-          title: "Team Required",
-          description: "Please select a team for this task.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      if (selectedTeamMembers.length === 0) {
-        toast({
-          title: "Team Members Required",
-          description: "Please select at least one team member.",
-          variant: "destructive"
-        });
-        return;
-      }
+    if (selectedTeamMembers.length === 0) {
+      toast({
+        title: "Team Members Required",
+        description: "Please select at least one team member.",
+        variant: "destructive"
+      });
+      return;
     }
 
     // Team selection optional for admins; if none selected, will self-assign
@@ -201,33 +189,10 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
       attachments: attachments.length > 0 ? attachments : undefined,
     };
 
-    // Handle individual task assignment
-    if (taskType === 'individual') {
-      const selectedEmployee = employees.find((u: any) => u.email === assignedTo || u.id === assignedTo);
-      let assignedUserId = assignedTo;
-      
-      if (isPersonalTask) {
-        assignedUserId = user.id;
-      } else if (selectedEmployee?.id) {
-        assignedUserId = selectedEmployee.id;
-      } else if (!showEmployeeSelection && assignedTo) {
-        assignedUserId = assignedTo;
-      } else if (showEmployeeSelection && selectedEmployees.length > 0) {
-        taskData.assignedEmployees = selectedEmployees;
-        assignedUserId = selectedEmployees[0]; // Primary assignee
-      } else if (showEmployeeSelection && selectedEmployees.length === 0) {
-        assignedUserId = user.id;
-      }
-
-      taskData.assigned_to = assignedUserId || user.id;
-    }
-
-    // Handle team task assignment
-    if (taskType === 'team') {
-      taskData.assignedEmployees = selectedTeamMembers;
-      taskData.assigned_to = selectedTeamMembers[0]; // Primary assignee
-      taskData.team_id = selectedTeam;
-    }
+    // Handle team task assignment only
+    taskData.assignedEmployees = selectedTeamMembers;
+    taskData.assigned_to = selectedTeamMembers[0]; // Primary assignee
+    taskData.team_id = selectedTeam;
 
     try {
       console.log('[TaskCreate] Creating task with data:', taskData);
@@ -239,7 +204,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
       
       toast({
         title: "Task Created Successfully",
-        description: `${taskType === 'team' ? 'Team task' : 'Task'} "${taskData.title}" has been created and will appear in the dashboard momentarily.`,
+        description: `Team task "${taskData.title}" has been created and will appear in the dashboard momentarily.`,
         variant: "default",
       });
       
@@ -256,7 +221,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
 
   const handleClose = () => {
     // Reset form
-    setTaskType('individual');
+    setTaskType('team');
     setTitle('');
     setDescription('');
     setPriority('medium');
@@ -294,13 +259,9 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
           </DialogTitle>
         </DialogHeader>
         
-        {/* Task Type Tabs */}
-        <Tabs value={taskType} onValueChange={(value: 'individual' | 'team') => setTaskType(value)} className="flex-1 flex flex-col">
-          <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="individual" className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              Individual Task
-            </TabsTrigger>
+        {/* Task Type Tabs - Only show Team Task option */}
+        <Tabs value="team" onValueChange={() => {}} className="flex-1 flex flex-col">
+          <TabsList className="grid w-full grid-cols-1 mb-4">
             <TabsTrigger value="team" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               Team Task
@@ -384,97 +345,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
               />
             </div>
 
-            {/* Tab-specific Assignment Fields */}
-            <TabsContent value="individual" className="space-y-4 mt-0">
-              {(!isPersonalTask && !showEmployeeSelection) && (
-                <div>
-                  <Label htmlFor="assignedTo">Assign to Employee *</Label>
-                  <Select value={assignedTo} onValueChange={setAssignedTo}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder={
-                        loadingEmployees ? "Loading employees..." : 
-                        employees.length === 0 ? "No employees found" :
-                        "Select employee to assign"
-                      } />
-                    </SelectTrigger>
-                    <SelectContent className="z-50 bg-background border shadow-md">
-                      {loadingEmployees ? (
-                        <SelectItem value="loading" disabled>
-                          Loading employees...
-                        </SelectItem>
-                      ) : employees.length === 0 ? (
-                        <SelectItem value="none" disabled>
-                          No employees available
-                        </SelectItem>
-                      ) : (
-                        employees.map((employee: any) => (
-                          <SelectItem key={employee.email} value={employee.email}>
-                            {employee.name} ({employee.email})
-                            {employee.isTeamHead && <span className="ml-1 text-xs bg-rose-gold/15 text-rose-gold px-1 rounded border border-rose-gold/30">Team Head</span>}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                  {employeeError && (
-                    <p className="text-xs text-destructive mt-1">
-                      Failed to load employees. Please refresh and try again.
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {showEmployeeSelection && (
-                <div>
-                  <Label>Select Team Members * ({selectedEmployees.length} selected)</Label>
-                  {loadingEmployees ? (
-                    <div className="text-center py-4">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-                    </div>
-                  ) : (
-                    <div className="max-h-48 overflow-y-auto border rounded-lg p-4 space-y-3 mt-1">
-                      {employees.length === 0 ? (
-                        <p className="text-muted-foreground text-center py-4">
-                          No employees available
-                        </p>
-                      ) : (
-                        employees.map((employee: any) => (
-                          <div key={employee.id} className="flex items-center space-x-3">
-                            <input
-                              type="checkbox"
-                              id={`employee-${employee.id}`}
-                              checked={selectedEmployees.includes(employee.id)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedEmployees(prev => [...prev, employee.id]);
-                                } else {
-                                  setSelectedEmployees(prev => prev.filter(id => id !== employee.id));
-                                }
-                              }}
-                              className="rounded border-gray-300"
-                            />
-                            <Label
-                              htmlFor={`employee-${employee.id}`}
-                              className="flex-1 cursor-pointer"
-                            >
-                              <div>
-                                <div className="font-medium">{employee.name}</div>
-                                <div className="text-sm text-muted-foreground">{employee.email}</div>
-                              </div>
-                            </Label>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  )}
-                  {employeeError && (
-                    <p className="text-xs text-destructive mt-1">
-                      Failed to load employees. Please refresh and try again.
-                    </p>
-                  )}
-                </div>
-              )}
-            </TabsContent>
+            {/* Only Team Task content */}
 
             <TabsContent value="team" className="space-y-4 mt-0">
               {/* Team Selection */}
@@ -656,7 +527,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
             className="bg-rose-gold hover:bg-rose-gold-dark text-rose-gold-foreground"
           >
             <Save className="mr-2 h-4 w-4" />
-            Create {taskType === 'team' ? 'Team ' : ''}Task
+            Create Team Task
           </Button>
         </div>
       </DialogContent>

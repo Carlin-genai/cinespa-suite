@@ -56,30 +56,41 @@ const TeamCreateDialog: React.FC<TeamCreateDialogProps> = ({
     console.error('[TeamCreateDialog] Users fetch error:', usersError);
   }
 
-  const handleSave = () => {
-    if (!name.trim()) {
-      toast({
-        title: "Error",
-        description: "Team name is required",
-        variant: "destructive",
-      });
-      return;
-    }
+    const handleSave = () => {
+      console.log('[TeamCreateDialog] Attempting to save team:', { name, description, memberIds: selectedMembers, teamHeadId: teamHead });
+      
+      if (!name.trim()) {
+        toast({
+          title: "Error",
+          description: "Team name is required",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    onSave({
-      name: name.trim(),
-      description: description.trim() || undefined,
-      memberIds: selectedMembers,
-      teamHeadId: teamHead,
-    });
+      try {
+        onSave({
+          name: name.trim(),
+          description: description.trim() || undefined,
+          memberIds: selectedMembers,
+          teamHeadId: teamHead,
+        });
 
-    // Reset form
-    setName('');
-    setDescription('');
-    setSelectedMembers([]);
-    setTeamHead('');
-    setSearchTerm('');
-  };
+        // Reset form
+        setName('');
+        setDescription('');
+        setSelectedMembers([]);
+        setTeamHead('');
+        setSearchTerm('');
+      } catch (error) {
+        console.error('[TeamCreateDialog] Error in handleSave:', error);
+        toast({
+          title: "Error",
+          description: "Failed to create team. Please try again.",
+          variant: "destructive",
+        });
+      }
+    };
 
   const handleCancel = () => {
     setName('');
@@ -145,13 +156,21 @@ const TeamCreateDialog: React.FC<TeamCreateDialogProps> = ({
               <Crown className="h-4 w-4 text-amber-500" />
               Team Head (Optional)
             </Label>
-            <Select value={teamHead || 'none'} onValueChange={(v) => setTeamHead(v === 'none' ? '' : v)}>
+            <Select value={teamHead || 'none'} onValueChange={(v) => {
+              const newHeadId = v === 'none' ? '' : v;
+              setTeamHead(newHeadId);
+              
+              // Auto-include selected head in team members if not already included
+              if (newHeadId && !selectedMembers.includes(newHeadId)) {
+                setSelectedMembers(prev => [...prev, newHeadId]);
+              }
+            }}>
               <SelectTrigger>
                 <SelectValue placeholder="Select team head..." />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-[1000] bg-background border shadow-md">
                 <SelectItem value="none">No team head</SelectItem>
-                {users.filter(user => selectedMembers.includes(user.id)).map((user) => (
+                {users.map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     <div className="flex items-center gap-2">
                       <Crown className="h-3 w-3 text-amber-500" />
@@ -161,9 +180,12 @@ const TeamCreateDialog: React.FC<TeamCreateDialogProps> = ({
                 ))}
               </SelectContent>
             </Select>
-            {teamHead && !selectedMembers.includes(teamHead) && (
-              <p className="text-xs text-amber-600">
-                Team head must be selected as a team member first
+            {teamHead && (
+              <p className="text-xs text-green-600">
+                {selectedMembers.includes(teamHead) ? 
+                  `${users.find(u => u.id === teamHead)?.full_name || users.find(u => u.id === teamHead)?.email} will be the team head` :
+                  `${users.find(u => u.id === teamHead)?.full_name || users.find(u => u.id === teamHead)?.email} was automatically added as team member`
+                }
               </p>
             )}
           </div>

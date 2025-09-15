@@ -384,9 +384,11 @@ export class SupabaseApiService {
     return data || [];
   }
 
-  async createTeam(team: { name: string; description?: string }): Promise<any> {
+  async createTeam(team: { name: string; description?: string; memberIds?: string[]; teamHeadId?: string }): Promise<any> {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) throw new Error('User not authenticated');
+
+    console.log('[createTeam] Starting team creation with:', team);
 
     // 1) Fetch the user's profile (org + role)
     const { data: profile, error: profileError } = await supabase
@@ -394,30 +396,41 @@ export class SupabaseApiService {
       .select('id, org_id, role, full_name, email')
       .eq('id', user.id)
       .maybeSingle();
-    if (profileError) throw profileError;
+    if (profileError) {
+      console.error('[createTeam] Profile fetch error:', profileError);
+      throw profileError;
+    }
 
     // 2) If the profile doesn't exist (rare), create it
     let currentProfile = profile;
     if (!currentProfile) {
+      console.log('[createTeam] Creating missing profile for user:', user.id);
       const { data: newProfile, error: newProfErr } = await supabase
         .from('profiles')
         .insert([{ id: user.id, email: user.email, full_name: user.email }])
         .select('id, org_id, role, full_name, email')
         .single();
-      if (newProfErr) throw newProfErr;
+      if (newProfErr) {
+        console.error('[createTeam] Profile creation error:', newProfErr);
+        throw newProfErr;
+      }
       currentProfile = newProfile;
     }
 
     // 3) Ensure the user has an organization (required by RLS on teams)
     let orgId = currentProfile.org_id as string | null;
     if (!orgId) {
+      console.log('[createTeam] Creating organization for user:', user.id);
       const orgName = (currentProfile.full_name || currentProfile.email || 'My') + " Organization";
       const { data: org, error: orgErr } = await supabase
         .from('organizations')
         .insert([{ name: orgName }])
         .select('id')
         .single();
-      if (orgErr) throw orgErr;
+      if (orgErr) {
+        console.error('[createTeam] Organization creation error:', orgErr);
+        throw orgErr;
+      }
       orgId = org.id;
 
       // Link profile to the newly created organization
@@ -425,31 +438,65 @@ export class SupabaseApiService {
         .from('profiles')
         .update({ org_id: orgId })
         .eq('id', user.id);
-      if (upErr) throw upErr;
+      if (upErr) {
+        console.error('[createTeam] Profile org_id update error:', upErr);
+        throw upErr;
+      }
     }
 
     // 4) Ensure the user has permission (admin/manager) to create teams
     const role = String(currentProfile.role || '').toLowerCase();
     if (role !== 'admin' && role !== 'manager') {
+      console.log('[createTeam] Promoting user to admin for team creation:', user.id);
       // Promote to admin so RLS "Admins can manage teams" passes
       const { error: roleErr } = await supabase
         .from('profiles')
         .update({ role: 'admin' })
         .eq('id', user.id);
       if (roleErr) {
-        // If role update fails, it's safer to surface the original error context
+        console.error('[createTeam] Role update error:', roleErr);
         throw roleErr;
       }
     }
 
     // 5) Create team within the user's organization
-    const { data, error } = await supabase
+    console.log('[createTeam] Creating team with org_id:', orgId);
+    const { data: newTeam, error: teamError } = await supabase
       .from('teams')
       .insert([{ name: team.name, description: team.description, org_id: orgId }])
       .select()
       .single();
-    if (error) throw error;
-    return data;
+    if (teamError) {
+      console.error('[createTeam] Team creation error:', teamError);
+      throw teamError;
+    }
+
+    console.log('[createTeam] Team created successfully:', newTeam);
+
+    // 6) Add team members if provided
+    if (team.memberIds && team.memberIds.length > 0) {
+      console.log('[createTeam] Adding team members:', team.memberIds);
+      const memberInserts = team.memberIds.map(userId => ({
+        team_id: newTeam.id,
+        user_id: userId,
+        org_id: orgId,
+        role: (team.teamHeadId === userId ? 'head' : 'member') as 'head' | 'member'
+      }));
+
+      const { error: membersError } = await supabase
+        .from('team_members')
+        .insert(memberInserts);
+
+      if (membersError) {
+        console.error('[createTeam] Team members addition error:', membersError);
+        // Don't throw error for members - team is already created
+        console.warn('[createTeam] Team created but failed to add some members');
+      } else {
+        console.log('[createTeam] Team members added successfully');
+      }
+    }
+
+    return newTeam;
   }
 
   async updateTeam(id: string, team: { name?: string; description?: string }): Promise<any> {
