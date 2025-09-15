@@ -132,12 +132,12 @@ const TeamCreateDialog: React.FC<TeamCreateDialogProps> = ({
               <Crown className="h-4 w-4 text-amber-500" />
               Team Head (Optional)
             </Label>
-            <Select value={teamHead} onValueChange={setTeamHead}>
+            <Select value={teamHead || 'none'} onValueChange={(v) => setTeamHead(v === 'none' ? '' : v)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select team head..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No team head</SelectItem>
+                <SelectItem value="none">No team head</SelectItem>
                 {users.filter(user => selectedMembers.includes(user.id)).map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     <div className="flex items-center gap-2">
