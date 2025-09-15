@@ -38,13 +38,23 @@ const TeamCreateDialog: React.FC<TeamCreateDialogProps> = ({
   useUsersRealTimeSync();
 
   // Fetch available users with optimized caching and real-time sync
-  const { data: users = [], isLoading: usersLoading } = useQuery({
+  const { data: users = [], isLoading: usersLoading, error: usersError } = useQuery({
     queryKey: ['users'],
-    queryFn: () => supabaseApi.getUsers(),
+    queryFn: async () => {
+      console.log('[TeamCreateDialog] Fetching users...');
+      const result = await supabaseApi.getUsers();
+      console.log('[TeamCreateDialog] Users fetched:', result.length, result);
+      return result;
+    },
     enabled: open,
     staleTime: 1000 * 60 * 3, // 3 minutes caching for users
     gcTime: 1000 * 60 * 10, // Keep in cache for 10 minutes
   });
+
+  // Log users error if any
+  if (usersError) {
+    console.error('[TeamCreateDialog] Users fetch error:', usersError);
+  }
 
   const handleSave = () => {
     if (!name.trim()) {
@@ -208,54 +218,65 @@ const TeamCreateDialog: React.FC<TeamCreateDialogProps> = ({
                     onValueChange={setSearchTerm}
                   />
                   <CommandList>
-                    <CommandEmpty>
-                      {users.length === 0 ? "No employees found." : "No employees match your search."}
-                    </CommandEmpty>
-                    <CommandGroup>
-                      {users
-                        .filter((user) => {
-                          if (!searchTerm) return true;
-                          const name = user.full_name?.toLowerCase() || '';
-                          const email = user.email?.toLowerCase() || '';
-                          return name.includes(searchTerm.toLowerCase()) || email.includes(searchTerm.toLowerCase());
-                        })
-                        .map((user) => {
-                          const isSelected = selectedMembers.includes(user.id);
-                          return (
-                            <CommandItem
-                              key={user.id}
-                              value={user.full_name || user.email}
-                              onSelect={() => {
-                                if (isSelected) {
-                                  removeMember(user.id);
-                                } else {
-                                  addMember(user.id);
-                                }
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  isSelected ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              <div className="flex-1">
-                                <div className="font-medium">
-                                  {user.full_name || 'Unnamed User'}
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  {user.email}
-                                </div>
-                                {user.role && (
-                                  <div className="text-xs text-muted-foreground capitalize">
-                                    {user.role}
+                    {(() => {
+                      const filteredUsers = users.filter((user) => {
+                        if (!searchTerm) return true;
+                        const name = user.full_name?.toLowerCase() || '';
+                        const email = user.email?.toLowerCase() || '';
+                        return name.includes(searchTerm.toLowerCase()) || email.includes(searchTerm.toLowerCase());
+                      });
+                      
+                      console.log('[TeamCreateDialog] Filtered users:', filteredUsers.length, 'from total:', users.length, 'searchTerm:', searchTerm);
+                      
+                      if (filteredUsers.length === 0) {
+                        return (
+                          <CommandEmpty>
+                            {users.length === 0 ? "No employees found." : "No employees match your search."}
+                          </CommandEmpty>
+                        );
+                      }
+                      
+                      return (
+                        <CommandGroup>
+                          {filteredUsers.map((user) => {
+                            const isSelected = selectedMembers.includes(user.id);
+                            return (
+                              <CommandItem
+                                key={user.id}
+                                value={user.full_name || user.email}
+                                onSelect={() => {
+                                  if (isSelected) {
+                                    removeMember(user.id);
+                                  } else {
+                                    addMember(user.id);
+                                  }
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    isSelected ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <div className="flex-1">
+                                  <div className="font-medium">
+                                    {user.full_name || 'Unnamed User'}
                                   </div>
-                                )}
-                              </div>
-                            </CommandItem>
-                          );
-                        })}
-                    </CommandGroup>
+                                  <div className="text-sm text-muted-foreground">
+                                    {user.email}
+                                  </div>
+                                  {user.role && (
+                                    <div className="text-xs text-muted-foreground capitalize">
+                                      {user.role}
+                                    </div>
+                                  )}
+                                </div>
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      );
+                    })()}
                   </CommandList>
                 </Command>
               </PopoverContent>
