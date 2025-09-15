@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, Bell, Plus, Settings } from 'lucide-react';
+import { Users, Bell, Plus, Settings, User } from 'lucide-react';
 import TaskCard from '@/components/Tasks/TaskCard';
 import TaskEditDialog from '@/components/Tasks/TaskEditDialog';
 import ReminderDialog from '@/components/Tasks/ReminderDialog';
@@ -16,6 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Task } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { useTasks } from '@/hooks/useTasks';
+import { groupTeamTasks, getIndividualTasks, GroupedTeamTask } from '@/lib/teamTaskUtils';
 
 const TeamTasks = () => {
   const { user, userRole } = useAuth();
@@ -301,11 +302,27 @@ const TeamTasks = () => {
     );
   }
 
-  // Group tasks by status
-  const pendingTasks = tasks.filter((task: Task) => task.status === 'pending');
-  const inProgressTasks = tasks.filter((task: Task) => task.status === 'in-progress');
-  const completedTasks = tasks.filter((task: Task) => task.status === 'completed');
-  const overdueTasks = tasks.filter((task: Task) => task.status === 'overdue');
+  // Separate individual and team tasks
+  const individualTasks = getIndividualTasks(tasks);
+  const groupedTeamTasks = groupTeamTasks(tasks, teams);
+
+  // Group tasks by status for both individual and team
+  const groupTasksByStatus = (tasksList: Task[]) => ({
+    pending: tasksList.filter((task: Task) => task.status === 'pending'),
+    inProgress: tasksList.filter((task: Task) => task.status === 'in-progress'),
+    completed: tasksList.filter((task: Task) => task.status === 'completed'),
+    overdue: tasksList.filter((task: Task) => task.status === 'overdue'),
+  });
+
+  const groupTeamTasksByStatus = (tasksList: GroupedTeamTask[]) => ({
+    pending: tasksList.filter((task: GroupedTeamTask) => task.status === 'pending'),
+    inProgress: tasksList.filter((task: GroupedTeamTask) => task.status === 'in-progress'),
+    completed: tasksList.filter((task: GroupedTeamTask) => task.status === 'completed'),
+    overdue: tasksList.filter((task: GroupedTeamTask) => task.status === 'overdue'),
+  });
+
+  const individualTaskGroups = groupTasksByStatus(individualTasks);
+  const teamTaskGroups = groupTeamTasksByStatus(groupedTeamTasks);
 
   return (
     <div className="space-y-6">
@@ -318,25 +335,173 @@ const TeamTasks = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="tasks" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="tasks" className="flex items-center gap-2">
+      <Tabs defaultValue="individual" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="individual" className="flex items-center gap-2">
+            <User className="h-4 w-4" />
+            Individual ({individualTasks.length})
+          </TabsTrigger>
+          <TabsTrigger value="team" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
-            Team Tasks
+            Team ({groupedTeamTasks.length})
           </TabsTrigger>
           {canManageTeams && (
-            <TabsTrigger value="teams" className="flex items-center gap-2">
+            <TabsTrigger value="manage" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
               Manage Teams
             </TabsTrigger>
           )}
         </TabsList>
 
-        <TabsContent value="tasks" className="space-y-6">
+        <TabsContent value="individual" className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <User className="h-4 w-4" />
+              <span>{individualTasks.length} individual tasks</span>
+            </div>
+            {canCreateTasks && (
+              <Button 
+                onClick={() => setCreateDialogOpen(true)}
+                className="bg-rose-gold hover:bg-rose-gold-dark text-white"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create Individual Task
+              </Button>
+            )}
+          </div>
+
+          {individualTasks.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
+                <User className="h-12 w-12 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold font-montserrat mb-2">No individual tasks</h3>
+              <p className="text-muted-foreground font-opensans mb-4">
+                No individual tasks have been created yet.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {individualTaskGroups.overdue.length > 0 && (
+                <div>
+                  <h2 className="text-xl font-semibold text-overdue-red mb-4 flex items-center gap-2">
+                    Overdue Tasks ({individualTaskGroups.overdue.length})
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {individualTaskGroups.overdue.map((task: Task) => (
+                      <div key={task.id} className="relative group">
+                        <TaskCard
+                          task={task}
+                          onEdit={handleEditTask}
+                          onDelete={handleDeleteTask}
+                          isTeamTask={false}
+                        />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="absolute top-2 right-16 opacity-0 group-hover:opacity-100 transition-opacity border-rose-gold text-rose-gold hover:bg-rose-gold hover:text-white"
+                          onClick={() => handleSetReminder(task.id, task.title)}
+                        >
+                          <Bell className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {individualTaskGroups.inProgress.length > 0 && (
+                <div>
+                  <h2 className="text-xl font-semibold text-progress-blue mb-4 flex items-center gap-2">
+                    In Progress ({individualTaskGroups.inProgress.length})
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {individualTaskGroups.inProgress.map((task: Task) => (
+                      <div key={task.id} className="relative group">
+                        <TaskCard
+                          task={task}
+                          onEdit={handleEditTask}
+                          onDelete={handleDeleteTask}
+                          isTeamTask={false}
+                        />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="absolute top-2 right-16 opacity-0 group-hover:opacity-100 transition-opacity border-rose-gold text-rose-gold hover:text-white"
+                          onClick={() => handleSetReminder(task.id, task.title)}
+                        >
+                          <Bell className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {individualTaskGroups.pending.length > 0 && (
+                <div>
+                  <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
+                    Pending ({individualTaskGroups.pending.length})
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {individualTaskGroups.pending.map((task: Task) => (
+                      <div key={task.id} className="relative group">
+                        <TaskCard
+                          task={task}
+                          onEdit={handleEditTask}
+                          onDelete={handleDeleteTask}
+                          isTeamTask={false}
+                        />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="absolute top-2 right-16 opacity-0 group-hover:opacity-100 transition-opacity border-rose-gold text-rose-gold hover:bg-rose-gold hover:text-white"
+                          onClick={() => handleSetReminder(task.id, task.title)}
+                        >
+                          <Bell className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {individualTaskGroups.completed.length > 0 && (
+                <div>
+                  <h2 className="text-xl font-semibold text-completed-green mb-4 flex items-center gap-2">
+                    Completed ({individualTaskGroups.completed.length})
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {individualTaskGroups.completed.map((task: Task) => (
+                      <div key={task.id} className="relative group">
+                        <TaskCard
+                          task={task}
+                          onEdit={handleEditTask}
+                          onDelete={handleDeleteTask}
+                          isTeamTask={false}
+                        />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="absolute top-2 right-16 opacity-0 group-hover:opacity-100 transition-opacity border-rose-gold text-rose-gold hover:bg-rose-gold hover:text-white"
+                          onClick={() => handleSetReminder(task.id, task.title)}
+                        >
+                          <Bell className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="team" className="space-y-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Users className="h-4 w-4" />
-              <span>{tasks.length} total tasks</span>
+              <span>{groupedTeamTasks.length} team tasks</span>
             </div>
             {canCreateTasks && (
               <Button 
@@ -349,40 +514,31 @@ const TeamTasks = () => {
             )}
           </div>
 
-          {tasks.length === 0 ? (
+          {groupedTeamTasks.length === 0 ? (
             <div className="text-center py-12">
               <div className="mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
                 <Users className="h-12 w-12 text-muted-foreground" />
               </div>
               <h3 className="text-lg font-semibold font-montserrat mb-2">No team tasks</h3>
               <p className="text-muted-foreground font-opensans mb-4">
-                No tasks have been created for the team yet.
+                No team tasks have been created yet.
               </p>
-              {canCreateTasks && (
-                <Button 
-                  onClick={() => setCreateDialogOpen(true)}
-                  className="bg-rose-gold hover:bg-rose-gold-dark text-white"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create First Team Task
-                </Button>
-              )}
             </div>
           ) : (
             <div className="space-y-8">
-              {/* Overdue Tasks */}
-              {overdueTasks.length > 0 && (
+              {teamTaskGroups.overdue.length > 0 && (
                 <div>
                   <h2 className="text-xl font-semibold text-overdue-red mb-4 flex items-center gap-2">
-                    Overdue Tasks ({overdueTasks.length})
+                    Overdue Tasks ({teamTaskGroups.overdue.length})
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {overdueTasks.map((task: Task) => (
+                    {teamTaskGroups.overdue.map((task: GroupedTeamTask) => (
                       <div key={task.id} className="relative group">
                         <TaskCard
                           task={task}
                           onEdit={handleEditTask}
                           onDelete={handleDeleteTask}
+                          isTeamTask={true}
                         />
                         <Button
                           size="sm"
@@ -398,19 +554,19 @@ const TeamTasks = () => {
                 </div>
               )}
 
-              {/* In Progress Tasks */}
-              {inProgressTasks.length > 0 && (
+              {teamTaskGroups.inProgress.length > 0 && (
                 <div>
                   <h2 className="text-xl font-semibold text-progress-blue mb-4 flex items-center gap-2">
-                    In Progress ({inProgressTasks.length})
+                    In Progress ({teamTaskGroups.inProgress.length})
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {inProgressTasks.map((task: Task) => (
+                    {teamTaskGroups.inProgress.map((task: GroupedTeamTask) => (
                       <div key={task.id} className="relative group">
                         <TaskCard
                           task={task}
                           onEdit={handleEditTask}
                           onDelete={handleDeleteTask}
+                          isTeamTask={true}
                         />
                         <Button
                           size="sm"
@@ -426,19 +582,19 @@ const TeamTasks = () => {
                 </div>
               )}
 
-              {/* Pending Tasks */}
-              {pendingTasks.length > 0 && (
+              {teamTaskGroups.pending.length > 0 && (
                 <div>
                   <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
-                    Pending ({pendingTasks.length})
+                    Pending ({teamTaskGroups.pending.length})
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {pendingTasks.map((task: Task) => (
+                    {teamTaskGroups.pending.map((task: GroupedTeamTask) => (
                       <div key={task.id} className="relative group">
                         <TaskCard
                           task={task}
                           onEdit={handleEditTask}
                           onDelete={handleDeleteTask}
+                          isTeamTask={true}
                         />
                         <Button
                           size="sm"
@@ -454,19 +610,19 @@ const TeamTasks = () => {
                 </div>
               )}
 
-              {/* Completed Tasks */}
-              {completedTasks.length > 0 && (
+              {teamTaskGroups.completed.length > 0 && (
                 <div>
                   <h2 className="text-xl font-semibold text-completed-green mb-4 flex items-center gap-2">
-                    Completed ({completedTasks.length})
+                    Completed ({teamTaskGroups.completed.length})
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {completedTasks.map((task: Task) => (
+                    {teamTaskGroups.completed.map((task: GroupedTeamTask) => (
                       <div key={task.id} className="relative group">
                         <TaskCard
                           task={task}
                           onEdit={handleEditTask}
                           onDelete={handleDeleteTask}
+                          isTeamTask={true}
                         />
                         <Button
                           size="sm"
@@ -486,7 +642,7 @@ const TeamTasks = () => {
         </TabsContent>
 
         {canManageTeams && (
-          <TabsContent value="teams" className="space-y-6">
+          <TabsContent value="manage" className="space-y-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Settings className="h-4 w-4" />

@@ -3,19 +3,22 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, FileText, MoreVertical, Edit, Trash2, CheckCircle, AlertTriangle, Hourglass, Star, User } from 'lucide-react';
+import { Calendar, Clock, FileText, MoreVertical, Edit, Trash2, CheckCircle, AlertTriangle, Hourglass, Star, User, Users } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { Task } from '@/types';
+import { GroupedTeamTask } from '@/lib/teamTaskUtils';
+import TeamTaskTooltip from './TeamTaskTooltip';
 
 interface TaskCardProps {
-  task: Task;
+  task: Task | GroupedTeamTask;
   onEdit?: (task: any) => void;
   onDelete?: (taskId: string) => void;
   showActions?: boolean;
   showAdminFeatures?: boolean;
   onSetRating?: (taskId: string, rating: number, comment: string) => void;
+  isTeamTask?: boolean;
 }
 
 const TaskCard: React.FC<TaskCardProps> = ({ 
@@ -24,14 +27,15 @@ const TaskCard: React.FC<TaskCardProps> = ({
   onDelete, 
   showActions = true, 
   showAdminFeatures = false,
-  onSetRating 
+  onSetRating,
+  isTeamTask = false 
 }) => {
   const { userRole } = useAuth();
   const [showDetails, setShowDetails] = useState(false);
-  const { data: assigneeProfile } = useUserProfile(task.assigned_to);
+  const { data: assigneeProfile } = useUserProfile(isTeamTask ? null : (task as Task).assigned_to);
 
   const isAdmin = userRole?.role === 'admin';
-  const canEdit = showActions && (isAdmin || task.assigned_to === userRole?.user_id);
+  const canEdit = showActions && (isAdmin || (!isTeamTask && (task as Task).assigned_to === userRole?.user_id));
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -165,13 +169,29 @@ const TaskCard: React.FC<TaskCardProps> = ({
         )}
 
         <div className="space-y-3">
-          {task.assigned_to && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <User className="h-4 w-4 text-rose-gold" />
-              <span>
-                Assigned to: {assigneeProfile?.full_name || assigneeProfile?.email || 'Loading...'}
-              </span>
-            </div>
+          {isTeamTask ? (
+            <TeamTaskTooltip teamTask={task as GroupedTeamTask}>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+                <div className="flex items-center gap-1">
+                  <div className="w-5 h-5 bg-rose-gold rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">T</span>
+                  </div>
+                  <Users className="h-4 w-4 text-rose-gold" />
+                </div>
+                <span>
+                  Assigned to: {(task as GroupedTeamTask).teamName} ({(task as GroupedTeamTask).memberCount} members)
+                </span>
+              </div>
+            </TeamTaskTooltip>
+          ) : (
+            (task as Task).assigned_to && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <User className="h-4 w-4 text-rose-gold" />
+                <span>
+                  Assigned to: {assigneeProfile?.full_name || assigneeProfile?.email || 'Loading...'}
+                </span>
+              </div>
+            )
           )}
 
           {task.due_date && (

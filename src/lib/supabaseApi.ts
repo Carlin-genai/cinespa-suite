@@ -539,6 +539,20 @@ export class SupabaseApiService {
     if (error) throw error;
     return data || [];
   }
+
+  async getUserProfile(userId: string): Promise<any> {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, full_name, email, role, avatar_url')
+      .eq('id', userId)
+      .single();
+    
+    if (error) {
+      console.warn('Failed to get user profile:', error);
+      return null;
+    }
+    return data;
+  }
 }
 
 export const supabaseApi = new SupabaseApiService();

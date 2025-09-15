@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Users, User, Bell, Settings, AlertCircle, RefreshCw } from 'lucide-react';
@@ -8,10 +8,12 @@ import TaskEditDialog from '@/components/Tasks/TaskEditDialog';
 import ReminderDialog from '@/components/Tasks/ReminderDialog';
 import AdminRatingDialog from '@/components/Tasks/AdminRatingDialog';
 import { apiService } from '@/lib/api';
+import { supabaseApi } from '@/lib/supabaseApi';
 import { useAuth } from '@/contexts/AuthContext';
 import { Task } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { useTasks } from '@/hooks/useTasks';
+import { groupTeamTasks, getIndividualTasks, GroupedTeamTask } from '@/lib/teamTaskUtils';
 
 const AssignedTasks = () => {
   const { user, userRole } = useAuth();
@@ -28,6 +30,12 @@ const AssignedTasks = () => {
 
   // Use the new useTasks hook for tasks assigned by current admin
   const { data: tasks = [], loading, error, reload } = useTasks('assigned');
+
+  // Fetch teams for grouping team tasks
+  const { data: teams = [] } = useQuery({
+    queryKey: ['teams'],
+    queryFn: () => supabaseApi.getTeams(),
+  });
 
   // Update task mutation
   const updateTaskMutation = useMutation({
@@ -222,8 +230,8 @@ const AssignedTasks = () => {
   const assignedTasks = tasks.filter((task: Task) => task.assigned_by === user?.id);
   
   // Separate individual and team tasks
-  const individualTasks = assignedTasks.filter((task: Task) => !task.team_id);
-  const teamTasks = assignedTasks.filter((task: Task) => task.team_id);
+  const individualTasks = getIndividualTasks(assignedTasks);
+  const groupedTeamTasks = groupTeamTasks(assignedTasks, teams);
 
   // Group tasks by status for both individual and team
   const groupTasksByStatus = (tasksList: Task[]) => ({
@@ -233,10 +241,17 @@ const AssignedTasks = () => {
     overdue: tasksList.filter((task: Task) => task.status === 'overdue'),
   });
 
-  const individualTaskGroups = groupTasksByStatus(individualTasks);
-  const teamTaskGroups = groupTasksByStatus(teamTasks);
+  const groupTeamTasksByStatus = (tasksList: GroupedTeamTask[]) => ({
+    pending: tasksList.filter((task: GroupedTeamTask) => task.status === 'pending'),
+    inProgress: tasksList.filter((task: GroupedTeamTask) => task.status === 'in-progress'),
+    completed: tasksList.filter((task: GroupedTeamTask) => task.status === 'completed'),
+    overdue: tasksList.filter((task: GroupedTeamTask) => task.status === 'overdue'),
+  });
 
-  const renderTaskSection = (title: string, tasks: Task[], colorClass: string) => {
+  const individualTaskGroups = groupTasksByStatus(individualTasks);
+  const teamTaskGroups = groupTeamTasksByStatus(groupedTeamTasks);
+
+  const renderTaskSection = (title: string, tasks: Task[] | GroupedTeamTask[], colorClass: string, isTeamSection: boolean = false) => {
     if (tasks.length === 0) return null;
 
     return (
@@ -245,7 +260,7 @@ const AssignedTasks = () => {
           {title} ({tasks.length})
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {tasks.map((task: Task) => (
+          {tasks.map((task: Task | GroupedTeamTask) => (
             <div key={task.id} className="relative group">
               <TaskCard
                 task={task}
@@ -253,6 +268,7 @@ const AssignedTasks = () => {
                 onDelete={handleDeleteTask}
                 showAdminFeatures={true}
                 onSetRating={handleSetRating}
+                isTeamTask={isTeamSection}
               />
               <Button
                 size="sm"
@@ -271,15 +287,16 @@ const AssignedTasks = () => {
 
   const renderTasksByType = (taskGroups: any, type: string) => {
     const totalTasks = Object.values(taskGroups).reduce((sum: number, tasks: any) => sum + tasks.length, 0);
+    const isTeamType = type === 'team';
 
     if (totalTasks === 0) {
       return (
         <div className="text-center py-12">
           <div className="mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
-            {type === 'individual' ? (
-              <User className="h-12 w-12 text-muted-foreground" />
-            ) : (
+            {isTeamType ? (
               <Users className="h-12 w-12 text-muted-foreground" />
+            ) : (
+              <User className="h-12 w-12 text-muted-foreground" />
             )}
           </div>
           <h3 className="text-lg font-semibold font-montserrat mb-2">No {type} tasks assigned</h3>
@@ -292,10 +309,10 @@ const AssignedTasks = () => {
 
     return (
       <div className="space-y-8">
-        {renderTaskSection('Overdue Tasks', taskGroups.overdue, 'text-overdue-red')}
-        {renderTaskSection('In Progress', taskGroups.inProgress, 'text-progress-blue')}
-        {renderTaskSection('Pending', taskGroups.pending, 'text-foreground')}
-        {renderTaskSection('Completed', taskGroups.completed, 'text-completed-green')}
+        {renderTaskSection('Overdue Tasks', taskGroups.overdue, 'text-overdue-red', isTeamType)}
+        {renderTaskSection('In Progress', taskGroups.inProgress, 'text-progress-blue', isTeamType)}
+        {renderTaskSection('Pending', taskGroups.pending, 'text-foreground', isTeamType)}
+        {renderTaskSection('Completed', taskGroups.completed, 'text-completed-green', isTeamType)}
       </div>
     );
   };
@@ -319,7 +336,7 @@ const AssignedTasks = () => {
           </TabsTrigger>
           <TabsTrigger value="team" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
-            Team ({teamTasks.length})
+            Team ({groupedTeamTasks.length})
           </TabsTrigger>
         </TabsList>
 
