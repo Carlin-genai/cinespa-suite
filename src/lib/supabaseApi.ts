@@ -388,6 +388,8 @@ export class SupabaseApiService {
     const user = (await supabase.auth.getUser()).data.user;
     if (!user) throw new Error('User not authenticated');
 
+    console.log('[supabaseApi] Creating team for user:', user.id);
+
     // Get user's org_id from profile
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
@@ -395,19 +397,61 @@ export class SupabaseApiService {
       .eq('id', user.id)
       .single();
 
-    if (profileError) throw profileError;
+    if (profileError) {
+      console.error('[supabaseApi] Error fetching profile:', profileError);
+      throw profileError;
+    }
 
+    let orgId = profile.org_id;
+
+    // If user doesn't have an org_id, create a default organization
+    if (!orgId) {
+      console.log('[supabaseApi] User has no org_id, creating default organization');
+      const { data: org, error: orgError } = await supabase
+        .from('organizations')
+        .insert([{
+          name: 'Default Organization',
+          brand_color: '#B76E79'
+        }])
+        .select()
+        .single();
+
+      if (orgError) {
+        console.error('[supabaseApi] Error creating organization:', orgError);
+        throw orgError;
+      }
+
+      orgId = org.id;
+
+      // Update user's profile with the new org_id
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ org_id: orgId })
+        .eq('id', user.id);
+
+      if (updateError) {
+        console.error('[supabaseApi] Error updating profile org_id:', updateError);
+        throw updateError;
+      }
+    }
+
+    console.log('[supabaseApi] Creating team with org_id:', orgId);
     const { data, error } = await supabase
       .from('teams')
       .insert([{
         name: team.name,
         description: team.description,
-        org_id: profile.org_id
+        org_id: orgId
       }])
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('[supabaseApi] Error creating team:', error);
+      throw error;
+    }
+    
+    console.log('[supabaseApi] Team created successfully:', data);
     return data;
   }
 
@@ -436,6 +480,8 @@ export class SupabaseApiService {
     const user = (await supabase.auth.getUser()).data.user;
     if (!user) throw new Error('User not authenticated');
 
+    console.log('[supabaseApi] Adding team member:', { teamId, userId });
+
     // Get user's org_id from profile
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
@@ -443,7 +489,14 @@ export class SupabaseApiService {
       .eq('id', user.id)
       .single();
 
-    if (profileError) throw profileError;
+    if (profileError) {
+      console.error('[supabaseApi] Error fetching profile for team member:', profileError);
+      throw profileError;
+    }
+
+    if (!profile.org_id) {
+      throw new Error('User must have an organization to add team members');
+    }
 
     const { error } = await supabase
       .from('team_members')
@@ -453,7 +506,12 @@ export class SupabaseApiService {
         org_id: profile.org_id
       }]);
     
-    if (error) throw error;
+    if (error) {
+      console.error('[supabaseApi] Error adding team member:', error);
+      throw error;
+    }
+    
+    console.log('[supabaseApi] Team member added successfully');
   }
 
   async removeTeamMember(teamId: string, userId: string): Promise<void> {
