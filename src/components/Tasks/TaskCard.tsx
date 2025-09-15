@@ -3,9 +3,10 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, FileText, MoreVertical, Edit, Trash2, CheckCircle, AlertTriangle, Hourglass, Star } from 'lucide-react';
+import { Calendar, Clock, FileText, MoreVertical, Edit, Trash2, CheckCircle, AlertTriangle, Hourglass, Star, User } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { Task } from '@/types';
 
 interface TaskCardProps {
@@ -27,6 +28,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
 }) => {
   const { userRole } = useAuth();
   const [showDetails, setShowDetails] = useState(false);
+  const { data: assigneeProfile } = useUserProfile(task.assigned_to);
 
   const isAdmin = userRole?.role === 'admin';
   const canEdit = showActions && (isAdmin || task.assigned_to === userRole?.user_id);
@@ -163,6 +165,15 @@ const TaskCard: React.FC<TaskCardProps> = ({
         )}
 
         <div className="space-y-3">
+          {task.assigned_to && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <User className="h-4 w-4 text-rose-gold" />
+              <span>
+                Assigned to: {assigneeProfile?.full_name || assigneeProfile?.email || 'Loading...'}
+              </span>
+            </div>
+          )}
+
           {task.due_date && (
             <div className="flex items-center gap-2 text-sm">
               <Calendar className="h-4 w-4 text-rose-gold" />
