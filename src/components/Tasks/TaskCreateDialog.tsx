@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -38,8 +38,8 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Task type tab state - Force team task only
-  const [taskType, setTaskType] = useState<'individual' | 'team'>('team');
+  // Task type tabs: individual vs team
+  const [taskType, setTaskType] = useState<'individual' | 'team'>('individual');
 
   // Form state
   const [title, setTitle] = useState('');
@@ -47,8 +47,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'critical'>('medium');
   const [assignedTo, setAssignedTo] = useState('');
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
-  const [selectedTeam, setSelectedTeam] = useState('');
-  const [selectedTeamMembers, setSelectedTeamMembers] = useState<string[]>([]);
+  // Unified employee selection; no team selection needed
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState('');
   const [timeLimit, setTimeLimit] = useState('');
@@ -88,21 +87,9 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
     retry: 1,
   });
 
-  // Fetch teams
-  const { data: teams = [], isLoading: loadingTeams, error: teamsError } = useQuery({
-    queryKey: ['teams'],
-    queryFn: () => supabaseApi.getTeams(),
-    enabled: open, // Always enabled since we only do team tasks now
-    retry: 1,
-  });
-
-  // Fetch team members when a team is selected
-  const { data: teamMembers = [], isLoading: loadingTeamMembers } = useQuery({
-    queryKey: ['teamMembers', selectedTeam],
-    queryFn: () => supabaseApi.getTeamMembers(selectedTeam),
-    enabled: open && !!selectedTeam, // Remove taskType check since we only do team tasks
-    retry: 1,
-  });
+  // Team and members not required for this dialog anymore; using unified employee list
+  // const { data: teams = [], isLoading: loadingTeams, error: teamsError } = { data: [], isLoading: false, error: null } as any;
+  // const { data: teamMembers = [], isLoading: loadingTeamMembers } = { data: [], isLoading: false } as any;
 
   // Show loading or error state for employees
   React.useEffect(() => {
@@ -134,24 +121,25 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
       });
       return;
     }
-    
-    // Validation for team tasks only
-    if (!selectedTeam) {
-      toast({
-        title: "Team Required",
-        description: "Please select a team for this task.",
-        variant: "destructive"
-      });
-      return;
-    }
 
-    if (selectedTeamMembers.length === 0) {
-      toast({
-        title: "Team Members Required",
-        description: "Please select at least one team member.",
-        variant: "destructive"
-      });
-      return;
+    if (taskType === 'individual') {
+      if (!assignedTo) {
+        toast({
+          title: "Assignee Required",
+          description: "Please select an employee to assign this task.",
+          variant: "destructive"
+        });
+        return;
+      }
+    } else if (taskType === 'team') {
+      if (selectedEmployees.length === 0) {
+        toast({
+          title: "Team Members Required",
+          description: "Please select at least one employee for the team task.",
+          variant: "destructive"
+        });
+        return;
+      }
     }
 
     // Team selection optional for admins; if none selected, will self-assign
@@ -189,10 +177,13 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
       attachments: attachments.length > 0 ? attachments : undefined,
     };
 
-    // Handle team task assignment only
-    taskData.assignedEmployees = selectedTeamMembers;
-    taskData.assigned_to = selectedTeamMembers[0]; // Primary assignee
-    taskData.team_id = selectedTeam;
+    // Assignment based on tab
+    if (taskType === 'team') {
+      taskData.assignedEmployees = selectedEmployees;
+      taskData.assigned_to = selectedEmployees[0]; // Primary assignee
+    } else {
+      taskData.assigned_to = assignedTo || user.id;
+    }
 
     try {
       console.log('[TaskCreate] Creating task with data:', taskData);
@@ -221,14 +212,12 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
 
   const handleClose = () => {
     // Reset form
-    setTaskType('team');
+    setTaskType('individual');
     setTitle('');
     setDescription('');
     setPriority('medium');
-    setAssignedTo(isPersonalTask ? 'personal' : '');
+    setAssignedTo('');
     setSelectedEmployees([]);
-    setSelectedTeam('');
-    setSelectedTeamMembers([]);
     setSelectedDate(undefined);
     setSelectedTime('');
     setTimeLimit('');
@@ -247,7 +236,12 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   };
 
   // Check if form is valid
-  const isFormValid = Boolean(title.trim());
+  const isFormValid = Boolean(
+    title.trim() && (
+      (taskType === 'individual' && assignedTo) ||
+      (taskType === 'team' && selectedEmployees.length > 0)
+    )
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -257,6 +251,9 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
             <User className="h-5 w-5" />
             Create New Task
           </DialogTitle>
+          <DialogDescription>
+            Choose between Individual or Team task and assign employees.
+          </DialogDescription>
         </DialogHeader>
         
         {/* Task Type Tabs - Only show Team Task option */}
@@ -527,7 +524,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
             className="bg-rose-gold hover:bg-rose-gold-dark text-rose-gold-foreground"
           >
             <Save className="mr-2 h-4 w-4" />
-            Create Team Task
+            {taskType === 'team' ? 'Create Team Task' : 'Create Individual Task'}
           </Button>
         </div>
       </DialogContent>
