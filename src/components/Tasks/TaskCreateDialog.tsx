@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar as CalendarIcon, Save, X, Clock, User, Users, Plus, Trash2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Save, X, Clock, User, Users, Plus, Trash2, Building } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -16,7 +16,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import TaskImageUpload from './TaskImageUpload';
-import { useTeamsRealTimeSync } from '@/hooks/useRealTimeSync';
+import TeamCreateDialog from '../Teams/TeamCreateDialog';
+import { supabaseApi } from '@/lib/supabaseApi';
 
 import { Task } from '@/types';
 
@@ -39,8 +40,9 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Enable real-time sync for teams
-  useTeamsRealTimeSync();
+  // Team Creation Dialog State
+  const [showTeamCreateDialog, setShowTeamCreateDialog] = useState(false);
+  const [pendingTeamSelection, setPendingTeamSelection] = useState<string>('');
 
   // Task type tabs: individual vs team
   const [taskType, setTaskType] = useState<'individual' | 'team'>('individual');
@@ -63,6 +65,37 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   const [attachmentUrl, setAttachmentUrl] = useState('');
   const [notes, setNotes] = useState('');
   const [attachments, setAttachments] = useState<File[]>([]);
+
+  // Real-time sync for teams - Set up subscription
+  useEffect(() => {
+    if (!open) return;
+
+    console.log('[TaskCreateDialog] Setting up teams real-time subscription');
+    
+    const channel = supabase
+      .channel('teams-realtime')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'teams' 
+      }, (payload) => {
+        console.log('[TaskCreateDialog] Teams real-time update:', payload.eventType);
+        queryClient.invalidateQueries({ queryKey: ['teams'] });
+        
+        // Auto-select newly created team if we're waiting for it
+        if (payload.eventType === 'INSERT' && payload.new && pendingTeamSelection) {
+          console.log('[TaskCreateDialog] Auto-selecting newly created team:', payload.new.id);
+          setSelectedTeam(payload.new.id);
+          setPendingTeamSelection('');
+        }
+      })
+      .subscribe();
+
+    return () => {
+      console.log('[TaskCreateDialog] Cleaning up teams real-time subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [open, queryClient, pendingTeamSelection]);
 
   // Fetch employees from Supabase profiles
   const { data: employees = [], isLoading: loadingEmployees, error: employeeError } = useQuery({
@@ -343,6 +376,40 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
     queryClient.invalidateQueries({ queryKey: ['teams'] });
   };
 
+  // Handle team creation
+  const handleTeamCreate = async (teamData: { name: string; description?: string; memberIds: string[]; teamHeadId?: string }) => {
+    try {
+      console.log('[TaskCreateDialog] Creating team:', teamData);
+      
+      // Set pending team selection to auto-select after creation
+      setPendingTeamSelection('pending');
+      
+      // Create the team using supabaseApi
+      const result = await supabaseApi.createTeam(teamData);
+      console.log('[TaskCreateDialog] Team created successfully:', result);
+      
+      toast({
+        title: "Team Created Successfully",
+        description: `Team "${teamData.name}" has been created and will be auto-selected.`,
+        variant: "default",
+      });
+      
+      // Close team create dialog
+      setShowTeamCreateDialog(false);
+      
+      // The real-time subscription will auto-select the team
+      
+    } catch (error) {
+      console.error('[TaskCreateDialog] Error creating team:', error);
+      setPendingTeamSelection('');
+      toast({
+        title: "Error Creating Team",
+        description: error instanceof Error ? error.message : "Failed to create team. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Add member to additional members list
   const addAdditionalMember = (memberId: string) => {
     if (!additionalMembers.includes(memberId) && !teamMembers.includes(memberId)) {
@@ -528,23 +595,46 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
             <TabsContent value="team" className="space-y-4 mt-0">
               <div>
                 <Label htmlFor="team-select">Select Team *</Label>
-                <Select value={selectedTeam} onValueChange={setSelectedTeam}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select a team" />
-                  </SelectTrigger>
-                  <SelectContent className="z-50 bg-background border shadow-md">
-                    {teams.map((team: any) => (
-                      <SelectItem key={team.id} value={team.id}>
-                        <div className="flex flex-col">
-                          <span className="font-medium">{team.name}</span>
-                          {team.description && (
-                            <span className="text-xs text-muted-foreground">{team.description}</span>
-                          )}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2 mt-1">
+                  <div className="flex-1">
+                    <Select value={selectedTeam} onValueChange={setSelectedTeam}>
+                      <SelectTrigger>
+                        <SelectValue placeholder={pendingTeamSelection ? "Creating team..." : "Select a team"} />
+                      </SelectTrigger>
+                      <SelectContent className="z-50 bg-background border shadow-md">
+                        {teams.length === 0 ? (
+                          <SelectItem value="no-teams" disabled>
+                            No teams available
+                          </SelectItem>
+                        ) : (
+                          teams.map((team: any) => (
+                            <SelectItem key={team.id} value={team.id}>
+                              <div className="flex flex-col">
+                                <span className="font-medium">{team.name}</span>
+                                {team.description && (
+                                  <span className="text-xs text-muted-foreground">{team.description}</span>
+                                )}
+                              </div>
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowTeamCreateDialog(true)}
+                    className="shrink-0 px-3"
+                  >
+                    <Building className="h-4 w-4 mr-1" />
+                    Create Team
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Create a new team or select an existing one. New teams will be auto-selected.
+                </p>
               </div>
               
               {selectedTeam && (
@@ -758,6 +848,13 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
           </Button>
         </div>
       </DialogContent>
+      
+      {/* Team Creation Dialog */}
+      <TeamCreateDialog
+        open={showTeamCreateDialog}
+        onOpenChange={setShowTeamCreateDialog}
+        onSave={handleTeamCreate}
+      />
     </Dialog>
   );
 };
