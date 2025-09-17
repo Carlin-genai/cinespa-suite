@@ -23,45 +23,57 @@ import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+// Create QueryClient with proper configuration
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes (was cacheTime)
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider>
-      <AuthProvider>
-        <NotificationManager />
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/auth" element={<Auth />} />
-              <Route 
-                path="/" 
-                element={
-                  <ProtectedRoute>
-                    <Layout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<Dashboard />} />
-                <Route path="my-tasks" element={<MyTasks />} />
-                <Route path="team-tasks" element={<TeamTasks />} />
-                <Route path="assigned-tasks" element={<AssignedTasks />} />
-                <Route path="self-tasks" element={<SelfTasks />} />
-                <Route path="daily-journal" element={<DailyJournal />} />
-                <Route path="analytics" element={<Analytics />} />
-                <Route path="calendar" element={<Calendar />} />
-                <Route path="notifications" element={<Notifications />} />
-                <Route path="settings" element={<Settings />} />
-                <Route path="*" element={<NotFound />} />
-              </Route>
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
-);
+const App: React.FC = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <AuthProvider>
+          <NotificationManager />
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/auth" element={<Auth />} />
+                <Route 
+                  path="/" 
+                  element={
+                    <ProtectedRoute>
+                      <Layout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route index element={<Dashboard />} />
+                  <Route path="my-tasks" element={<MyTasks />} />
+                  <Route path="team-tasks" element={<TeamTasks />} />
+                  <Route path="assigned-tasks" element={<AssignedTasks />} />
+                  <Route path="self-tasks" element={<SelfTasks />} />
+                  <Route path="daily-journal" element={<DailyJournal />} />
+                  <Route path="analytics" element={<Analytics />} />
+                  <Route path="calendar" element={<Calendar />} />
+                  <Route path="notifications" element={<Notifications />} />
+                  <Route path="settings" element={<Settings />} />
+                  <Route path="*" element={<NotFound />} />
+                </Route>
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
