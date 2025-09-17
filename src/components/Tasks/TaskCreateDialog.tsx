@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar as CalendarIcon, Save, X, Clock, User, Users } from 'lucide-react';
+import { Calendar as CalendarIcon, Save, X, Clock, User, Users, Plus, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -54,6 +54,8 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   const [selectedTeam, setSelectedTeam] = useState('');
   const [teamMembers, setTeamMembers] = useState<string[]>([]);
   const [teamHead, setTeamHead] = useState('');
+  const [additionalMembers, setAdditionalMembers] = useState<string[]>([]);
+  const [currentUserRole, setCurrentUserRole] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState('');
   const [timeLimit, setTimeLimit] = useState('');
@@ -91,6 +93,28 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
     },
     enabled: open,
     retry: 1,
+  });
+
+  // Fetch current user role
+  const { data: userRole } = useQuery({
+    queryKey: ['user-role', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching user role:', error);
+        return 'employee';
+      }
+      
+      return data?.role || 'employee';
+    },
+    enabled: !!user?.id && open,
   });
 
   // Fetch teams - enabled whenever dialog is open for better UX
@@ -137,12 +161,21 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
         setTeamMembers(members);
         setTeamHead(head);
         setSelectedEmployees(members);
+        setAdditionalMembers([]); // Reset additional members when team changes
       }
     } else {
       setTeamMembers([]);
       setTeamHead('');
+      setAdditionalMembers([]);
     }
   }, [selectedTeam, teams]);
+
+  // Update current user role when userRole data changes
+  React.useEffect(() => {
+    if (userRole) {
+      setCurrentUserRole(userRole);
+    }
+  }, [userRole]);
 
   // Show loading or error state for employees
   React.useEffect(() => {
@@ -199,6 +232,20 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
     if (showEmployeeSelection && selectedEmployees.length === 0 && taskType === 'individual') {
       console.warn('[TaskCreate] No employees selected; will self-assign to current user.');
     }
+
+    // Save additional team members if any were added
+    if (taskType === 'team' && additionalMembers.length > 0) {
+      try {
+        await saveAdditionalMembers();
+      } catch (error) {
+        console.error('Error saving additional members:', error);
+        toast({
+          title: "Warning",
+          description: "Task created but some team members could not be added.",
+          variant: "destructive"
+        });
+      }
+    }
     
     // Default due date if not selected: tomorrow at 5PM
     let dueDateTime = selectedDate;
@@ -232,8 +279,9 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
 
     // Assignment based on tab
     if (taskType === 'team') {
-      taskData.assignedEmployees = teamMembers;
-      taskData.assigned_to = teamMembers[0]; // Primary assignee
+      const allTeamMembers = [...teamMembers, ...additionalMembers];
+      taskData.assignedEmployees = allTeamMembers;
+      taskData.assigned_to = teamHead || teamMembers[0]; // Team head or first member as primary assignee
       taskData.team_id = selectedTeam;
     } else {
       taskData.assigned_to = assignedTo || user.id;
@@ -264,6 +312,55 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
     }
   };
 
+  // Save additional members to team_members table
+  const saveAdditionalMembers = async () => {
+    if (!selectedTeam || additionalMembers.length === 0) return;
+
+    // Get current user's org_id
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('org_id')
+      .eq('id', user?.id)
+      .single();
+
+    const membersToAdd = additionalMembers.map(memberId => ({
+      team_id: selectedTeam,
+      user_id: memberId,
+      role: 'member' as const,
+      org_id: profile?.org_id
+    }));
+
+    const { error } = await supabase
+      .from('team_members')
+      .insert(membersToAdd);
+
+    if (error) {
+      console.error('Error adding team members:', error);
+      throw error;
+    }
+
+    // Invalidate teams query to refresh data
+    queryClient.invalidateQueries({ queryKey: ['teams'] });
+  };
+
+  // Add member to additional members list
+  const addAdditionalMember = (memberId: string) => {
+    if (!additionalMembers.includes(memberId) && !teamMembers.includes(memberId)) {
+      setAdditionalMembers(prev => [...prev, memberId]);
+    }
+  };
+
+  // Remove member from additional members list
+  const removeAdditionalMember = (memberId: string) => {
+    setAdditionalMembers(prev => prev.filter(id => id !== memberId));
+  };
+
+  // Check if current user can add members (admin or team head)
+  const canAddMembers = () => {
+    return currentUserRole === 'admin' || 
+           (selectedTeam && teamHead === user?.id);
+  };
+
   const handleClose = () => {
     // Reset form
     setTaskType('individual');
@@ -275,6 +372,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
     setSelectedTeam('');
     setTeamMembers([]);
     setTeamHead('');
+    setAdditionalMembers([]);
     setSelectedDate(undefined);
     setSelectedTime('');
     setTimeLimit('');
@@ -450,7 +548,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
               </div>
               
               {selectedTeam && (
-                <div className="space-y-3 p-4 border rounded-lg bg-muted/50">
+                <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
                   <div>
                     <Label className="text-sm font-medium">Team Head</Label>
                     <div className="mt-1 p-2 bg-background rounded border">
@@ -465,16 +563,50 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
                   </div>
                   
                   <div>
-                    <Label className="text-sm font-medium">Team Members ({teamMembers.length})</Label>
+                    <Label className="text-sm font-medium">
+                      Team Members ({teamMembers.length + additionalMembers.length})
+                    </Label>
                     <div className="mt-1 p-2 bg-background rounded border max-h-32 overflow-y-auto">
-                      {teamMembers.length > 0 ? (
+                      {teamMembers.length > 0 || additionalMembers.length > 0 ? (
                         <div className="space-y-1">
+                          {/* Existing team members */}
                           {teamMembers.map((memberId) => {
                             const member = employees.find(emp => emp.id === memberId);
                             return (
-                              <div key={memberId} className="text-sm">
-                                <span className="font-medium">{member?.name || 'Unknown'}</span>
-                                <span className="text-muted-foreground ml-2">({member?.email})</span>
+                              <div key={memberId} className="text-sm flex items-center justify-between">
+                                <div>
+                                  <span className="font-medium">{member?.name || 'Unknown'}</span>
+                                  <span className="text-muted-foreground ml-2">({member?.email})</span>
+                                </div>
+                                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                  Existing
+                                </span>
+                              </div>
+                            );
+                          })}
+                          
+                          {/* Additional members */}
+                          {additionalMembers.map((memberId) => {
+                            const member = employees.find(emp => emp.id === memberId);
+                            return (
+                              <div key={memberId} className="text-sm flex items-center justify-between">
+                                <div>
+                                  <span className="font-medium">{member?.name || 'Unknown'}</span>
+                                  <span className="text-muted-foreground ml-2">({member?.email})</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                                    New
+                                  </span>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removeAdditionalMember(memberId)}
+                                    className="h-6 w-6 p-0 text-red-600 hover:text-red-800"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
                               </div>
                             );
                           })}
@@ -484,6 +616,51 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
                       )}
                     </div>
                   </div>
+
+                  {/* Add new members section - only for admins and team heads */}
+                  {canAddMembers() && (
+                    <div>
+                      <Label className="text-sm font-medium">Add New Members</Label>
+                      <div className="mt-2">
+                        <Select 
+                          value="" 
+                          onValueChange={(value) => {
+                            if (value) addAdditionalMember(value);
+                          }}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select employee to add..." />
+                          </SelectTrigger>
+                          <SelectContent className="z-50 bg-background border shadow-md">
+                            {employees
+                              .filter(emp => 
+                                !teamMembers.includes(emp.id) && 
+                                !additionalMembers.includes(emp.id)
+                              )
+                              .map((emp) => (
+                                <SelectItem key={emp.id} value={emp.id}>
+                                  <div className="flex items-center gap-2">
+                                    <Plus className="h-3 w-3" />
+                                    <div>
+                                      <span className="font-medium">{emp.name}</span>
+                                      <span className="text-muted-foreground ml-2 text-xs">
+                                        {emp.email}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {currentUserRole === 'admin' 
+                            ? "As an admin, you can add any employee to this team." 
+                            : "As team head, you can add new members to your team."
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </TabsContent>
