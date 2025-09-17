@@ -25,6 +25,7 @@ export interface Task {
   team_id?: string;
   org_id?: string;
   completed_at?: string;
+  task_type?: 'self' | 'team';
 }
 
 export interface User {

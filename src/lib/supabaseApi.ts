@@ -29,6 +29,21 @@ function mapDbTaskToTask(row: any): Task {
     notes: row?.notes ?? undefined,
     created_at: row?.created_at ?? '',
     updated_at: row?.updated_at ?? '',
+    admin_rating: row?.admin_rating ?? undefined,
+    admin_comment: row?.admin_comment ?? undefined,
+    credit_points: row?.credit_points ?? 0,
+    attachment_url: row?.attachment_url ?? undefined,
+    attachments: row?.attachments ?? [],
+    completion_attachments: row?.completion_attachments ?? [],
+    actual_hours: row?.actual_hours ?? undefined,
+    estimated_hours: row?.estimated_hours ?? undefined,
+    is_self_task: row?.is_self_task ?? false,
+    created_by: row?.created_by ?? undefined,
+    team_id: row?.team_id ?? undefined,
+    org_id: row?.org_id ?? undefined,
+    completed_at: row?.completed_at ?? undefined,
+    time_limit: row?.time_limit ?? undefined,
+    task_type: row?.task_type ?? 'team'
   };
 }
 
@@ -45,7 +60,7 @@ export class SupabaseApiService {
     return tasks;
   }
 
-  // Get self tasks (tasks assigned by user to themselves)
+  // Get self tasks (tasks with task_type = 'self')
   async getSelfTasks(): Promise<Task[]> {
     const user = (await supabase.auth.getUser()).data.user;
     if (!user) throw new Error('User not authenticated');
@@ -53,7 +68,7 @@ export class SupabaseApiService {
     const { data, error } = await supabase
       .from('tasks')
       .select('*')
-      .or(`and(assigned_to.eq.${user.id},assigned_by.eq.${user.id}),and(assigned_to.eq.${user.id},is_self_task.eq.true)`)
+      .eq('task_type', 'self')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -141,6 +156,7 @@ export class SupabaseApiService {
           assigned_to: employeeId,
           assigned_by: assignedBy,
           is_self_task: false,
+          task_type: 'team'
         };
         
         console.log('[SupabaseApi] Inserting team task:', taskData);
@@ -171,6 +187,7 @@ export class SupabaseApiService {
       assigned_to: assignedTo,
       assigned_by: assignedBy,
       is_self_task: assignedTo === assignedBy,
+      task_type: (assignedTo === assignedBy) ? 'self' : 'team'
     };
     
     console.log('[SupabaseApi] Inserting single task:', taskData);

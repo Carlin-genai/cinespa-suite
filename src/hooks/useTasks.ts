@@ -37,7 +37,7 @@ export const useTasks = (kind: TaskKind, params: TaskParams = {}) => {
       
       case 'self':
         if (!user?.id) throw new Error('User not authenticated');
-        query = query.eq('assigned_to', user.id).eq('assigned_by', user.id);
+        query = query.eq('task_type', 'self');
         break;
       
       case 'assigned':

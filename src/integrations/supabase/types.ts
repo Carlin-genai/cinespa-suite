@@ -406,6 +406,7 @@ export type Database = {
           org_id: string | null
           priority: string | null
           status: string | null
+          task_type: string | null
           team_id: string | null
           time_limit: number | null
           title: string
@@ -432,6 +433,7 @@ export type Database = {
           org_id?: string | null
           priority?: string | null
           status?: string | null
+          task_type?: string | null
           team_id?: string | null
           time_limit?: number | null
           title: string
@@ -458,6 +460,7 @@ export type Database = {
           org_id?: string | null
           priority?: string | null
           status?: string | null
+          task_type?: string | null
           team_id?: string | null
           time_limit?: number | null
           title?: string
