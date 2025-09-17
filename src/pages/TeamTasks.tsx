@@ -187,10 +187,10 @@ const TeamTasks = () => {
       });
       setTeamCreateDialogOpen(false);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: 'Error',
-        description: 'Failed to create team',
+        description: error?.message || 'Failed to create team',
         variant: 'destructive',
       });
       console.error('Create team error:', error);

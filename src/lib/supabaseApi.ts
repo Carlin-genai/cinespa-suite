@@ -511,7 +511,7 @@ export class SupabaseApiService {
       const { error: membersError } = await supabase.from('team_members').insert(memberInserts);
       if (membersError) {
         console.error('[createTeam] Team members addition error:', membersError);
-        // Don't fail the whole operation if members insert fails; the team exists
+        throw membersError;
       }
     }
 

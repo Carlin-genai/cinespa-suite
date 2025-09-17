@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTeamsRealTimeSync, useUsersRealTimeSync } from '@/hooks/useRealTimeSync';
 import { Check, ChevronDown, X, Crown } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 interface TeamCreateDialogProps {
@@ -58,21 +59,40 @@ const TeamCreateDialog: React.FC<TeamCreateDialogProps> = ({
 
     const handleSave = () => {
       console.log('[TeamCreateDialog] Attempting to save team:', { name, description, memberIds: selectedMembers, teamHeadId: teamHead });
-      
-      if (!name.trim()) {
-        toast({
-          title: "Error",
-          description: "Team name is required",
-          variant: "destructive",
-        });
+
+      const trimmedName = name.trim();
+      const trimmedDesc = description.trim();
+
+      if (!trimmedName) {
+        toast({ title: "Error", description: "Team name is required", variant: "destructive" });
+        return;
+      }
+
+      if (!trimmedDesc) {
+        toast({ title: "Error", description: "Description is required", variant: "destructive" });
+        return;
+      }
+
+      if (!teamHead) {
+        toast({ title: "Error", description: "Please select a Team Head", variant: "destructive" });
+        return;
+      }
+
+      if (selectedMembers.length === 0) {
+        toast({ title: "Error", description: "Select at least one team member", variant: "destructive" });
         return;
       }
 
       try {
+        // Ensure head is included in members
+        const members = selectedMembers.includes(teamHead)
+          ? selectedMembers
+          : [...selectedMembers, teamHead];
+
         onSave({
-          name: name.trim(),
-          description: description.trim() || undefined,
-          memberIds: selectedMembers,
+          name: trimmedName,
+          description: trimmedDesc,
+          memberIds: members,
           teamHeadId: teamHead,
         });
 
@@ -86,7 +106,7 @@ const TeamCreateDialog: React.FC<TeamCreateDialogProps> = ({
         console.error('[TeamCreateDialog] Error in handleSave:', error);
         toast({
           title: "Error",
-          description: "Failed to create team. Please try again.",
+          description: error instanceof Error ? error.message : "Failed to create team. Please try again.",
           variant: "destructive",
         });
       }
@@ -119,7 +139,7 @@ const TeamCreateDialog: React.FC<TeamCreateDialogProps> = ({
           <DialogTitle className="font-montserrat">Create New Team</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <motion.div initial={{ opacity: 0, y: 10, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.98 }} transition={{ duration: 0.2 }} className="space-y-6">
           {/* Team Details */}
           <div className="space-y-4">
             <div>
@@ -132,20 +152,22 @@ const TeamCreateDialog: React.FC<TeamCreateDialogProps> = ({
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Enter team name"
                 className="mt-1"
+                required
               />
             </div>
 
             <div>
               <Label htmlFor="team-description" className="font-opensans font-medium">
-                Description
+                Description *
               </Label>
               <Textarea
                 id="team-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Enter team description (optional)"
+                placeholder="Enter team description"
                 className="mt-1"
                 rows={3}
+                required
               />
             </div>
           </div>
@@ -154,7 +176,7 @@ const TeamCreateDialog: React.FC<TeamCreateDialogProps> = ({
           <div className="space-y-2">
             <Label className="font-opensans font-medium flex items-center gap-2">
               <Crown className="h-4 w-4 text-amber-500" />
-              Team Head (Optional)
+              Team Head (Required)
             </Label>
             <Select value={teamHead || 'none'} onValueChange={(v) => {
               const newHeadId = v === 'none' ? '' : v;
@@ -304,7 +326,7 @@ const TeamCreateDialog: React.FC<TeamCreateDialogProps> = ({
               </PopoverContent>
             </Popover>
           </div>
-        </div>
+        </motion.div>
 
         <DialogFooter>
           <Button variant="outline" onClick={handleCancel}>
