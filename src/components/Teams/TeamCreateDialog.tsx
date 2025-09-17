@@ -133,7 +133,13 @@ const TeamCreateDialog: React.FC<TeamCreateDialogProps> = ({
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+    >
+      <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-montserrat">Create New Team</DialogTitle>
@@ -341,6 +347,7 @@ const TeamCreateDialog: React.FC<TeamCreateDialogProps> = ({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    </motion.div>
   );
 };
 

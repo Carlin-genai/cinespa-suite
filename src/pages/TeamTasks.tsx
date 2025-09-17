@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Users, Bell, Plus, Settings, User } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import TaskCard from '@/components/Tasks/TaskCard';
 import TaskEditDialog from '@/components/Tasks/TaskEditDialog';
 import ReminderDialog from '@/components/Tasks/ReminderDialog';
@@ -661,13 +662,19 @@ const TeamTasks = () => {
                 <Settings className="h-4 w-4" />
                 <span>{teams.length} total teams</span>
               </div>
-              <Button 
-                onClick={() => setTeamCreateDialogOpen(true)}
-                className="bg-rose-gold hover:bg-rose-gold-dark text-white"
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ duration: 0.1 }}
               >
-                <Plus className="h-4 w-4 mr-2" />
-                Create Team
-              </Button>
+                <Button 
+                  onClick={() => setTeamCreateDialogOpen(true)}
+                  className="bg-rose-gold hover:bg-rose-gold-dark text-white"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Team
+                </Button>
+              </motion.div>
             </div>
 
             {teams.length === 0 ? (
@@ -679,13 +686,19 @@ const TeamTasks = () => {
                 <p className="text-muted-foreground font-opensans mb-4">
                   Create your first team to organize and assign tasks.
                 </p>
-                <Button 
-                  onClick={() => setTeamCreateDialogOpen(true)}
-                  className="bg-rose-gold hover:bg-rose-gold-dark text-white"
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ duration: 0.1 }}
                 >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create First Team
-                </Button>
+                  <Button 
+                    onClick={() => setTeamCreateDialogOpen(true)}
+                    className="bg-rose-gold hover:bg-rose-gold-dark text-white"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create First Team
+                  </Button>
+                </motion.div>
               </div>
             ) : showSkeletonLoading ? (
               <div>
@@ -693,16 +706,28 @@ const TeamTasks = () => {
                 <TeamGridSkeleton count={4} />
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {teams.map((team) => (
-                  <TeamCard
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, staggerChildren: 0.1 }}
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+              >
+                {teams.map((team, index) => (
+                  <motion.div
                     key={team.id}
-                    team={team}
-                    onEdit={handleEditTeam}
-                    onDelete={handleDeleteTeam}
-                  />
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                    whileHover={{ y: -5 }}
+                  >
+                    <TeamCard
+                      team={team}
+                      onEdit={handleEditTeam}
+                      onDelete={handleDeleteTeam}
+                    />
+                  </motion.div>
                 ))}
-              </div>
+              </motion.div>
             )}
           </TabsContent>
         )}
@@ -734,11 +759,15 @@ const TeamTasks = () => {
         showEmployeeSelection={true}
       />
 
-      <TeamCreateDialog
-        open={teamCreateDialogOpen}
-        onOpenChange={setTeamCreateDialogOpen}
-        onSave={handleCreateTeam}
-      />
+      <AnimatePresence>
+        {teamCreateDialogOpen && (
+          <TeamCreateDialog
+            open={teamCreateDialogOpen}
+            onOpenChange={setTeamCreateDialogOpen}
+            onSave={handleCreateTeam}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
