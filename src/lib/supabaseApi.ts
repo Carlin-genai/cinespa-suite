@@ -422,16 +422,16 @@ export class SupabaseApiService {
     if (!orgId) {
       console.log('[createTeam] Creating organization for user:', user.id);
       const orgName = (currentProfile.full_name || currentProfile.email || 'My') + ' Organization';
-      const { data: org, error: orgErr } = await supabase
+      // Avoid SELECT on insert to bypass SELECT policy race; generate id client-side
+      const newOrgId = (globalThis.crypto?.randomUUID?.() || `${user.id}-${Date.now()}`);
+      const { error: orgErr } = await supabase
         .from('organizations')
-        .insert([{ name: orgName }])
-        .select('id')
-        .single();
+        .insert([{ id: newOrgId, name: orgName }]);
       if (orgErr) {
         console.error('[createTeam] Organization creation error:', orgErr);
         throw orgErr;
       }
-      orgId = org.id;
+      orgId = newOrgId;
 
       // Link profile to the newly created organization
       const { error: upErr } = await supabase
