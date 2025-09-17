@@ -55,7 +55,7 @@ const TeamTasks = () => {
     mutationFn: ({ id, task }: { id: string; task: Partial<Task> }) => 
       apiService.updateTask(id, task),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['team-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks-team'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       toast({
         title: "Success",

@@ -192,27 +192,46 @@ export class SupabaseApiService {
 
   async updateTask(id: string, task: Partial<Task>): Promise<Task> {
     console.log('[SupabaseApi] Updating task:', id, task);
-    
+
+    // Build an updates object without undefined values to avoid nulling columns
+    const updates: Record<string, any> = {};
+    const maybeSet = (key: string, value: any) => {
+      if (value !== undefined) updates[key] = value;
+    };
+
+    maybeSet('title', task.title);
+    maybeSet('description', task.description);
+    maybeSet('status', task.status);
+    maybeSet('priority', task.priority);
+    const t = task as any;
+    maybeSet('assigned_to', task.assigned_to);
+    maybeSet('assigned_by', t.assigned_by);
+    maybeSet('due_date', task.due_date as any);
+    maybeSet('notes', task.notes as any);
+    // Admin/rating/points related fields used elsewhere in the app
+    maybeSet('admin_rating', t.admin_rating);
+    maybeSet('admin_comment', t.admin_comment);
+    maybeSet('credit_points', t.credit_points);
+    // Misc optional columns that might be present
+    maybeSet('attachments', t.attachments);
+    maybeSet('attachment_url', t.attachment_url);
+    maybeSet('time_limit', t.time_limit);
+    maybeSet('completed_at', t.completed_at);
+    maybeSet('team_id', t.team_id);
+
+    updates.updated_at = new Date().toISOString();
+
     const { data, error } = await supabase
       .from('tasks')
-      .update({
-        title: task.title,
-        description: task.description,
-        status: task.status,
-        priority: task.priority,
-        assigned_to: task.assigned_to,
-        due_date: task.due_date,
-        notes: task.notes,
-        updated_at: new Date().toISOString()
-      })
+      .update(updates)
       .eq('id', id)
       .select();
-    
+
     if (error) {
       console.error('[SupabaseApi] Update task error:', error);
       throw error;
     }
-    
+
     console.log('[SupabaseApi] Task updated successfully:', data);
     const updatedTask = data && data.length > 0 ? data[0] : null;
     if (!updatedTask) {

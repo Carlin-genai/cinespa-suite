@@ -41,7 +41,7 @@ const MyTasks = () => {
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Task> }) => 
       apiService.updateTask(id, updates),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['my-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks-my'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       toast({
         title: "Success",
@@ -62,7 +62,7 @@ const MyTasks = () => {
   const deleteTaskMutation = useMutation({
     mutationFn: (taskId: string) => apiService.deleteTask(taskId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['my-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks-my'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       toast({
         title: "Success",
