@@ -41,7 +41,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <CardTitle 
-                className="text-lg font-normal text-rose-gold-contrast line-clamp-2 cursor-pointer hover:text-rose-gold transition-colors"
+                className="text-base font-normal text-rose-gold-contrast line-clamp-2 cursor-pointer hover:text-rose-gold transition-colors"
                 onClick={() => setIsModalOpen(true)}
               >
                 {task.title}

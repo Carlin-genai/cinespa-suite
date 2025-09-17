@@ -11,11 +11,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar as CalendarIcon, Save, X, Clock, User, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import TaskImageUpload from './TaskImageUpload';
+import { useTeamsRealTimeSync } from '@/hooks/useRealTimeSync';
 
 import { Task } from '@/types';
 
@@ -36,6 +37,10 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
 }) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  // Enable real-time sync for teams
+  useTeamsRealTimeSync();
 
   // Task type tabs: individual vs team
   const [taskType, setTaskType] = useState<'individual' | 'team'>('individual');
@@ -88,7 +93,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
     retry: 1,
   });
 
-  // Fetch teams
+  // Fetch teams - enabled whenever dialog is open for better UX
   const { data: teams = [] } = useQuery({
     queryKey: ['teams'],
     queryFn: async () => {
@@ -118,7 +123,8 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
         throw error;
       }
     },
-    enabled: open && taskType === 'team',
+    enabled: open, // Fetch teams when dialog opens, regardless of tab
+    staleTime: 0, // Always refetch to get latest teams
   });
 
   // Update team members when team is selected
