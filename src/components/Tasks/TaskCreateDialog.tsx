@@ -157,27 +157,13 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
       try {
         const { data, error } = await supabase
           .from('teams')
-          .select(`
-            id, 
-            name, 
-            description,
-            team_members (
-              user_id,
-              role,
-              profiles (
-                id,
-                full_name,
-                email
-              )
-            )
-          `)
+          .select('id, name, description, org_id')
           .order('name');
-        
         if (error) throw error;
         return data || [];
       } catch (error) {
-        console.error('Teams fetch error:', error);
-        throw error;
+        console.error('[TaskCreateDialog] Teams fetch error:', error);
+        return [];
       }
     },
     enabled: open, // Fetch teams when dialog opens, regardless of tab
@@ -186,22 +172,33 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
 
   // Update team members when team is selected
   React.useEffect(() => {
-    if (selectedTeam && teams.length > 0) {
-      const team = teams.find(t => t.id === selectedTeam);
-      if (team && team.team_members) {
-        const members = team.team_members.map((tm: any) => tm.user_id);
-        const head = team.team_members.find((tm: any) => tm.role === 'head')?.user_id || '';
+    const loadTeamMembers = async () => {
+      if (!selectedTeam) {
+        setTeamMembers([]);
+        setTeamHead('');
+        setAdditionalMembers([]);
+        return;
+      }
+      try {
+        const { data, error } = await supabase
+          .from('team_members')
+          .select('user_id, role')
+          .eq('team_id', selectedTeam);
+        if (error) throw error;
+        const members = (data || []).map((tm: any) => tm.user_id);
+        const head = (data || []).find((tm: any) => tm.role === 'head')?.user_id || '';
         setTeamMembers(members);
         setTeamHead(head);
         setSelectedEmployees(members);
-        setAdditionalMembers([]); // Reset additional members when team changes
+        setAdditionalMembers([]);
+      } catch (err) {
+        console.error('[TaskCreateDialog] Error loading team members:', err);
+        setTeamMembers([]);
+        setTeamHead('');
       }
-    } else {
-      setTeamMembers([]);
-      setTeamHead('');
-      setAdditionalMembers([]);
-    }
-  }, [selectedTeam, teams]);
+    };
+    loadTeamMembers();
+  }, [selectedTeam]);
 
   // Update current user role when userRole data changes
   React.useEffect(() => {
@@ -380,32 +377,41 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   const handleTeamCreate = async (teamData: { name: string; description?: string; memberIds: string[]; teamHeadId?: string }) => {
     try {
       console.log('[TaskCreateDialog] Creating team:', teamData);
-      
-      // Set pending team selection to auto-select after creation
+      // Show creating state
       setPendingTeamSelection('pending');
-      
+
       // Create the team using supabaseApi
       const result = await supabaseApi.createTeam(teamData);
       console.log('[TaskCreateDialog] Team created successfully:', result);
-      
-      toast({
-        title: "Team Created Successfully",
-        description: `Team "${teamData.name}" has been created and will be auto-selected.`,
-        variant: "default",
+
+      // Optimistically update teams cache and select it
+      queryClient.setQueryData<any[]>(['teams'], (old) => {
+        const prev = Array.isArray(old) ? old : [];
+        // Avoid duplicates
+        if (prev.some(t => t.id === result.id)) return prev;
+        return [result, ...prev];
       });
-      
+      setSelectedTeam(result.id);
+      setPendingTeamSelection('');
+
+      // Also trigger a refetch for safety
+      queryClient.invalidateQueries({ queryKey: ['teams'] });
+
+      toast({
+        title: 'Team Created Successfully',
+        description: `Team "${teamData.name}" has been created and auto-selected.`,
+        variant: 'default',
+      });
+
       // Close team create dialog
       setShowTeamCreateDialog(false);
-      
-      // The real-time subscription will auto-select the team
-      
     } catch (error) {
       console.error('[TaskCreateDialog] Error creating team:', error);
       setPendingTeamSelection('');
       toast({
-        title: "Error Creating Team",
-        description: error instanceof Error ? error.message : "Failed to create team. Please try again.",
-        variant: "destructive"
+        title: 'Error Creating Team',
+        description: error instanceof Error ? error.message : 'Failed to create team. Please try again.',
+        variant: 'destructive',
       });
     }
   };
