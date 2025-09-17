@@ -15,9 +15,6 @@ const rootEl = document.getElementById('root');
 if (!rootEl) {
   console.error('[Boot] Root element #root not found in index.html');
 } else {
-  createRoot(rootEl).render(
-    <React.StrictMode>
-      <App />
-    </React.StrictMode>
-  );
+  const root = createRoot(rootEl);
+  root.render(<App />);
 }
