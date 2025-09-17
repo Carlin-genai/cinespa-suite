@@ -116,11 +116,23 @@ const TeamTasks = () => {
 
   // Create task mutation
   const createTaskMutation = useMutation({
-    mutationFn: async (taskData: Partial<Task> & { assignedEmployees?: string[]; attachments?: File[] }) => {
-      const { assignedEmployees, attachments, ...task } = taskData;
+    mutationFn: async (taskData: Partial<Task> & { assignedEmployees?: string[]; attachments?: File[]; team_id?: string }) => {
+      const { assignedEmployees, attachments, team_id, ...task } = taskData;
       const defaultDue = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
       
-      if (assignedEmployees && assignedEmployees.length > 0) {
+      if (team_id) {
+        // Create a single team task
+        return apiService.createTask({
+          status: task.status || 'pending',
+          priority: task.priority || 'medium',
+          due_date: task.due_date || defaultDue,
+          ...task,
+          team_id,
+          assigned_to: assignedEmployees?.[0] || user?.id,
+          assigned_by: user?.id,
+          attachments,
+        });
+      } else if (assignedEmployees && assignedEmployees.length > 0) {
         // Create individual tasks for each assigned employee
         const taskPromises = assignedEmployees.map(employeeId => 
           apiService.createTask({
@@ -148,20 +160,25 @@ const TeamTasks = () => {
       }
     },
     onSuccess: (result) => {
+      const isTeamTask = !!result && !Array.isArray(result) && (result as any).team_id;
       const taskCount = Array.isArray(result) ? result.length : 1;
+      const taskType = isTeamTask ? 'team' : taskCount > 1 ? 'individual' : 'individual';
+      
       queryClient.invalidateQueries({ queryKey: ['team-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['my-tasks'] });
       toast({
         title: "Success",
-        description: `Team task${taskCount > 1 ? 's' : ''} created successfully (${taskCount} ${taskCount > 1 ? 'employees' : 'employee'} assigned)`,
+        description: isTeamTask 
+          ? "Team task created successfully" 
+          : `${taskType} task${taskCount > 1 ? 's' : ''} created successfully${taskCount > 1 ? ` (${taskCount} employees assigned)` : ''}`,
       });
       setCreateDialogOpen(false);
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to create team task",
+        description: "Failed to create task",
         variant: "destructive",
       });
       console.error('Create task error:', error);
@@ -268,7 +285,7 @@ const TeamTasks = () => {
     });
   };
 
-  const handleCreateTask = (taskData: Partial<Task> & { assignedEmployees?: string[] }) => {
+  const handleCreateTask = (taskData: Partial<Task> & { assignedEmployees?: string[]; team_id?: string }) => {
     createTaskMutation.mutate(taskData);
   };
 

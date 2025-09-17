@@ -46,7 +46,9 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'critical'>('medium');
   const [assignedTo, setAssignedTo] = useState('');
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
-  // Unified employee selection; no team selection needed
+  const [selectedTeam, setSelectedTeam] = useState('');
+  const [teamMembers, setTeamMembers] = useState<string[]>([]);
+  const [teamHead, setTeamHead] = useState('');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState('');
   const [timeLimit, setTimeLimit] = useState('');
@@ -85,6 +87,56 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
     enabled: open,
     retry: 1,
   });
+
+  // Fetch teams
+  const { data: teams = [] } = useQuery({
+    queryKey: ['teams'],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase
+          .from('teams')
+          .select(`
+            id, 
+            name, 
+            description,
+            team_members (
+              user_id,
+              role,
+              profiles (
+                id,
+                full_name,
+                email
+              )
+            )
+          `)
+          .order('name');
+        
+        if (error) throw error;
+        return data || [];
+      } catch (error) {
+        console.error('Teams fetch error:', error);
+        throw error;
+      }
+    },
+    enabled: open && taskType === 'team',
+  });
+
+  // Update team members when team is selected
+  React.useEffect(() => {
+    if (selectedTeam && teams.length > 0) {
+      const team = teams.find(t => t.id === selectedTeam);
+      if (team && team.team_members) {
+        const members = team.team_members.map((tm: any) => tm.user_id);
+        const head = team.team_members.find((tm: any) => tm.role === 'head')?.user_id || '';
+        setTeamMembers(members);
+        setTeamHead(head);
+        setSelectedEmployees(members);
+      }
+    } else {
+      setTeamMembers([]);
+      setTeamHead('');
+    }
+  }, [selectedTeam, teams]);
 
   // Show loading or error state for employees
   React.useEffect(() => {
@@ -127,10 +179,10 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
         return;
       }
     } else if (taskType === 'team') {
-      if (selectedEmployees.length === 0) {
+      if (!selectedTeam) {
         toast({
-          title: "Team Members Required",
-          description: "Please select at least one employee for the team task.",
+          title: "Team Required",
+          description: "Please select a team for the team task.",
           variant: "destructive"
         });
         return;
@@ -174,8 +226,9 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
 
     // Assignment based on tab
     if (taskType === 'team') {
-      taskData.assignedEmployees = selectedEmployees;
-      taskData.assigned_to = selectedEmployees[0]; // Primary assignee
+      taskData.assignedEmployees = teamMembers;
+      taskData.assigned_to = teamMembers[0]; // Primary assignee
+      taskData.team_id = selectedTeam;
     } else {
       taskData.assigned_to = assignedTo || user.id;
     }
@@ -213,6 +266,9 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
     setPriority('medium');
     setAssignedTo('');
     setSelectedEmployees([]);
+    setSelectedTeam('');
+    setTeamMembers([]);
+    setTeamHead('');
     setSelectedDate(undefined);
     setSelectedTime('');
     setTimeLimit('');
@@ -234,7 +290,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   const isFormValid = Boolean(
     title.trim() && (
       (taskType === 'individual' && assignedTo) ||
-      (taskType === 'team' && selectedEmployees.length > 0)
+      (taskType === 'team' && selectedTeam)
     )
   );
 
@@ -364,44 +420,66 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
               </div>
             </TabsContent>
 
-            {/* Team Task content: multi-select employees */}
+            {/* Team Task content: team selection */}
             <TabsContent value="team" className="space-y-4 mt-0">
               <div>
-                <Label>Select Employees * ({selectedEmployees.length} selected)</Label>
-                {loadingEmployees ? (
-                  <div className="text-center py-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-                  </div>
-                ) : (
-                  <div className="max-h-48 overflow-y-auto border rounded-lg p-4 space-y-3 mt-1">
-                    {employees.length === 0 ? (
-                      <p className="text-muted-foreground text-center py-4">No employees found</p>
-                    ) : (
-                      employees.map((emp: any) => (
-                        <div key={emp.id} className="flex items-center space-x-3">
-                          <input
-                            type="checkbox"
-                            id={`emp-${emp.id}`}
-                            checked={selectedEmployees.includes(emp.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedEmployees(prev => [...prev, emp.id]);
-                              } else {
-                                setSelectedEmployees(prev => prev.filter(id => id !== emp.id));
-                              }
-                            }}
-                            className="rounded border-gray-300"
-                          />
-                          <Label htmlFor={`emp-${emp.id}`} className="flex-1 cursor-pointer">
-                            <div className="font-medium">{emp.name}</div>
-                            <div className="text-sm text-muted-foreground">{emp.email}</div>
-                          </Label>
+                <Label htmlFor="team-select">Select Team *</Label>
+                <Select value={selectedTeam} onValueChange={setSelectedTeam}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select a team" />
+                  </SelectTrigger>
+                  <SelectContent className="z-50 bg-background border shadow-md">
+                    {teams.map((team: any) => (
+                      <SelectItem key={team.id} value={team.id}>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{team.name}</span>
+                          {team.description && (
+                            <span className="text-xs text-muted-foreground">{team.description}</span>
+                          )}
                         </div>
-                      ))
-                    )}
-                  </div>
-                )}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+              
+              {selectedTeam && (
+                <div className="space-y-3 p-4 border rounded-lg bg-muted/50">
+                  <div>
+                    <Label className="text-sm font-medium">Team Head</Label>
+                    <div className="mt-1 p-2 bg-background rounded border">
+                      {teamHead ? (
+                        <div className="font-medium">
+                          {employees.find(emp => emp.id === teamHead)?.name || 'Unknown'}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">No team head assigned</span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-sm font-medium">Team Members ({teamMembers.length})</Label>
+                    <div className="mt-1 p-2 bg-background rounded border max-h-32 overflow-y-auto">
+                      {teamMembers.length > 0 ? (
+                        <div className="space-y-1">
+                          {teamMembers.map((memberId) => {
+                            const member = employees.find(emp => emp.id === memberId);
+                            return (
+                              <div key={memberId} className="text-sm">
+                                <span className="font-medium">{member?.name || 'Unknown'}</span>
+                                <span className="text-muted-foreground ml-2">({member?.email})</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">No team members found</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </TabsContent>
             
             <div>

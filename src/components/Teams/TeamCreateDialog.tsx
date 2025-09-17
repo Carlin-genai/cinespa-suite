@@ -68,10 +68,7 @@ const TeamCreateDialog: React.FC<TeamCreateDialogProps> = ({
         return;
       }
 
-      if (!trimmedDesc) {
-        toast({ title: "Error", description: "Description is required", variant: "destructive" });
-        return;
-      }
+      // Description is now optional
 
       if (!teamHead) {
         toast({ title: "Error", description: "Please select a Team Head", variant: "destructive" });
@@ -91,7 +88,7 @@ const TeamCreateDialog: React.FC<TeamCreateDialogProps> = ({
 
         onSave({
           name: trimmedName,
-          description: trimmedDesc,
+          description: trimmedDesc || undefined,
           memberIds: members,
           teamHeadId: teamHead,
         });
@@ -164,16 +161,15 @@ const TeamCreateDialog: React.FC<TeamCreateDialogProps> = ({
 
             <div>
               <Label htmlFor="team-description" className="font-opensans font-medium">
-                Description *
+                Description
               </Label>
               <Textarea
                 id="team-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Enter team description"
+                placeholder="Enter team description (optional)"
                 className="mt-1"
                 rows={3}
-                required
               />
             </div>
           </div>
