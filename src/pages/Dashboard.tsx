@@ -2,10 +2,14 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Clock, AlertTriangle, Users, Calendar, Bell, Plus, Shield, User, RefreshCw } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { CheckCircle2, Clock, AlertTriangle, Users, Calendar, Bell, Plus, Shield, User, RefreshCw, Star, Award } from 'lucide-react';
 import StatsCard from '@/components/Dashboard/StatsCard';
 import TaskCard from '@/components/Tasks/TaskCard';
 import TaskCreateDialog from '@/components/Tasks/TaskCreateDialog';
+import TaskStatusPopup from '@/components/Dashboard/TaskStatusPopup';
+import AdminTaskDetailsDialog from '@/components/Dashboard/AdminTaskDetailsDialog';
+import CreditPointsTab from '@/components/Dashboard/CreditPointsTab';
 import { apiService } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Task } from '@/types';
@@ -13,17 +17,37 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import AuthGuard from '@/components/AuthGuard';
 import { useTasks } from '@/hooks/useTasks';
+import { supabase } from '@/integrations/supabase/client';
 
 const Dashboard = () => {
   const { user, profile, userRole } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [taskStatusPopupOpen, setTaskStatusPopupOpen] = useState(false);
+  const [taskStatusType, setTaskStatusType] = useState<string>('');
+  const [taskStatusTitle, setTaskStatusTitle] = useState<string>('');
+  const [adminTaskDetailsOpen, setAdminTaskDetailsOpen] = useState(false);
+  const [selectedAdminTask, setSelectedAdminTask] = useState<Task | null>(null);
 
   const isAdmin = userRole?.role === 'admin';
 
   // Use the new useTasks hook
   const { data: tasks = [], loading, error, reload } = useTasks('dashboard');
+
+  // Fetch team information for displaying team names
+  const { data: teams = [] } = useQuery({
+    queryKey: ['teams'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('teams')
+        .select('id, name')
+        .order('name');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: isAdmin,
+  });
 
   // Fetch analytics from backend
   const { data: analytics } = useQuery({
@@ -138,6 +162,66 @@ const Dashboard = () => {
     }
   };
 
+  // Handle stat card clicks to open popup
+  const handleStatCardClick = (status: string, title: string) => {
+    setTaskStatusType(status);
+    setTaskStatusTitle(title);
+    setTaskStatusPopupOpen(true);
+  };
+
+  // Handle admin task click
+  const handleAdminTaskClick = (task: Task) => {
+    setSelectedAdminTask(task);
+    setAdminTaskDetailsOpen(true);
+  };
+
+  // Handle task updates from popups
+  const handleTaskUpdate = async (updatedTask: Task) => {
+    try {
+      await apiService.updateTask(updatedTask.id, updatedTask);
+      queryClient.invalidateQueries({ queryKey: ['tasks-dashboard'] });
+      reload();
+      toast({
+        title: "Task Updated",
+        description: "Task updated successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update task",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle task deletion
+  const handleTaskDelete = async (taskId: string) => {
+    try {
+      await apiService.deleteTask(taskId);
+      queryClient.invalidateQueries({ queryKey: ['tasks-dashboard'] });
+      reload();
+      toast({
+        title: "Task Deleted",
+        description: "Task deleted successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete task",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Get team name for task
+  const getTeamNameForTask = (task: Task) => {
+    if (task.team_id) {
+      const team = teams.find(t => t.id === task.team_id);
+      return team ? `Team: ${team.name}` : 'Team Task';
+    }
+    return task.assigned_to === user?.id ? 'Self' : 'Individual';
+  };
+
   if (loading || !user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -202,35 +286,43 @@ const Dashboard = () => {
           )}
         </div>
 
-      {/* Stats Grid */}
+      {/* Stats Grid - Clickable */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatsCard
-          title="Total Tasks"
-          value={userTasks.length}
-          icon={Calendar}
-          className="bg-gradient-to-br from-background to-muted"
-        />
-        <StatsCard
-          title="Completed"
-          value={completedTasks}
-          change={`${userTasks.length > 0 ? Math.round((completedTasks / userTasks.length) * 100) : 0}% completion rate`}
-          icon={CheckCircle2}
-          trend="up"
-          className="bg-gradient-to-br from-completed-green/10 to-completed-green/5 dark:from-completed-green/15 dark:to-completed-green/10"
-        />
-        <StatsCard
-          title="In Progress"
-          value={inProgressTasks}
-          icon={Clock}
-          className="bg-gradient-to-br from-progress-blue/10 to-progress-blue/5 dark:from-progress-blue/15 dark:to-progress-blue/10"
-        />
-        <StatsCard
-          title="Overdue"
-          value={overdueTasks}
-          icon={AlertTriangle}
-          trend={overdueTasks > 0 ? "down" : "neutral"}
-          className="bg-gradient-to-br from-overdue-red/10 to-overdue-red/5 dark:from-overdue-red/15 dark:to-overdue-red/10"
-        />
+        <div onClick={() => handleStatCardClick('all', 'All Tasks')} className="cursor-pointer">
+          <StatsCard
+            title="Total Tasks"
+            value={userTasks.length}
+            icon={Calendar}
+            className="bg-gradient-to-br from-background to-muted hover:shadow-lg transition-shadow"
+          />
+        </div>
+        <div onClick={() => handleStatCardClick('completed', 'Completed Tasks')} className="cursor-pointer">
+          <StatsCard
+            title="Completed"
+            value={completedTasks}
+            change={`${userTasks.length > 0 ? Math.round((completedTasks / userTasks.length) * 100) : 0}% completion rate`}
+            icon={CheckCircle2}
+            trend="up"
+            className="bg-gradient-to-br from-completed-green/10 to-completed-green/5 dark:from-completed-green/15 dark:to-completed-green/10 hover:shadow-lg transition-shadow"
+          />
+        </div>
+        <div onClick={() => handleStatCardClick('in-progress', 'In Progress Tasks')} className="cursor-pointer">
+          <StatsCard
+            title="In Progress"
+            value={inProgressTasks}
+            icon={Clock}
+            className="bg-gradient-to-br from-progress-blue/10 to-progress-blue/5 dark:from-progress-blue/15 dark:to-progress-blue/10 hover:shadow-lg transition-shadow"
+          />
+        </div>
+        <div onClick={() => handleStatCardClick('overdue', 'Overdue Tasks')} className="cursor-pointer">
+          <StatsCard
+            title="Overdue"
+            value={overdueTasks}
+            icon={AlertTriangle}
+            trend={overdueTasks > 0 ? "down" : "neutral"}
+            className="bg-gradient-to-br from-overdue-red/10 to-overdue-red/5 dark:from-overdue-red/15 dark:to-overdue-red/10 hover:shadow-lg transition-shadow"
+          />
+        </div>
       </div>
 
       {/* Admin Tasks Management Section (Admin Only) */}
@@ -255,7 +347,11 @@ const Dashboard = () => {
                   .filter((task: Task) => task.assigned_by === user?.id)
                   .sort((a: Task, b: Task) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                   .map((task: Task) => (
-                    <div key={task.id} className="border rounded-lg p-3 hover:bg-muted/50 transition-colors">
+                    <div 
+                      key={task.id} 
+                      className="border rounded-lg p-3 hover:bg-muted/50 transition-colors cursor-pointer"
+                      onClick={() => handleAdminTaskClick(task)}
+                    >
                       <div className="flex items-center justify-between mb-2">
                         <h4 className="font-medium text-sm text-rose-gold-contrast">{task.title}</h4>
                         <span 
@@ -271,7 +367,7 @@ const Dashboard = () => {
                         </span>
                       </div>
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>Assigned to: {task.assigned_to === user?.id ? 'Self' : 'Team Member'}</span>
+                        <span>Assigned to: {getTeamNameForTask(task)}</span>
                         {task.due_date && (
                           <span>Due: {new Date(task.due_date).toLocaleDateString()}</span>
                         )}
@@ -284,99 +380,59 @@ const Dashboard = () => {
         </Card>
       )}
 
-      {/* Quick Actions */}
-      <div className={cn("grid gap-6", isAdmin ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1 lg:grid-cols-2")}>
-        <Card className="hover:shadow-lg hover:shadow-rose-gold/20 transition-all duration-300">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-rose-gold-contrast">
-              <Calendar className="h-5 w-5 text-rose-gold" />
-              Recent Tasks
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {recentTasks.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No tasks found</p>
-                <p className="text-sm mt-2">
-                  {isAdmin 
-                    ? "Create tasks to assign to team members" 
-                    : "Tasks will appear here once they are assigned to you"
-                  }
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {recentTasks.map((task: Task) => (
-                  <div key={task.id} className="border rounded-lg p-3 hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-medium text-sm text-rose-gold-contrast">{task.title}</h4>
-                      <span 
-                        className={cn(
-                          "text-xs px-2 py-1 rounded text-on-color font-medium",
-                          task.status === 'completed' && "bg-completed-green",
-                          task.status === 'in-progress' && "bg-progress-blue", 
-                          task.status === 'overdue' && "bg-overdue-red",
-                          task.status === 'pending' && "bg-pending-yellow text-foreground"
-                        )}
-                      >
-                        {task.status.replace('-', ' ').toUpperCase()}
-                      </span>
-                    </div>
-                    {task.due_date && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Due: {new Date(task.due_date).toLocaleDateString()}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      {/* Main Dashboard Tabs */}
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="credits" className="flex items-center gap-2">
+            <Star className="h-4 w-4" />
+            Credit Points
+          </TabsTrigger>
+        </TabsList>
 
-        <Card className="hover:shadow-lg hover:shadow-rose-gold/20 transition-all duration-300">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-rose-gold-contrast">
-              <Bell className="h-5 w-5 text-rose-gold" />
-              Quick Stats
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Completion Rate</span>
-                <span className="font-semibold text-completed-green">
-                  {userTasks.length > 0 ? Math.round((completedTasks / userTasks.length) * 100) : 0}%
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Active Tasks</span>
-                <span className="font-semibold text-progress-blue">{inProgressTasks + pendingTasks}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Priority Tasks</span>
-                <span className="font-semibold text-rose-gold">
-                  {userTasks.filter((task: Task) => task.priority === 'high' || task.priority === 'critical').length}
-                </span>
-              </div>
-              {overdueTasks > 0 && (
-                <div className="flex items-center justify-between border-t pt-4">
-                  <span className="text-sm text-overdue-red">Needs Attention</span>
-                  <span className="font-semibold text-overdue-red">{overdueTasks} overdue</span>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+        <TabsContent value="overview" className="space-y-6">
+          <div className="text-center py-8 text-muted-foreground">
+            <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>Task overview and analytics will be displayed here</p>
+            <p className="text-sm mt-2">
+              Click on the stats cards above to view detailed task lists
+            </p>
+          </div>
+        </TabsContent>
 
+        <TabsContent value="credits">
+          <CreditPointsTab tasks={userTasks} />
+        </TabsContent>
+      </Tabs>
+
+      {/* Dialogs and Popups */}
       <TaskCreateDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
         onSave={handleCreateTask}
         isPersonalTask={!isAdmin}
         showEmployeeSelection={isAdmin}
+      />
+
+      <TaskStatusPopup
+        isOpen={taskStatusPopupOpen}
+        onClose={() => setTaskStatusPopupOpen(false)}
+        tasks={userTasks}
+        status={taskStatusType}
+        title={taskStatusTitle}
+        onEditTask={() => {}}
+        onDeleteTask={handleTaskDelete}
+        onUpdateTask={handleTaskUpdate}
+      />
+
+      <AdminTaskDetailsDialog
+        task={selectedAdminTask}
+        isOpen={adminTaskDetailsOpen}
+        onClose={() => setAdminTaskDetailsOpen(false)}
+        onSave={handleTaskUpdate}
       />
       </div>
     </AuthGuard>
