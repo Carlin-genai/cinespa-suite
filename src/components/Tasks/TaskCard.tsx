@@ -109,7 +109,6 @@ const TaskCard: React.FC<TaskCardProps> = ({
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Priority:</span>
               <span className={`capitalize ${
-                task.priority === 'critical' ? 'text-priority-critical' :
                 task.priority === 'high' ? 'text-priority-high' :
                 task.priority === 'medium' ? 'text-priority-medium' :
                 'text-priority-low'

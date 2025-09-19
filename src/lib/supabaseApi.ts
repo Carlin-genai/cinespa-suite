@@ -4,7 +4,7 @@ import { Task, User, Project } from '@/types';
 
 // Helper mappers to normalize DB rows into our Task union types
 const STATUS_SET = new Set<Task['status']>(['pending', 'in-progress', 'completed', 'overdue']);
-const PRIORITY_SET = new Set<Task['priority']>(['low', 'medium', 'high', 'critical']);
+const PRIORITY_SET = new Set<Task['priority']>(['low', 'medium', 'high']);
 
 function mapStatus(value: string | null | undefined): Task['status'] {
   const s = (value || '').toLowerCase();

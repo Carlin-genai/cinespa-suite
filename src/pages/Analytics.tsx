@@ -83,7 +83,7 @@ const Analytics = () => {
 
   // Priority distribution
   const priorityData = [
-    { name: 'Critical', value: filteredTasks.filter(t => t.priority === 'critical').length, color: '#DC2626' },
+    
     { name: 'High', value: filteredTasks.filter(t => t.priority === 'high').length, color: '#D97706' },
     { name: 'Medium', value: filteredTasks.filter(t => t.priority === 'medium').length, color: '#059669' },
     { name: 'Low', value: filteredTasks.filter(t => t.priority === 'low').length, color: '#6B7280' }

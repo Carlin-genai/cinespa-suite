@@ -50,7 +50,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   // Form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'critical'>('medium');
+  const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
   const [assignedTo, setAssignedTo] = useState('');
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [selectedTeam, setSelectedTeam] = useState('');
@@ -461,8 +461,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
   const priorityColors = {
     'low': 'text-priority-low',
     'medium': 'text-priority-medium',
-    'high': 'text-priority-high', 
-    'critical': 'text-priority-critical'
+    'high': 'text-priority-high'
   };
 
   // Check if form is valid
@@ -528,7 +527,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="priority">Priority Level</Label>
-                <Select value={priority} onValueChange={(value: 'low' | 'medium' | 'high' | 'critical') => setPriority(value)}>
+                <Select value={priority} onValueChange={(value: 'low' | 'medium' | 'high') => setPriority(value)}>
                   <SelectTrigger className="mt-1">
                     <SelectValue />
                   </SelectTrigger>
@@ -541,9 +540,6 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
                     </SelectItem>
                     <SelectItem value="high">
                       <span className={priorityColors.high}>High Priority</span>
-                    </SelectItem>
-                    <SelectItem value="critical">
-                      <span className={priorityColors.critical}>Critical Priority</span>
                     </SelectItem>
                   </SelectContent>
                 </Select>

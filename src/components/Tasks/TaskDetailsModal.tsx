@@ -41,8 +41,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'critical': return 'bg-priority-critical/15 text-priority-critical border-priority-critical/30';
-      case 'high': return 'bg-priority-high/15 text-priority-high border-priority-high/30'; 
+      case 'high': return 'bg-priority-high/15 text-priority-high border-priority-high/30';
       case 'medium': return 'bg-priority-medium/15 text-priority-medium border-priority-medium/30';
       case 'low': return 'bg-priority-low/15 text-priority-low border-priority-low/30';
       default: return 'bg-muted text-muted-foreground border-border';

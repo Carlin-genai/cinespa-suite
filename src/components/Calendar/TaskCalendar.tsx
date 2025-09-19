@@ -12,7 +12,7 @@ interface CalendarTask {
   id: string;
   title: string;
   due_date: string;
-  priority: 'low' | 'medium' | 'high' | 'critical';
+  priority: 'low' | 'medium' | 'high';
   status: 'pending' | 'in-progress' | 'completed' | 'overdue';
 }
 
@@ -24,9 +24,7 @@ const TaskCalendar: React.FC = () => {
 
   const getPriorityColor = (priority: string) => {
     switch (priority.toLowerCase()) {
-      case 'critical':
-        return 'border-priority-critical/20 bg-priority-critical/10 text-priority-critical';
-      case 'high': 
+      case 'high':
         return 'border-priority-high/20 bg-priority-high/10 text-priority-high';
       case 'medium': 
         return 'border-priority-medium/20 bg-priority-medium/10 text-priority-medium';
@@ -65,7 +63,7 @@ const TaskCalendar: React.FC = () => {
       // Cast the data to proper types since database returns strings
       const typedData = (data || []).map(task => ({
         ...task,
-        priority: task.priority as 'low' | 'medium' | 'high' | 'critical',
+        priority: task.priority as 'low' | 'medium' | 'high',
         status: task.status as 'pending' | 'in-progress' | 'completed' | 'overdue'
       }));
       setTasks(typedData);
@@ -95,15 +93,12 @@ const TaskCalendar: React.FC = () => {
 
   const renderDay = (date: Date) => {
     const tasksForDate = getTasksForDate(date);
-    const hasCriticalPriority = tasksForDate.some(task => task.priority === 'critical');
     const hasHighPriority = tasksForDate.some(task => task.priority === 'high');
     const hasMediumPriority = tasksForDate.some(task => task.priority === 'medium');
     const hasLowPriority = tasksForDate.some(task => task.priority === 'low');
 
     let indicatorClass = '';
-    if (hasCriticalPriority) {
-      indicatorClass = 'bg-priority-critical';
-    } else if (hasHighPriority) {
+    if (hasHighPriority) {
       indicatorClass = 'bg-priority-high';
     } else if (hasMediumPriority) {
       indicatorClass = 'bg-priority-medium';
@@ -187,10 +182,6 @@ const TaskCalendar: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="flex gap-4 flex-wrap">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-priority-critical rounded-full" />
-              <span className="text-sm">Critical Priority</span>
-            </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-priority-high rounded-full" />
               <span className="text-sm">High Priority</span>

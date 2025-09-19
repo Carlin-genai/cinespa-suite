@@ -119,7 +119,7 @@ const Notifications = () => {
   );
 
   // For admin: get tasks sorted by priority (High to Low)
-  const priorityOrder = { 'critical': 4, 'high': 3, 'medium': 2, 'low': 1 };
+  const priorityOrder = { 'high': 3, 'medium': 2, 'low': 1 };
   const adminTasks = isAdmin ? tasks
     .filter((task: any) => task.assigned_by === user?.id)
     .filter((task: any) => {
@@ -184,7 +184,6 @@ const Notifications = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Priority</SelectItem>
-                  <SelectItem value="critical">Critical</SelectItem>
                   <SelectItem value="high">High</SelectItem>
                   <SelectItem value="medium">Medium</SelectItem>
                   <SelectItem value="low">Low</SelectItem>
@@ -207,9 +206,8 @@ const Notifications = () => {
                       <div className="flex items-center gap-2 mb-1">
                         <h4 className="font-medium text-foreground">{task.title}</h4>
                         <Badge 
-                          variant={task.priority === 'critical' ? 'destructive' : 'secondary'}
+                          variant="secondary"
                           className={`text-xs ${
-                            task.priority === 'critical' ? 'bg-red-500 text-white' :
                             task.priority === 'high' ? 'bg-orange-500 text-white' :
                             task.priority === 'medium' ? 'bg-yellow-500 text-white' :
                             'bg-green-500 text-white'
@@ -237,7 +235,7 @@ const Notifications = () => {
                           <SelectItem value="low">Low</SelectItem>
                           <SelectItem value="medium">Medium</SelectItem>
                           <SelectItem value="high">High</SelectItem>
-                          <SelectItem value="critical">Critical</SelectItem>
+                          
                         </SelectContent>
                       </Select>
                       <Button
