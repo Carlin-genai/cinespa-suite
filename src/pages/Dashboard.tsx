@@ -90,9 +90,14 @@ const Dashboard = () => {
         reload(); // Also trigger manual reload
       }, 100);
       
+      // Handle both single task and array of tasks
+      const taskTitle = Array.isArray(data) ? 
+        `${data.length} tasks` : 
+        `Task "${data.title}"`;
+      
       toast({
         title: "Task Created",
-        description: `Task "${data.title}" created successfully and will appear in all dashboards immediately.`,
+        description: `${taskTitle} created successfully and will appear in all dashboards immediately.`,
         variant: "default",
       });
     },

@@ -256,6 +256,16 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
         });
         return;
       }
+      
+      // Check if team has members
+      if (teamMembers.length === 0 && additionalMembers.length === 0) {
+        toast({
+          title: "Team Members Required",
+          description: "The selected team must have at least one member.",
+          variant: "destructive"
+        });
+        return;
+      }
     }
 
     // Team selection optional for admins; if none selected, will self-assign
@@ -298,11 +308,29 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
 
     // Assignment based on tab
     if (taskType === 'team') {
+      if (!selectedTeam) {
+        throw new Error('Team selection is required for team tasks');
+      }
+      
       const allTeamMembers = [...teamMembers, ...additionalMembers];
+      
+      if (allTeamMembers.length === 0) {
+        throw new Error('At least one team member is required for team tasks');
+      }
+      
       taskData.assignedEmployees = allTeamMembers;
       taskData.assigned_to = teamHead || teamMembers[0]; // Team head or first member as primary assignee
       taskData.team_id = selectedTeam;
       taskData.task_type = 'team';
+      
+      console.log('[TaskCreate] Team task data:', {
+        team_id: taskData.team_id,
+        assignedEmployees: taskData.assignedEmployees,
+        assigned_to: taskData.assigned_to,
+        teamHead,
+        teamMembers,
+        additionalMembers
+      });
     } else {
       taskData.assigned_to = assignedTo || user.id;
       // Set task_type for self-tasks

@@ -120,47 +120,8 @@ const TeamTasks = () => {
   // Create task mutation
   const createTaskMutation = useMutation({
     mutationFn: async (taskData: Partial<Task> & { assignedEmployees?: string[]; attachments?: File[]; team_id?: string }) => {
-      const { assignedEmployees, attachments, team_id, ...task } = taskData;
-      const defaultDue = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-      
-      if (team_id) {
-        // Create a single team task
-        return apiService.createTask({
-          status: task.status || 'pending',
-          priority: task.priority || 'medium',
-          due_date: task.due_date || defaultDue,
-          ...task,
-          team_id,
-          assigned_to: assignedEmployees?.[0] || user?.id,
-          assigned_by: user?.id,
-          attachments,
-        });
-      } else if (assignedEmployees && assignedEmployees.length > 0) {
-        // Create individual tasks for each assigned employee
-        const taskPromises = assignedEmployees.map(employeeId => 
-          apiService.createTask({
-            status: task.status || 'pending',
-            priority: task.priority || 'medium',
-            due_date: task.due_date || defaultDue,
-            ...task,
-            assigned_to: employeeId,
-            assigned_by: user?.id,
-            attachments,
-          })
-        );
-        
-        return Promise.all(taskPromises);
-      } else {
-        // Regular task creation
-        return apiService.createTask({
-          status: task.status || 'pending',
-          priority: task.priority || 'medium',
-          due_date: task.due_date || defaultDue,
-          ...task,
-          assigned_by: user?.id,
-          attachments,
-        });
-      }
+      const response = await supabaseApi.createTask(taskData);
+      return response;
     },
     onSuccess: (result) => {
       const isTeamTask = !!result && !Array.isArray(result) && (result as any).team_id;

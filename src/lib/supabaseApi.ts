@@ -75,7 +75,7 @@ export class SupabaseApiService {
     return (data || []).map(mapDbTaskToTask);
   }
 
-  async createTask(task: Partial<Task> & { assignedEmployees?: string[]; attachments?: File[]; time_limit?: number; credit_points?: number; attachment_url?: string }): Promise<Task> {
+  async createTask(task: Partial<Task> & { assignedEmployees?: string[]; attachments?: File[]; time_limit?: number; credit_points?: number; attachment_url?: string; team_id?: string }): Promise<Task | Task[]> {
     console.log('[SupabaseApi] Creating task - start', task);
     
     // Get authenticated user first
@@ -146,9 +146,9 @@ export class SupabaseApiService {
 
     console.log('[SupabaseApi] Preparing task data:', taskDataBase);
 
-    // For team tasks with multiple assignees, create a single team task record
-    if (task.assignedEmployees && task.assignedEmployees.length > 0) {
-      console.log('[SupabaseApi] Creating single team task for employees:', task.assignedEmployees);
+    // For team tasks, ensure team_id is provided
+    if (task.team_id && task.assignedEmployees && task.assignedEmployees.length > 0) {
+      console.log('[SupabaseApi] Creating team task for team:', task.team_id, 'employees:', task.assignedEmployees);
       
       // Store all team members in a JSONB field for the single team task
       const taskData = { 
@@ -157,12 +157,12 @@ export class SupabaseApiService {
         assigned_by: assignedBy,
         is_self_task: false,
         task_type: 'team',
-        team_id: task.team_id, // Must be provided for team tasks
+        team_id: task.team_id, // Required for team tasks
         // Store all assigned team members as metadata
         assignedEmployees: task.assignedEmployees
       };
       
-      console.log('[SupabaseApi] Inserting single team task:', taskData);
+      console.log('[SupabaseApi] Inserting team task:', taskData);
       
       const { data, error } = await supabase
         .from('tasks')
@@ -171,12 +171,43 @@ export class SupabaseApiService {
       
       if (error) {
         console.error('[SupabaseApi] Team task creation error:', error);
-        throw error;
+        console.error('[SupabaseApi] Error details:', JSON.stringify(error, null, 2));
+        console.error('[SupabaseApi] Task data that failed:', JSON.stringify(taskData, null, 2));
+        throw new Error(`Failed to create team task: ${error.message || 'Unknown error'}`);
       }
       
       console.log('[SupabaseApi] Team task created:', data);
       const createdTask = data && data.length > 0 ? data[0] : { ...taskData, id: '' };
       return mapDbTaskToTask(createdTask);
+    }
+
+    // For individual tasks with multiple assignees (create separate tasks for each)
+    if (task.assignedEmployees && task.assignedEmployees.length > 0 && !task.team_id) {
+      console.log('[SupabaseApi] Creating individual tasks for employees:', task.assignedEmployees);
+      
+      const taskPromises = task.assignedEmployees.map(employeeId => {
+        const taskData = { 
+          ...taskDataBase,
+          assigned_to: employeeId,
+          assigned_by: assignedBy,
+          is_self_task: employeeId === assignedBy,
+          task_type: 'team'
+        };
+        
+        return supabase
+          .from('tasks')
+          .insert([taskData])
+          .select()
+          .then(({ data, error }) => {
+            if (error) throw error;
+            return data && data.length > 0 ? data[0] : taskData;
+          });
+      });
+      
+      const results = await Promise.all(taskPromises);
+      console.log('[SupabaseApi] Individual tasks created:', results);
+      // Return array of tasks for individual assignments
+      return results.map(mapDbTaskToTask) as Task[];
     }
 
     // Single task creation
@@ -197,7 +228,9 @@ export class SupabaseApiService {
     
     if (error) {
       console.error('[SupabaseApi] Single task creation error:', error);
-      throw error;
+      console.error('[SupabaseApi] Error details:', JSON.stringify(error, null, 2));
+      console.error('[SupabaseApi] Task data that failed:', JSON.stringify(taskData, null, 2));
+      throw new Error(`Failed to create task: ${error.message || 'Unknown error'}`);
     }
     
     console.log('[SupabaseApi] Single task created:', data);
