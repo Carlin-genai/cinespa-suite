@@ -53,12 +53,15 @@ const SelfTasks = () => {
         priority: 'medium' as const,
         assigned_to: user.id,
         assigned_by: user.id,
+        created_by: user.id, // Required for RLS
         due_date: (task as any).due_date || defaultDue.toISOString(),
         notes: task.notes || undefined,
         time_limit: (task as any).time_limit || undefined,
         credit_points: (task as any).credit_points || 0,
         attachment_url: (task as any).attachment_url || undefined,
         is_self_task: true,
+        task_type: 'self' as const, // Required for RLS policy
+        team_id: null, // Self tasks have no team
         ...task, // Override with any provided values
       };
       
@@ -66,9 +69,12 @@ const SelfTasks = () => {
       return apiService.createTask(taskData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['self-tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['tasks'] }); // Also refresh dashboard
-      toast({ title: 'Success', description: 'Task created successfully' });
+      queryClient.invalidateQueries({ queryKey: ['tasks-self'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks-dashboard'] });
+      toast({ 
+        title: 'Success', 
+        description: 'Private self-task created successfully. Only you can see this task.' 
+      });
       setCreateDialogOpen(false);
       // Clear form
       setTaskTitle('');
@@ -89,8 +95,9 @@ const SelfTasks = () => {
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Task> }) =>
       apiService.updateTask(id, updates),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['self-tasks'] });
-      toast({ title: 'Success', description: 'Task updated successfully' });
+      queryClient.invalidateQueries({ queryKey: ['tasks-self'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks-dashboard'] });
+      toast({ title: 'Success', description: 'Private task updated successfully' });
     },
     onError: (error) => {
       toast({
@@ -106,8 +113,9 @@ const SelfTasks = () => {
   const deleteTaskMutation = useMutation({
     mutationFn: (taskId: string) => apiService.deleteTask(taskId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['self-tasks'] });
-      toast({ title: 'Success', description: 'Task deleted successfully' });
+      queryClient.invalidateQueries({ queryKey: ['tasks-self'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks-dashboard'] });
+      toast({ title: 'Success', description: 'Private task deleted successfully' });
     },
     onError: (error) => {
       toast({
@@ -177,11 +185,13 @@ const SelfTasks = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Self Tasks</h1>
-          <p className="text-muted-foreground">Manage your personal tasks</p>
+          <h1 className="text-3xl font-bold">Private Self Tasks</h1>
+          <p className="text-muted-foreground">
+            Manage your private personal tasks. Only you can see these - not even admins can access them.
+          </p>
         </div>
         <Button onClick={() => setCreateDialogOpen(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-          <Plus className="mr-2 h-4 w-4" /> Create Self Task
+          <Plus className="mr-2 h-4 w-4" /> Create Private Task
         </Button>
       </div>
 
@@ -226,7 +236,7 @@ const SelfTasks = () => {
             className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             <Plus className="mr-2 h-4 w-4" /> 
-            {createTaskMutation.isPending ? 'Creating...' : 'Create Self Task'}
+            {createTaskMutation.isPending ? 'Creating...' : 'Create Private Task'}
           </Button>
         </CardContent>
       </Card>
@@ -247,17 +257,17 @@ const SelfTasks = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="text-center py-12">
-              <User className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-medium text-foreground mb-2">No self tasks yet</h3>
+              <div className="text-6xl mb-4">🔒</div>
+              <h3 className="text-lg font-medium text-foreground mb-2">No Private Tasks Yet</h3>
               <p className="text-muted-foreground mb-4">
                 {searchTerm || statusFilter !== 'all' || priorityFilter !== 'all'
                   ? "Try adjusting your filters or search terms"
-                  : "Create your first personal task to get started"
+                  : "Create your first private self-task. These tasks are completely private to you - no other user (including admins) can see or access them."
                 }
               </p>
               <Button onClick={() => setCreateDialogOpen(true)} variant="outline">
                 <Plus className="h-4 w-4 mr-2" />
-                Create Self Task
+                Create Private Task
               </Button>
             </div>
           </CardContent>

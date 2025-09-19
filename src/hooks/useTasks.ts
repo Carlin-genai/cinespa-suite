@@ -32,12 +32,15 @@ export const useTasks = (kind: TaskKind, params: TaskParams = {}) => {
     switch (kind) {
       case 'my':
         if (!user?.id) throw new Error('User not authenticated');
-        // Include individual tasks assigned to user AND exclude team tasks from individual view  
+        // Include individual tasks assigned to user (both self and team tasks assigned to them)
+        // RLS will automatically filter based on visibility rules
         query = query.eq('assigned_to', user.id).is('team_id', null);
         break;
       
       case 'self':
         if (!user?.id) throw new Error('User not authenticated');
+        // Self-tasks are automatically filtered by RLS - no additional filter needed
+        // RLS policy ensures only tasks where task_type='self' AND created_by=auth.uid() are returned
         query = query.eq('task_type', 'self');
         break;
       
@@ -48,8 +51,9 @@ export const useTasks = (kind: TaskKind, params: TaskParams = {}) => {
         break;
       
       case 'team':
-        // Show team tasks (tasks with team_id not null)
-        query = query.not('team_id', 'is', null);
+        // Show team tasks (tasks with team_id not null or task_type = 'team')
+        // RLS will handle visibility based on team membership and roles
+        query = query.eq('task_type', 'team');
         if (params.teamId) {
           query = query.eq('team_id', params.teamId);
         }
@@ -57,7 +61,9 @@ export const useTasks = (kind: TaskKind, params: TaskParams = {}) => {
       
       case 'dashboard':
       default:
-        // Dashboard shows all accessible tasks (handled by RLS)
+        // Dashboard shows all accessible tasks (RLS handles filtering automatically)
+        // This will include both self-tasks (if user is creator) and team tasks (based on team membership)
+        // No additional filters needed - RLS policies handle everything
         break;
     }
 

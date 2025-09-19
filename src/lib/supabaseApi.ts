@@ -155,6 +155,7 @@ export class SupabaseApiService {
         ...taskDataBase,
         assigned_to: task.assignedEmployees[0], // Primary assignee (team head or first member)
         assigned_by: assignedBy,
+        created_by: user.id, // Always set created_by to current user
         is_self_task: false,
         task_type: 'team',
         team_id: task.team_id, // Required for team tasks
@@ -190,6 +191,7 @@ export class SupabaseApiService {
           ...taskDataBase,
           assigned_to: employeeId,
           assigned_by: assignedBy,
+          created_by: user.id, // Always set created_by to current user
           is_self_task: employeeId === assignedBy,
           task_type: 'team'
         };
@@ -215,6 +217,7 @@ export class SupabaseApiService {
       ...taskDataBase,
       assigned_to: assignedTo,
       assigned_by: assignedBy,
+      created_by: user.id, // Always set created_by to current user
       is_self_task: assignedTo === assignedBy,
       task_type: (assignedTo === assignedBy) ? 'self' : 'team'
     };
@@ -266,6 +269,9 @@ export class SupabaseApiService {
     maybeSet('time_limit', t.time_limit);
     maybeSet('completed_at', t.completed_at);
     maybeSet('team_id', t.team_id);
+    // Never update created_by or task_type after creation for security
+    // maybeSet('created_by', t.created_by);
+    // maybeSet('task_type', t.task_type);
 
     updates.updated_at = new Date().toISOString();
 

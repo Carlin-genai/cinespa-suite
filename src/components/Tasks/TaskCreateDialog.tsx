@@ -333,9 +333,12 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
       });
     } else {
       taskData.assigned_to = assignedTo || user.id;
-      // Set task_type for self-tasks
+      taskData.created_by = user.id; // Always set created_by
+      // Set task_type for self-tasks vs team tasks
       if (assignedTo === user.id) {
         taskData.task_type = 'self';
+      } else {
+        taskData.task_type = 'team';
       }
     }
 
