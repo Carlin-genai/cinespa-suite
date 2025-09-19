@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import AuthGuard from '@/components/AuthGuard';
 import { useTasks } from '@/hooks/useTasks';
+import { useTasksRealTimeSync } from '@/hooks/useRealTimeSync';
 import { supabase } from '@/integrations/supabase/client';
 
 const Dashboard = () => {
@@ -31,6 +32,9 @@ const Dashboard = () => {
   const [selectedAdminTask, setSelectedAdminTask] = useState<Task | null>(null);
 
   const isAdmin = userRole?.role === 'admin';
+
+  // Real-time sync for tasks
+  useTasksRealTimeSync();
 
   // Use the new useTasks hook
   const { data: tasks = [], loading, error, reload } = useTasks('dashboard');
@@ -66,14 +70,16 @@ const Dashboard = () => {
     },
     onSuccess: (data) => {
       console.log('[Dashboard] Task created successfully:', data);
-      // Invalidate and refetch tasks immediately
+      // Invalidate all task-related queries immediately for real-time updates
       queryClient.invalidateQueries({ queryKey: ['tasks-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks-team'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['employees'] });
-      reload();
+      reload(); // Trigger immediate reload
       
       toast({
         title: "Task Created",
-        description: `Task "${data.title}" created successfully and should appear below.`,
+        description: `Task "${data.title}" created successfully and will appear in all dashboards immediately.`,
         variant: "default",
       });
     },

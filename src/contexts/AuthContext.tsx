@@ -8,6 +8,7 @@ interface UserProfile {
   email: string;
   full_name: string;
   avatar_url?: string;
+  is_team_head?: boolean;
 }
 
 interface UserRole {
@@ -72,7 +73,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: data.id,
         email: data.email,
         full_name: data.full_name || '',
-        avatar_url: data.avatar_url
+        avatar_url: data.avatar_url,
+        is_team_head: data.is_team_head || false
       };
 
       return profileData;
@@ -301,7 +303,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: data.id,
         email: data.email,
         full_name: data.full_name || '',
-        avatar_url: data.avatar_url
+        avatar_url: data.avatar_url,
+        is_team_head: data.is_team_head || false
       };
       setProfile(updatedProfile);
     }

@@ -19,15 +19,16 @@ import { useToast } from '@/hooks/use-toast';
 import { useTasks } from '@/hooks/useTasks';
 import { groupTeamTasks, getIndividualTasks, GroupedTeamTask } from '@/lib/teamTaskUtils';
 import { TaskGridSkeleton, TeamGridSkeleton } from '@/components/ui/task-skeleton';
-import { useTeamsRealTimeSync } from '@/hooks/useRealTimeSync';
+import { useTeamsRealTimeSync, useTasksRealTimeSync } from '@/hooks/useRealTimeSync';
 
 const TeamTasks = () => {
-  const { user, userRole } = useAuth();
+  const { user, userRole, profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Real-time sync for teams
+  // Real-time sync for teams and tasks
   useTeamsRealTimeSync();
+  useTasksRealTimeSync();
   
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -302,8 +303,8 @@ const TeamTasks = () => {
     deleteTeamMutation.mutate(teamId);
   };
 
-  // Check if user is admin 
-  const canCreateTasks = userRole?.role === 'admin';
+  // Check if user can create tasks - admins and team heads
+  const canCreateTasks = userRole?.role === 'admin' || profile?.is_team_head;
   const canManageTeams = ['admin', 'manager'].includes(userRole?.role || '');
 
   // Skeleton loading state
