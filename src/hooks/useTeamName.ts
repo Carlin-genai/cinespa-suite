@@ -11,7 +11,7 @@ export const useTeamName = (teamId: string | null | undefined) => {
         .from('teams')
         .select('name')
         .eq('id', teamId)
-        .single();
+        .maybeSingle();
       
       if (error) {
         console.error('Error fetching team name:', error);

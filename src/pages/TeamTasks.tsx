@@ -40,8 +40,8 @@ const TeamTasks = () => {
   const [selectedTeam, setSelectedTeam] = useState<any>(null);
   const [teamEditDialogOpen, setTeamEditDialogOpen] = useState(false);
 
-  // Use the new useTasks hook for team tasks
-  const { data: tasks = [], loading, error, reload } = useTasks('team');
+  // Use tasks from dashboard scope so we can split into Individual vs Team tabs without missing items
+  const { data: tasks = [], loading, error, reload } = useTasks('dashboard');
 
   // Fetch teams with optimized caching
   const { data: teams = [], isLoading: teamsLoading } = useQuery({
