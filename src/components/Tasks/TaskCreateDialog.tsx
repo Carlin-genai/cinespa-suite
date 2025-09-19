@@ -319,14 +319,16 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
       }
       
       taskData.assignedEmployees = allTeamMembers;
-      taskData.assigned_to = teamHead || teamMembers[0]; // Team head or first member as primary assignee
+      taskData.assigned_to = teamHead || teamMembers[0] || allTeamMembers[0]; // Team head, first member, or first assigned
       taskData.team_id = selectedTeam;
       taskData.task_type = 'team';
+      taskData.created_by = user.id; // Always set created_by for RLS
       
       console.log('[TaskCreate] Team task data:', {
         team_id: taskData.team_id,
         assignedEmployees: taskData.assignedEmployees,
         assigned_to: taskData.assigned_to,
+        created_by: taskData.created_by,
         teamHead,
         teamMembers,
         additionalMembers
@@ -345,14 +347,19 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
     try {
       console.log('[TaskCreate] Creating task with data:', taskData);
       console.log('[TaskCreate] User ID:', user?.id);
+      console.log('[TaskCreate] User role:', currentUserRole);
       console.log('[TaskCreate] User authenticated:', !!user);
       
       // Call the onSave function passed from parent
       await onSave(taskData);
       
+      // Success message based on task type
+      const taskTypeDisplay = taskData.task_type === 'team' ? 'Team' : 
+                             taskData.task_type === 'self' ? 'Private' : 'Individual';
+      
       toast({
         title: "Task Created Successfully",
-        description: `${taskType === 'team' ? 'Team' : 'Individual'} task "${taskData.title}" has been created and will appear in the dashboard momentarily.`,
+        description: `${taskTypeDisplay} task "${taskData.title}" has been created and will appear in all dashboards immediately.`,
         variant: "default",
       });
       

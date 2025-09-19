@@ -133,19 +133,21 @@ const TeamTasks = () => {
       queryClient.invalidateQueries({ queryKey: ['tasks-team'] });
       queryClient.invalidateQueries({ queryKey: ['tasks-my'] });
       queryClient.invalidateQueries({ queryKey: ['tasks-assigned'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks-self'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       
       // Force immediate refetch to show tasks instantly
       setTimeout(() => {
         queryClient.refetchQueries({ queryKey: ['tasks-dashboard'] });
         queryClient.refetchQueries({ queryKey: ['tasks'] });
-      }, 100);
+        reload(); // Force reload for TeamTasks page
+      }, 50); // Reduced timeout for faster updates
       
       toast({
         title: "Success",
         description: isTeamTask 
-          ? "Team task created successfully" 
-          : `${taskType} task${taskCount > 1 ? 's' : ''} created successfully${taskCount > 1 ? ` (${taskCount} employees assigned)` : ''}`,
+          ? "Team task created successfully and appearing in all dashboards now" 
+          : `${taskType} task${taskCount > 1 ? 's' : ''} created successfully${taskCount > 1 ? ` (${taskCount} employees assigned)` : ''} and appearing in all dashboards now`,
       });
       setCreateDialogOpen(false);
     },

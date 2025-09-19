@@ -7,6 +7,7 @@ export const useGlobalTaskSync = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
+  // Force immediate refetch and invalidation for global real-time sync
   useEffect(() => {
     if (!user) return;
 
@@ -26,10 +27,17 @@ export const useGlobalTaskSync = () => {
         queryClient.invalidateQueries({ queryKey: ['tasks-team'] });
         queryClient.invalidateQueries({ queryKey: ['tasks-my'] });
         queryClient.invalidateQueries({ queryKey: ['tasks-assigned'] });
+        queryClient.invalidateQueries({ queryKey: ['tasks-self'] });
         queryClient.invalidateQueries({ queryKey: ['tasks'] });
         
         // Also invalidate team-related queries
         queryClient.invalidateQueries({ queryKey: ['teams'] });
+        
+        // Force immediate refetch for critical queries
+        setTimeout(() => {
+          queryClient.refetchQueries({ queryKey: ['tasks-dashboard'] });
+          queryClient.refetchQueries({ queryKey: ['tasks'] });
+        }, 50);
       })
       .subscribe();
 

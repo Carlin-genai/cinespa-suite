@@ -11,6 +11,7 @@ import TaskStatusPopup from '@/components/Dashboard/TaskStatusPopup';
 import AdminTaskDetailsDialog from '@/components/Dashboard/AdminTaskDetailsDialog';
 import CreditPointsTab from '@/components/Dashboard/CreditPointsTab';
 import { apiService } from '@/lib/api';
+import { supabaseApi } from '@/lib/supabaseApi';
 import { useAuth } from '@/contexts/AuthContext';
 import { Task } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -62,13 +63,16 @@ const Dashboard = () => {
   });
 
 
-  // Create task mutation
   const createTaskMutation = useMutation({
-    mutationFn: async (task: Partial<Task> & { attachments?: File[] }) => {
-      console.log('[Dashboard] Creating task:', task);
-      const result = await apiService.createTask(task);
-      console.log('[Dashboard] Task creation API result:', result);
-      return result;
+    mutationFn: async (taskData: any) => {
+      console.log('[Dashboard] Creating task - Admin check:', {
+        isAdmin,
+        userRole: userRole?.role,
+        taskData
+      });
+      
+      const response = await supabaseApi.createTask(taskData);
+      return response;
     },
     onSuccess: (data) => {
       console.log('[Dashboard] Task created successfully:', data);
@@ -80,6 +84,7 @@ const Dashboard = () => {
       queryClient.invalidateQueries({ queryKey: ['tasks-team'] });
       queryClient.invalidateQueries({ queryKey: ['tasks-my'] });
       queryClient.invalidateQueries({ queryKey: ['tasks-assigned'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks-self'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       
@@ -88,7 +93,7 @@ const Dashboard = () => {
         queryClient.refetchQueries({ queryKey: ['tasks-dashboard'] });
         queryClient.refetchQueries({ queryKey: ['tasks'] });
         reload(); // Also trigger manual reload
-      }, 100);
+      }, 50); // Reduced timeout for faster updates
       
       // Handle both single task and array of tasks
       const taskTitle = Array.isArray(data) ? 
@@ -97,7 +102,7 @@ const Dashboard = () => {
       
       toast({
         title: "Task Created",
-        description: `${taskTitle} created successfully and will appear in all dashboards immediately.`,
+        description: `${taskTitle} created successfully and appearing in all dashboards now.`,
         variant: "default",
       });
     },
