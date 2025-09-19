@@ -263,19 +263,8 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
       console.warn('[TaskCreate] No employees selected; will self-assign to current user.');
     }
 
-    // Save additional team members if any were added
-    if (taskType === 'team' && additionalMembers.length > 0) {
-      try {
-        await saveAdditionalMembers();
-      } catch (error) {
-        console.error('Error saving additional members:', error);
-        toast({
-          title: "Warning",
-          description: "Task created but some team members could not be added.",
-          variant: "destructive"
-        });
-      }
-    }
+    // Note: Additional members are temporary task-specific assignments
+    // They are not permanently added to the team
     
     // Default due date if not selected: tomorrow at 5PM
     let dueDateTime = selectedDate;
@@ -346,36 +335,6 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
     }
   };
 
-  // Save additional members to team_members table
-  const saveAdditionalMembers = async () => {
-    if (!selectedTeam || additionalMembers.length === 0) return;
-
-    // Get current user's org_id
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('org_id')
-      .eq('id', user?.id)
-      .single();
-
-    const membersToAdd = additionalMembers.map(memberId => ({
-      team_id: selectedTeam,
-      user_id: memberId,
-      role: 'member' as const,
-      org_id: profile?.org_id
-    }));
-
-    const { error } = await supabase
-      .from('team_members')
-      .insert(membersToAdd);
-
-    if (error) {
-      console.error('Error adding team members:', error);
-      throw error;
-    }
-
-    // Invalidate teams query to refresh data
-    queryClient.invalidateQueries({ queryKey: ['teams'] });
-  };
 
   // Handle team creation
   const handleTeamCreate = async (teamData: { name: string; description?: string; memberIds: string[]; teamHeadId?: string }) => {
@@ -698,9 +657,9 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
                                   <span className="text-muted-foreground ml-2">({member?.email})</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                                    New
-                                  </span>
+                                   <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                                     Temporary
+                                   </span>
                                   <Button
                                     variant="ghost"
                                     size="sm"
@@ -723,16 +682,16 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
                   {/* Add new members section - only for admins and team heads */}
                   {canAddMembers() && (
                     <div>
-                      <Label className="text-sm font-medium">Add New Members</Label>
+                      <Label className="text-sm font-medium">Add Temporary Members</Label>
                       <div className="mt-2">
-                        <Select 
+                         <Select 
                           value="" 
                           onValueChange={(value) => {
                             if (value) addAdditionalMember(value);
                           }}
                         >
                           <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select employee to add..." />
+                            <SelectValue placeholder="Add employee for this task only..." />
                           </SelectTrigger>
                           <SelectContent className="z-50 bg-background border shadow-md">
                             {employees
@@ -757,8 +716,8 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
                         </Select>
                         <p className="text-xs text-muted-foreground mt-1">
                           {currentUserRole === 'admin' 
-                            ? "As an admin, you can add any employee to this team." 
-                            : "As team head, you can add new members to your team."
+                            ? "As an admin, you can add any employee to this task (temporary assignment)." 
+                            : "As team head, you can add temporary members to this specific task."
                           }
                         </p>
                       </div>
