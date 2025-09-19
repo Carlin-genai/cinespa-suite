@@ -20,15 +20,17 @@ import { useTasks } from '@/hooks/useTasks';
 import { groupTeamTasks, getIndividualTasks, GroupedTeamTask } from '@/lib/teamTaskUtils';
 import { TaskGridSkeleton, TeamGridSkeleton } from '@/components/ui/task-skeleton';
 import { useTeamsRealTimeSync, useTasksRealTimeSync } from '@/hooks/useRealTimeSync';
+import { useGlobalTaskSync } from '@/hooks/useGlobalTaskSync';
 
 const TeamTasks = () => {
   const { user, userRole, profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Real-time sync for teams and tasks
+  // Real-time sync for teams and tasks (both specific and global)
   useTeamsRealTimeSync();
   useTasksRealTimeSync();
+  useGlobalTaskSync();
   
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -165,9 +167,19 @@ const TeamTasks = () => {
       const taskCount = Array.isArray(result) ? result.length : 1;
       const taskType = isTeamTask ? 'team' : taskCount > 1 ? 'individual' : 'individual';
       
-      queryClient.invalidateQueries({ queryKey: ['team-tasks'] });
+      // Immediately invalidate ALL task queries for instant sync across dashboards
+      queryClient.invalidateQueries({ queryKey: ['tasks-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks-team'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks-my'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks-assigned'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['my-tasks'] });
+      
+      // Force immediate refetch to show tasks instantly
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ['tasks-dashboard'] });
+        queryClient.refetchQueries({ queryKey: ['tasks'] });
+      }, 100);
+      
       toast({
         title: "Success",
         description: isTeamTask 

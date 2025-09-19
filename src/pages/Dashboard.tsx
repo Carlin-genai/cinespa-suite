@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import AuthGuard from '@/components/AuthGuard';
 import { useTasks } from '@/hooks/useTasks';
 import { useTasksRealTimeSync } from '@/hooks/useRealTimeSync';
+import { useGlobalTaskSync } from '@/hooks/useGlobalTaskSync';
 import { supabase } from '@/integrations/supabase/client';
 
 const Dashboard = () => {
@@ -33,8 +34,9 @@ const Dashboard = () => {
 
   const isAdmin = userRole?.role === 'admin';
 
-  // Real-time sync for tasks
+  // Real-time sync for tasks (both specific and global)
   useTasksRealTimeSync();
+  useGlobalTaskSync();
 
   // Use the new useTasks hook
   const { data: tasks = [], loading, error, reload } = useTasks('dashboard');
@@ -70,12 +72,23 @@ const Dashboard = () => {
     },
     onSuccess: (data) => {
       console.log('[Dashboard] Task created successfully:', data);
-      // Invalidate all task-related queries immediately for real-time updates
+      
+      setCreateDialogOpen(false);
+      
+      // Immediately invalidate ALL task queries for instant sync across dashboards
       queryClient.invalidateQueries({ queryKey: ['tasks-dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['tasks-team'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks-my'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks-assigned'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['employees'] });
-      reload(); // Trigger immediate reload
+      
+      // Force immediate refetch to show tasks instantly
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ['tasks-dashboard'] });
+        queryClient.refetchQueries({ queryKey: ['tasks'] });
+        reload(); // Also trigger manual reload
+      }, 100);
       
       toast({
         title: "Task Created",

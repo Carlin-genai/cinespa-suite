@@ -105,7 +105,7 @@ export const useTasks = (kind: TaskKind, params: TaskParams = {}) => {
     gcTime: 1000 * 60 * 10, // Keep in cache for 10 minutes
   });
 
-  // Real-time subscriptions
+  // Real-time subscriptions with global invalidation
   useEffect(() => {
     if (!user) return;
 
@@ -119,6 +119,11 @@ export const useTasks = (kind: TaskKind, params: TaskParams = {}) => {
         table: 'tasks' 
       }, (payload) => {
         console.log(`[useTasks:${kind}] Realtime update:`, payload.eventType);
+        // Invalidate ALL task-related queries for instant sync across dashboards
+        queryClient.invalidateQueries({ queryKey: ['tasks-dashboard'] });
+        queryClient.invalidateQueries({ queryKey: ['tasks-team'] });
+        queryClient.invalidateQueries({ queryKey: ['tasks-my'] });
+        queryClient.invalidateQueries({ queryKey: ['tasks-assigned'] });
         queryClient.invalidateQueries({ queryKey: [`tasks-${kind}`] });
       })
       .subscribe();
