@@ -146,39 +146,37 @@ export class SupabaseApiService {
 
     console.log('[SupabaseApi] Preparing task data:', taskDataBase);
 
-    // For team tasks with multiple assignees, create multiple task records
+    // For team tasks with multiple assignees, create a single team task record
     if (task.assignedEmployees && task.assignedEmployees.length > 0) {
-      console.log('[SupabaseApi] Creating team tasks for employees:', task.assignedEmployees);
+      console.log('[SupabaseApi] Creating single team task for employees:', task.assignedEmployees);
       
-      const taskPromises = task.assignedEmployees.map(async (employeeId) => {
-        const taskData = { 
-          ...taskDataBase,
-          assigned_to: employeeId,
-          assigned_by: assignedBy,
-          is_self_task: false,
-          task_type: 'team'
-        };
-        
-        console.log('[SupabaseApi] Inserting team task:', taskData);
-        
-        const { data, error } = await supabase
-          .from('tasks')
-          .insert([taskData])
-          .select();
-        
-        if (error) {
-          console.error('[SupabaseApi] Team task creation error:', error);
-          throw error;
-        }
-        
-        console.log('[SupabaseApi] Team task created:', data);
-        const createdTask = data && data.length > 0 ? data[0] : { ...taskData, id: '' };
-        return mapDbTaskToTask(createdTask);
-      });
-
-      const results = await Promise.all(taskPromises);
-      console.log('[SupabaseApi] All team tasks created:', results.length);
-      return results[0]; // Return the first created task
+      // Store all team members in a JSONB field for the single team task
+      const taskData = { 
+        ...taskDataBase,
+        assigned_to: task.assignedEmployees[0], // Primary assignee (team head or first member)
+        assigned_by: assignedBy,
+        is_self_task: false,
+        task_type: 'team',
+        team_id: task.team_id, // Must be provided for team tasks
+        // Store all assigned team members as metadata
+        assignedEmployees: task.assignedEmployees
+      };
+      
+      console.log('[SupabaseApi] Inserting single team task:', taskData);
+      
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert([taskData])
+        .select();
+      
+      if (error) {
+        console.error('[SupabaseApi] Team task creation error:', error);
+        throw error;
+      }
+      
+      console.log('[SupabaseApi] Team task created:', data);
+      const createdTask = data && data.length > 0 ? data[0] : { ...taskData, id: '' };
+      return mapDbTaskToTask(createdTask);
     }
 
     // Single task creation

@@ -32,7 +32,8 @@ export const useTasks = (kind: TaskKind, params: TaskParams = {}) => {
     switch (kind) {
       case 'my':
         if (!user?.id) throw new Error('User not authenticated');
-        query = query.eq('assigned_to', user.id);
+        // Include individual tasks assigned to user AND team tasks where user is a member
+        query = query.or(`and(assigned_to.eq.${user.id},team_id.is.null),and(team_id.not.is.null,assignedEmployees.cs.["${user.id}"])`);
         break;
       
       case 'self':
@@ -47,6 +48,8 @@ export const useTasks = (kind: TaskKind, params: TaskParams = {}) => {
         break;
       
       case 'team':
+        // Show team tasks (tasks with team_id not null)
+        query = query.not('team_id', 'is', null);
         if (params.teamId) {
           query = query.eq('team_id', params.teamId);
         }

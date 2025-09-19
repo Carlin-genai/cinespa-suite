@@ -302,6 +302,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
       taskData.assignedEmployees = allTeamMembers;
       taskData.assigned_to = teamHead || teamMembers[0]; // Team head or first member as primary assignee
       taskData.team_id = selectedTeam;
+      taskData.task_type = 'team';
     } else {
       taskData.assigned_to = assignedTo || user.id;
       // Set task_type for self-tasks
