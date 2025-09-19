@@ -319,27 +319,23 @@ const TeamTasks = () => {
     );
   }
 
-  // Separate individual and team tasks - exclude self-tasks from team view
-  const individualTasks = getIndividualTasks(tasks).filter(task => task.task_type !== 'self');
-  const groupedTeamTasks = groupTeamTasks(tasks, teams);
+  // Process team tasks - no more grouping since each team task is now a single record
+  const individualTasks = tasks.filter(task => !task.team_id && task.task_type !== 'self');
+  const teamTasks = tasks.filter(task => task.team_id);
 
   // Group tasks by status for both individual and team
   const groupTasksByStatus = (tasksList: Task[]) => ({
     pending: tasksList.filter((task: Task) => task.status === 'pending'),
     inProgress: tasksList.filter((task: Task) => task.status === 'in-progress'),
     completed: tasksList.filter((task: Task) => task.status === 'completed'),
-    overdue: tasksList.filter((task: Task) => task.status === 'overdue'),
-  });
-
-  const groupTeamTasksByStatus = (tasksList: GroupedTeamTask[]) => ({
-    pending: tasksList.filter((task: GroupedTeamTask) => task.status === 'pending'),
-    inProgress: tasksList.filter((task: GroupedTeamTask) => task.status === 'in-progress'),
-    completed: tasksList.filter((task: GroupedTeamTask) => task.status === 'completed'),
-    overdue: tasksList.filter((task: GroupedTeamTask) => task.status === 'overdue'),
+    overdue: tasksList.filter((task: Task) => {
+      if (task.status === 'completed') return false;
+      return task.due_date && new Date(task.due_date) < new Date();
+    }),
   });
 
   const individualTaskGroups = groupTasksByStatus(individualTasks);
-  const teamTaskGroups = groupTeamTasksByStatus(groupedTeamTasks);
+  const teamTaskGroups = groupTasksByStatus(teamTasks);
 
   return (
     <div className="space-y-6">
@@ -360,7 +356,7 @@ const TeamTasks = () => {
           </TabsTrigger>
           <TabsTrigger value="team" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
-            Team ({groupedTeamTasks.length})
+            Team ({teamTasks.length})
           </TabsTrigger>
           {canManageTeams && (
             <TabsTrigger value="manage" className="flex items-center gap-2">
@@ -525,7 +521,7 @@ const TeamTasks = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Users className="h-4 w-4" />
-              <span>{groupedTeamTasks.length} team tasks</span>
+              <span>{teamTasks.length} team tasks</span>
             </div>
             {canCreateTasks && (
               <Button 
@@ -538,7 +534,7 @@ const TeamTasks = () => {
             )}
           </div>
 
-          {groupedTeamTasks.length === 0 ? (
+          {teamTasks.length === 0 ? (
             <div className="text-center py-12">
               <div className="mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
                 <Users className="h-12 w-12 text-muted-foreground" />
@@ -563,7 +559,7 @@ const TeamTasks = () => {
                     Overdue Tasks ({teamTaskGroups.overdue.length})
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {teamTaskGroups.overdue.map((task: GroupedTeamTask) => (
+                    {teamTaskGroups.overdue.map((task: Task) => (
                       <div key={task.id} className="relative group">
                         <TaskCard
                           task={task}
@@ -591,7 +587,7 @@ const TeamTasks = () => {
                     In Progress ({teamTaskGroups.inProgress.length})
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {teamTaskGroups.inProgress.map((task: GroupedTeamTask) => (
+                    {teamTaskGroups.inProgress.map((task: Task) => (
                       <div key={task.id} className="relative group">
                         <TaskCard
                           task={task}
@@ -619,7 +615,7 @@ const TeamTasks = () => {
                     Pending ({teamTaskGroups.pending.length})
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {teamTaskGroups.pending.map((task: GroupedTeamTask) => (
+                    {teamTaskGroups.pending.map((task: Task) => (
                       <div key={task.id} className="relative group">
                         <TaskCard
                           task={task}
@@ -647,7 +643,7 @@ const TeamTasks = () => {
                     Completed ({teamTaskGroups.completed.length})
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {teamTaskGroups.completed.map((task: GroupedTeamTask) => (
+                    {teamTaskGroups.completed.map((task: Task) => (
                       <div key={task.id} className="relative group">
                         <TaskCard
                           task={task}

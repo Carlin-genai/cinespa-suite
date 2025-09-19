@@ -7,6 +7,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { useAuth } from '@/contexts/AuthContext';
 import { Task } from '@/types';
 import { GroupedTeamTask } from '@/lib/teamTaskUtils';
+import { useTeamName } from '@/hooks/useTeamName';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import TaskDetailsModal from './TaskDetailsModal';
 
 interface TaskCardProps {
@@ -31,8 +33,22 @@ const TaskCard: React.FC<TaskCardProps> = ({
   const { userRole } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Check if this is a team task based on team_id
+  const actuallyTeamTask = !!(task as Task).team_id;
+  const { data: teamName } = useTeamName(actuallyTeamTask ? (task as Task).team_id : null);
+  const { data: assigneeProfile } = useUserProfile(!actuallyTeamTask ? (task as Task).assigned_to : null);
+
   const isAdmin = userRole?.role === 'admin';
-  const canEdit = showActions && (isAdmin || (!isTeamTask && (task as Task).assigned_to === userRole?.user_id));
+  const canEdit = showActions && (isAdmin || (!actuallyTeamTask && (task as Task).assigned_to === userRole?.user_id));
+
+  // Display logic for assigned to
+  const getAssignedToDisplay = () => {
+    if (actuallyTeamTask) {
+      return teamName || 'Loading team...';
+    } else {
+      return assigneeProfile?.full_name || assigneeProfile?.email || 'Unknown';
+    }
+  };
 
   return (
     <>
@@ -78,13 +94,49 @@ const TaskCard: React.FC<TaskCardProps> = ({
             )}
           </div>
         </CardHeader>
+        <CardContent className="pt-0">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Assigned to:</span>
+              <span className="font-medium">{getAssignedToDisplay()}</span>
+            </div>
+            {task.due_date && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Due:</span>
+                <span>{new Date(task.due_date).toLocaleDateString()}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Priority:</span>
+              <span className={`capitalize ${
+                task.priority === 'critical' ? 'text-priority-critical' :
+                task.priority === 'high' ? 'text-priority-high' :
+                task.priority === 'medium' ? 'text-priority-medium' :
+                'text-priority-low'
+              }`}>
+                {task.priority}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Status:</span>
+              <span className={`capitalize ${
+                task.status === 'completed' ? 'text-status-completed' :
+                task.status === 'in-progress' ? 'text-status-progress' :
+                task.status === 'overdue' ? 'text-status-overdue' :
+                'text-status-pending'
+              }`}>
+                {task.status.replace('-', ' ')}
+              </span>
+            </div>
+          </div>
+        </CardContent>
       </Card>
 
       <TaskDetailsModal
         task={task}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        isTeamTask={isTeamTask}
+        isTeamTask={actuallyTeamTask}
       />
     </>
   );

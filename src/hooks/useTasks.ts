@@ -32,8 +32,8 @@ export const useTasks = (kind: TaskKind, params: TaskParams = {}) => {
     switch (kind) {
       case 'my':
         if (!user?.id) throw new Error('User not authenticated');
-        // Include individual tasks assigned to user AND team tasks where user is a member
-        query = query.or(`and(assigned_to.eq.${user.id},team_id.is.null),and(team_id.not.is.null,assignedEmployees.cs.["${user.id}"])`);
+        // Include individual tasks assigned to user AND exclude team tasks from individual view  
+        query = query.eq('assigned_to', user.id).is('team_id', null);
         break;
       
       case 'self':

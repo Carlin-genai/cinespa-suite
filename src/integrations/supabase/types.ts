@@ -390,6 +390,7 @@ export type Database = {
           admin_rating: number | null
           assigned_by: string | null
           assigned_to: string | null
+          assignedemployees: Json | null
           attachment_url: string | null
           attachments: Json | null
           completed_at: string | null
@@ -417,6 +418,7 @@ export type Database = {
           admin_rating?: number | null
           assigned_by?: string | null
           assigned_to?: string | null
+          assignedemployees?: Json | null
           attachment_url?: string | null
           attachments?: Json | null
           completed_at?: string | null
@@ -444,6 +446,7 @@ export type Database = {
           admin_rating?: number | null
           assigned_by?: string | null
           assigned_to?: string | null
+          assignedemployees?: Json | null
           attachment_url?: string | null
           attachments?: Json | null
           completed_at?: string | null

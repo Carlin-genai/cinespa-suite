@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock, FileText, CheckCircle, AlertTriangle, Hourglass, Star, User, Users, X } from 'lucide-react';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { useTeamName } from '@/hooks/useTeamName';
 import { Task } from '@/types';
 import { GroupedTeamTask } from '@/lib/teamTaskUtils';
 import TeamTaskTooltip from './TeamTaskTooltip';
@@ -23,7 +24,20 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({
   isTeamTask = false 
 }) => {
   const [showNotes, setShowNotes] = useState(false);
-  const { data: assigneeProfile } = useUserProfile(isTeamTask ? null : (task as Task).assigned_to);
+  
+  // Check if this is actually a team task based on team_id
+  const actuallyTeamTask = !!(task as Task).team_id;
+  const { data: assigneeProfile } = useUserProfile(!actuallyTeamTask ? (task as Task).assigned_to : null);
+  const { data: teamName } = useTeamName(actuallyTeamTask ? (task as Task).team_id : null);
+
+  // Display logic for assigned to
+  const getAssignedToDisplay = () => {
+    if (actuallyTeamTask) {
+      return teamName || 'Loading team...';
+    } else {
+      return assigneeProfile?.full_name || assigneeProfile?.email || 'Unknown';
+    }
+  };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -151,25 +165,23 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({
             {/* Assigned To */}
             <div>
               <h3 className="font-medium text-foreground mb-2">Assigned To</h3>
-              {isTeamTask ? (
-                <TeamTaskTooltip teamTask={task as GroupedTeamTask}>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors p-2 rounded-md hover:bg-muted">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 bg-rose-gold rounded-full flex items-center justify-center">
-                        <span className="text-white text-xs font-bold">T</span>
-                      </div>
-                      <Users className="h-4 w-4 text-rose-gold" />
+              {actuallyTeamTask ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 bg-rose-gold rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">T</span>
                     </div>
-                    <span>
-                      {(task as GroupedTeamTask).teamName} ({(task as GroupedTeamTask).memberCount} members)
-                    </span>
+                    <Users className="h-4 w-4 text-rose-gold" />
                   </div>
-                </TeamTaskTooltip>
+                  <span>
+                    {getAssignedToDisplay()}
+                  </span>
+                </div>
               ) : (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <User className="h-4 w-4 text-rose-gold" />
                   <span>
-                    {assigneeProfile?.full_name || assigneeProfile?.email || 'Loading...'}
+                    {getAssignedToDisplay()}
                   </span>
                 </div>
               )}
