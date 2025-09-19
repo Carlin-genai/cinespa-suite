@@ -301,7 +301,7 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
       assigned_by: user.id,
       due_date: dueDateTime?.toISOString() || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       time_limit: timeLimit ? parseInt(timeLimit) : null,
-      credit_points: creditPoints ? parseInt(creditPoints) : 0,
+      credit_points: (taskType === 'individual' && assignedTo === user.id) ? 0 : (creditPoints ? parseInt(creditPoints) : 0), // No credit points for self-tasks
       attachment_url: attachmentUrl?.trim() || null,
       notes: notes.trim() || null,
       attachments: attachments.length > 0 ? attachments : undefined,
@@ -315,6 +315,10 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
       taskData.team_id = selectedTeam;
     } else {
       taskData.assigned_to = assignedTo || user.id;
+      // Set task_type for self-tasks
+      if (assignedTo === user.id) {
+        taskData.task_type = 'self';
+      }
     }
 
     try {
@@ -547,18 +551,21 @@ const TaskCreateDialog: React.FC<TaskCreateDialogProps> = ({
                 </Select>
               </div>
               
-              <div>
-                <Label htmlFor="creditPoints">Credit Points</Label>
-                <Input
-                  id="creditPoints"
-                  type="number"
-                  min="0"
-                  value={creditPoints}
-                  onChange={(e) => setCreditPoints(e.target.value)}
-                  placeholder="Points for completion"
-                  className="mt-1"
-                />
-              </div>
+              {/* Hide credit points for self-tasks */}
+              {!(taskType === 'individual' && assignedTo === user?.id) && (
+                <div>
+                  <Label htmlFor="creditPoints">Credit Points</Label>
+                  <Input
+                    id="creditPoints"
+                    type="number"
+                    min="0"
+                    value={creditPoints}
+                    onChange={(e) => setCreditPoints(e.target.value)}
+                    placeholder="Points for completion"
+                    className="mt-1"
+                  />
+                </div>
+              )}
             </div>
 
             <div>

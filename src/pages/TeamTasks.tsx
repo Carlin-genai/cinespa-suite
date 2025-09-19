@@ -319,8 +319,8 @@ const TeamTasks = () => {
     );
   }
 
-  // Separate individual and team tasks
-  const individualTasks = getIndividualTasks(tasks);
+  // Separate individual and team tasks - exclude self-tasks from team view
+  const individualTasks = getIndividualTasks(tasks).filter(task => task.task_type !== 'self');
   const groupedTeamTasks = groupTeamTasks(tasks, teams);
 
   // Group tasks by status for both individual and team

@@ -33,8 +33,11 @@ const MyTasks = () => {
 
   const isAdmin = userRole?.role === 'admin';
 
-  // Use the new useTasks hook for tasks assigned to current user
-  const { data: tasks = [], loading, error, reload } = useTasks('my');
+  // Use the new useTasks hook for tasks assigned to current user (excluding self-tasks)
+  const { data: allTasks = [], loading, error, reload } = useTasks('my');
+  
+  // Filter out self-tasks - they should only appear in individual tasks view
+  const tasks = allTasks.filter((task: Task) => task.task_type !== 'self');
 
   // Update task mutation
   const updateTaskMutation = useMutation({
