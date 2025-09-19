@@ -47,7 +47,8 @@ export const useTasks = (kind: TaskKind, params: TaskParams = {}) => {
       case 'assigned':
         if (userRole?.role !== 'admin') throw new Error('Admin access required');
         if (!user?.id) throw new Error('User not authenticated');
-        query = query.eq('assigned_by', user.id);
+        // Admins can see all tasks assigned by any admin, not just their own
+        // RLS policies will handle the actual filtering based on admin role
         break;
       
       case 'team':
