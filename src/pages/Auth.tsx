@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import RoleSelection from '@/components/RoleSelection';
+import QuickAuth from '@/components/QuickAuth';
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -144,6 +145,7 @@ const Auth = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-rose-gold/5 p-4">
       <div className="w-full max-w-md space-y-4">
+        <QuickAuth />
         <Card className="w-full shadow-2xl border-rose-gold/20 bg-card/95 backdrop-blur-sm">
           <CardHeader className="text-center">
             <div className="mb-4">
