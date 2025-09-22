@@ -4,20 +4,21 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import {
-  LayoutDashboard,
-  CheckSquare,
-  Users,
-  BookOpen,
-  BarChart3,
-  Calendar,
-  Settings,
-  Bell,
-  User,
-  LogOut,
+import { 
+  LayoutDashboard, 
+  CheckSquare, 
+  Calendar, 
+  Users, 
+  BarChart3, 
+  Settings, 
+  Bell, 
+  BookOpen, 
+  ListTodo,
   UserCheck,
-  ClipboardList
-} from 'lucide-react';
+  CreditCard,
+  User,
+  LogOut
+} from "lucide-react";
 
 const Sidebar = () => {
   const location = useLocation();
@@ -29,12 +30,13 @@ const Sidebar = () => {
     { name: 'Team Tasks', href: '/team-tasks', icon: Users },
     { name: 'Self Tasks', href: '/self-tasks', icon: UserCheck },
     ...(userRole?.role === 'admin' ? [
-      { name: 'Assigned Tasks', href: '/assigned-tasks', icon: ClipboardList }
+      { name: 'Assigned Tasks', href: '/assigned-tasks', icon: ListTodo }
     ] : []),
     { name: 'Daily Journal', href: '/daily-journal', icon: BookOpen },
     { name: 'Analytics', href: '/analytics', icon: BarChart3 },
     { name: 'Calendar', href: '/calendar', icon: Calendar },
     { name: 'Notifications', href: '/notifications', icon: Bell },
+    { name: 'Payment Reminders', href: '/payment-reminders', icon: CreditCard },
     { name: 'Settings', href: '/settings', icon: Settings },
   ];
 

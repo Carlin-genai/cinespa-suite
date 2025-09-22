@@ -10,18 +10,21 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import Layout from "./components/Layout/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotificationManager from "./components/Notifications/NotificationManager";
-import Dashboard from "./pages/Dashboard";
-import MyTasks from "./pages/MyTasks";
-import TeamTasks from "./pages/TeamTasks";
-import AssignedTasks from "./pages/AssignedTasks";
-import SelfTasks from "./pages/SelfTasks";
-import DailyJournal from "./pages/DailyJournal";
-import Analytics from "./pages/Analytics";
-import Calendar from "./pages/Calendar";
-import Notifications from "./pages/Notifications";
-import Settings from "./pages/Settings";
-import Auth from "./pages/Auth";
-import NotFound from "./pages/NotFound";
+import { lazy } from 'react';
+
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const MyTasks = lazy(() => import("./pages/MyTasks"));
+const TeamTasks = lazy(() => import("./pages/TeamTasks"));
+const AssignedTasks = lazy(() => import("./pages/AssignedTasks"));
+const SelfTasks = lazy(() => import("./pages/SelfTasks"));
+const DailyJournal = lazy(() => import("./pages/DailyJournal"));
+const Analytics = lazy(() => import("./pages/Analytics"));
+const PaymentReminders = lazy(() => import("./pages/PaymentReminders"));
+const Calendar = lazy(() => import("./pages/Calendar"));
+const Notifications = lazy(() => import("./pages/Notifications"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Auth = lazy(() => import("./pages/Auth"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 const App: React.FC = () => {
   // Create QueryClient inside component to ensure React context is available
@@ -62,6 +65,7 @@ const App: React.FC = () => {
                   <Route path="self-tasks" element={<SelfTasks />} />
                   <Route path="daily-journal" element={<DailyJournal />} />
                   <Route path="analytics" element={<Analytics />} />
+                  <Route path="payment-reminders" element={<PaymentReminders />} />
                   <Route path="calendar" element={<Calendar />} />
                   <Route path="notifications" element={<Notifications />} />
                   <Route path="settings" element={<Settings />} />

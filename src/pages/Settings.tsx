@@ -222,6 +222,24 @@ const Settings = () => {
             <Separator />
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
+                <Label className="text-base">Payment Daily Notifications</Label>
+                <div className="text-sm text-muted-foreground">
+                  Get daily reminders for upcoming payment deadlines
+                </div>
+              </div>
+              <Switch 
+                checked={notificationPrefs?.daily_reminders ?? true}
+                onCheckedChange={(checked) => 
+                  updateNotificationMutation.mutate({ 
+                    ...notificationPrefs, 
+                    daily_reminders: checked 
+                  })
+                }
+              />
+            </div>
+            <Separator />
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
                 <Label className="text-base">Email Notifications</Label>
                 <div className="text-sm text-muted-foreground">
                   Receive email notifications for important updates
@@ -240,17 +258,17 @@ const Settings = () => {
             <Separator />
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label className="text-base">Daily Reminders</Label>
+                <Label className="text-base">Payment Email Notifications</Label>
                 <div className="text-sm text-muted-foreground">
-                  Get daily reminders about your tasks
+                  Receive payment reminder emails
                 </div>
               </div>
               <Switch 
-                checked={notificationPrefs?.daily_reminders ?? true}
+                checked={notificationPrefs?.email_notifications ?? false}
                 onCheckedChange={(checked) => 
                   updateNotificationMutation.mutate({ 
                     ...notificationPrefs, 
-                    daily_reminders: checked 
+                    email_notifications: checked 
                   })
                 }
               />
