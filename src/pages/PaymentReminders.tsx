@@ -117,7 +117,6 @@ export default function PaymentReminders() {
         <PaymentReminderDialog
           reminder={editingReminder}
           onClose={handleCloseEdit}
-          trigger={<div style={{ display: 'none' }} />}
         />
       )}
     </div>

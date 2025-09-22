@@ -3,6 +3,7 @@ export interface PaymentReminder {
   name: string;
   due_date: string;
   amount?: number;
+  currency: string;
   notes?: string;
   collaborators: string[];
   created_by: string;
@@ -17,6 +18,7 @@ export interface CreatePaymentReminderRequest {
   name: string;
   due_date: string;
   amount?: number;
+  currency?: string;
   notes?: string;
   collaborators?: string[];
 }
@@ -25,6 +27,7 @@ export interface UpdatePaymentReminderRequest {
   name?: string;
   due_date?: string;
   amount?: number;
+  currency?: string;
   notes?: string;
   collaborators?: string[];
   status?: 'pending' | 'completed';

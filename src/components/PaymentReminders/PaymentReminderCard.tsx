@@ -8,6 +8,17 @@ import { useUpdatePaymentReminder, useDeletePaymentReminder } from "@/hooks/useP
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
+const getCurrencySymbol = (currency: string) => {
+  const symbols: Record<string, string> = {
+    USD: "$",
+    INR: "₹",
+    EUR: "€",
+    GBP: "£",
+    JPY: "¥",
+  };
+  return symbols[currency] || currency;
+};
+
 interface PaymentReminderCardProps {
   reminder: PaymentReminder;
   onEdit: (reminder: PaymentReminder) => void;
@@ -87,7 +98,7 @@ export const PaymentReminderCard = ({ reminder, onEdit }: PaymentReminderCardPro
         {reminder.amount && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <DollarSign className="h-4 w-4" />
-            <span>${reminder.amount.toLocaleString()}</span>
+            <span>{getCurrencySymbol(reminder.currency)}{reminder.amount.toLocaleString()}</span>
           </div>
         )}
         

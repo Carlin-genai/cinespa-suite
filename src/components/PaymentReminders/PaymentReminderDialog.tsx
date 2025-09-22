@@ -19,6 +19,7 @@ const formSchema = z.object({
   name: z.string().min(1, "Payment name is required"),
   due_date: z.string().min(1, "Due date is required"),
   amount: z.string().optional(),
+  currency: z.string().default("USD"),
   notes: z.string().optional(),
   collaborators: z.array(z.string()).optional(),
 });
@@ -57,6 +58,7 @@ export const PaymentReminderDialog = ({ reminder, onClose, trigger }: PaymentRem
       name: "",
       due_date: "",
       amount: "",
+      currency: "USD",
       notes: "",
       collaborators: [],
     },
@@ -68,15 +70,18 @@ export const PaymentReminderDialog = ({ reminder, onClose, trigger }: PaymentRem
         name: reminder.name,
         due_date: reminder.due_date,
         amount: reminder.amount?.toString() || "",
+        currency: reminder.currency || "USD",
         notes: reminder.notes || "",
         collaborators: reminder.collaborators || [],
       });
       setSelectedCollaborators(reminder.collaborators || []);
+      setOpen(true); // Open dialog when editing
     } else {
       form.reset({
         name: "",
         due_date: "",
         amount: "",
+        currency: "USD",
         notes: "",
         collaborators: [],
       });
@@ -89,6 +94,7 @@ export const PaymentReminderDialog = ({ reminder, onClose, trigger }: PaymentRem
       name: data.name,
       due_date: data.due_date,
       amount: data.amount ? parseFloat(data.amount) : undefined,
+      currency: data.currency,
       notes: data.notes || undefined,
       collaborators: selectedCollaborators,
     };
@@ -157,7 +163,7 @@ export const PaymentReminderDialog = ({ reminder, onClose, trigger }: PaymentRem
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <FormField
                 control={form.control}
                 name="due_date"
@@ -167,6 +173,31 @@ export const PaymentReminderDialog = ({ reminder, onClose, trigger }: PaymentRem
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="currency"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Currency</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select currency" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="USD">USD ($)</SelectItem>
+                        <SelectItem value="INR">INR (₹)</SelectItem>
+                        <SelectItem value="EUR">EUR (€)</SelectItem>
+                        <SelectItem value="GBP">GBP (£)</SelectItem>
+                        <SelectItem value="JPY">JPY (¥)</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

@@ -241,6 +241,7 @@ export type Database = {
           collaborators: Json | null
           created_at: string
           created_by: string
+          currency: string
           due_date: string
           id: string
           name: string
@@ -255,6 +256,7 @@ export type Database = {
           collaborators?: Json | null
           created_at?: string
           created_by: string
+          currency?: string
           due_date: string
           id?: string
           name: string
@@ -269,6 +271,7 @@ export type Database = {
           collaborators?: Json | null
           created_at?: string
           created_by?: string
+          currency?: string
           due_date?: string
           id?: string
           name?: string
