@@ -235,6 +235,51 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_reminders: {
+        Row: {
+          amount: number | null
+          collaborators: Json | null
+          created_at: string
+          created_by: string
+          due_date: string
+          id: string
+          name: string
+          notes: string | null
+          org_id: string | null
+          reminder_start_date: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          collaborators?: Json | null
+          created_at?: string
+          created_by: string
+          due_date: string
+          id?: string
+          name: string
+          notes?: string | null
+          org_id?: string | null
+          reminder_start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          collaborators?: Json | null
+          created_at?: string
+          created_by?: string
+          due_date?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          org_id?: string | null
+          reminder_start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           account_type: string | null
