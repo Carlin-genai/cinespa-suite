@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,8 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import AuthGuard from '@/components/AuthGuard';
 import { useTasks } from '@/hooks/useTasks';
-import { useTasksRealTimeSync } from '@/hooks/useRealTimeSync';
-import { useGlobalTaskSync } from '@/hooks/useGlobalTaskSync';
+import { useUnifiedTaskSync } from '@/hooks/useUnifiedTaskSync';
 import { supabase } from '@/integrations/supabase/client';
 
 const Dashboard = () => {
@@ -35,9 +34,8 @@ const Dashboard = () => {
 
   const isAdmin = userRole?.role === 'admin';
 
-  // Real-time sync for tasks (both specific and global)
-  useTasksRealTimeSync();
-  useGlobalTaskSync();
+  // Unified real-time sync for tasks
+  useUnifiedTaskSync();
 
   // Use the new useTasks hook
   const { data: tasks = [], loading, error, reload } = useTasks('dashboard');
@@ -117,7 +115,7 @@ const Dashboard = () => {
   });
 
   // Invalidate employee cache when dialog opens (to get fresh data with new RLS policies)
-  React.useEffect(() => {
+  useEffect(() => {
     if (createDialogOpen) {
       console.log('[Dashboard] Invalidating employee cache for fresh data');
       queryClient.invalidateQueries({ queryKey: ['employees'] });
@@ -128,7 +126,7 @@ const Dashboard = () => {
   // Realtime: refresh tasks immediately when new tasks are inserted/updated/deleted (handled by useTasks hook)
 
   // Filter tasks based on user role
-  const userTasks = React.useMemo(() => {
+  const userTasks = useMemo(() => {
     if (isAdmin) {
       // Admins see all tasks assigned by them
       return tasks.filter((task: Task) => task.assigned_by === user?.id);
