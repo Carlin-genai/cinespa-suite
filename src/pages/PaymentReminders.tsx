@@ -15,8 +15,12 @@ export default function PaymentReminders() {
   // Enable real-time updates
   usePaymentReminderRealtime();
 
-  const upcomingReminders = reminders.filter(r => r.status === 'pending');
-  const completedReminders = reminders.filter(r => r.status === 'completed');
+  const upcomingReminders = reminders.filter(r => 
+    r.reminder_status === 'open' || 
+    r.reminder_status === 'pending_authorization' || 
+    r.reminder_status === 'pending_payment'
+  );
+  const completedReminders = reminders.filter(r => r.reminder_status === 'completed');
 
   const handleEdit = (reminder: PaymentReminder) => {
     setEditingReminder(reminder);

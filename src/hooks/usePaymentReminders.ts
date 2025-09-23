@@ -20,7 +20,13 @@ export const usePaymentReminders = () => {
         amount: row.amount || undefined,
         notes: row.notes || undefined,
         org_id: row.org_id || undefined,
-        reminder_start_date: row.reminder_start_date || ''
+        reminder_start_date: row.reminder_start_date || '',
+        reminder_type: (row.reminder_type as 'daily' | 'weekly' | 'annually') || 'daily',
+        reminder_status: (row.reminder_status as 'open' | 'pending_authorization' | 'pending_payment' | 'completed') || 'open',
+        payment_proof_url: row.payment_proof_url || undefined,
+        authorization_required: row.authorization_required || false,
+        authorized_by: row.authorized_by || undefined,
+        authorized_at: row.authorized_at || undefined,
       }));
     },
   });
@@ -53,7 +59,13 @@ export const useCreatePaymentReminder = () => {
         amount: data.amount || undefined,
         notes: data.notes || undefined,
         org_id: data.org_id || undefined,
-        reminder_start_date: data.reminder_start_date || ''
+        reminder_start_date: data.reminder_start_date || '',
+        reminder_type: (data.reminder_type as 'daily' | 'weekly' | 'annually') || 'daily',
+        reminder_status: (data.reminder_status as 'open' | 'pending_authorization' | 'pending_payment' | 'completed') || 'open',
+        payment_proof_url: data.payment_proof_url || undefined,
+        authorization_required: data.authorization_required || false,
+        authorized_by: data.authorized_by || undefined,
+        authorized_at: data.authorized_at || undefined,
       };
     },
     onSuccess: () => {
@@ -94,7 +106,13 @@ export const useUpdatePaymentReminder = () => {
         amount: data.amount || undefined,
         notes: data.notes || undefined,
         org_id: data.org_id || undefined,
-        reminder_start_date: data.reminder_start_date || ''
+        reminder_start_date: data.reminder_start_date || '',
+        reminder_type: (data.reminder_type as 'daily' | 'weekly' | 'annually') || 'daily',
+        reminder_status: (data.reminder_status as 'open' | 'pending_authorization' | 'pending_payment' | 'completed') || 'open',
+        payment_proof_url: data.payment_proof_url || undefined,
+        authorization_required: data.authorization_required || false,
+        authorized_by: data.authorized_by || undefined,
+        authorized_at: data.authorized_at || undefined,
       };
     },
     onSuccess: () => {

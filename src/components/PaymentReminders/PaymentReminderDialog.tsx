@@ -22,6 +22,8 @@ const formSchema = z.object({
   currency: z.string().default("USD"),
   notes: z.string().optional(),
   collaborators: z.array(z.string()).optional(),
+  reminder_type: z.enum(["daily", "weekly", "annually"]).default("daily"),
+  authorization_required: z.boolean().default(false),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -61,6 +63,8 @@ export const PaymentReminderDialog = ({ reminder, onClose, trigger }: PaymentRem
       currency: "USD",
       notes: "",
       collaborators: [],
+      reminder_type: "daily",
+      authorization_required: false,
     },
   });
 
@@ -73,6 +77,8 @@ export const PaymentReminderDialog = ({ reminder, onClose, trigger }: PaymentRem
         currency: reminder.currency || "USD",
         notes: reminder.notes || "",
         collaborators: reminder.collaborators || [],
+        reminder_type: reminder.reminder_type || "daily",
+        authorization_required: reminder.authorization_required || false,
       });
       setSelectedCollaborators(reminder.collaborators || []);
       setOpen(true); // Open dialog when editing
@@ -84,6 +90,8 @@ export const PaymentReminderDialog = ({ reminder, onClose, trigger }: PaymentRem
         currency: "USD",
         notes: "",
         collaborators: [],
+        reminder_type: "daily",
+        authorization_required: false,
       });
       setSelectedCollaborators([]);
     }
@@ -97,6 +105,8 @@ export const PaymentReminderDialog = ({ reminder, onClose, trigger }: PaymentRem
       currency: data.currency,
       notes: data.notes || undefined,
       collaborators: selectedCollaborators,
+      reminder_type: data.reminder_type,
+      authorization_required: data.authorization_required,
     };
 
     if (reminder) {
@@ -231,6 +241,54 @@ export const PaymentReminderDialog = ({ reminder, onClose, trigger }: PaymentRem
                 </FormItem>
               )}
             />
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="reminder_type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Reminder Type</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select reminder type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="daily">Daily</SelectItem>
+                        <SelectItem value="weekly">Weekly</SelectItem>
+                        <SelectItem value="annually">Annually (30-day trigger)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="authorization_required"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>
+                        Require Authorization
+                      </FormLabel>
+                      <p className="text-sm text-muted-foreground">
+                        Reminder can only be closed after authorization
+                      </p>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </div>
 
             {users.length > 0 && (
               <div className="space-y-2">

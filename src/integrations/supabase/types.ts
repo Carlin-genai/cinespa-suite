@@ -238,6 +238,9 @@ export type Database = {
       payment_reminders: {
         Row: {
           amount: number | null
+          authorization_required: boolean | null
+          authorized_at: string | null
+          authorized_by: string | null
           collaborators: Json | null
           created_at: string
           created_by: string
@@ -247,12 +250,18 @@ export type Database = {
           name: string
           notes: string | null
           org_id: string | null
+          payment_proof_url: string | null
           reminder_start_date: string | null
+          reminder_status: Database["public"]["Enums"]["reminder_status"] | null
+          reminder_type: Database["public"]["Enums"]["reminder_type"] | null
           status: string
           updated_at: string
         }
         Insert: {
           amount?: number | null
+          authorization_required?: boolean | null
+          authorized_at?: string | null
+          authorized_by?: string | null
           collaborators?: Json | null
           created_at?: string
           created_by: string
@@ -262,12 +271,20 @@ export type Database = {
           name: string
           notes?: string | null
           org_id?: string | null
+          payment_proof_url?: string | null
           reminder_start_date?: string | null
+          reminder_status?:
+            | Database["public"]["Enums"]["reminder_status"]
+            | null
+          reminder_type?: Database["public"]["Enums"]["reminder_type"] | null
           status?: string
           updated_at?: string
         }
         Update: {
           amount?: number | null
+          authorization_required?: boolean | null
+          authorized_at?: string | null
+          authorized_by?: string | null
           collaborators?: Json | null
           created_at?: string
           created_by?: string
@@ -277,7 +294,12 @@ export type Database = {
           name?: string
           notes?: string | null
           org_id?: string | null
+          payment_proof_url?: string | null
           reminder_start_date?: string | null
+          reminder_status?:
+            | Database["public"]["Enums"]["reminder_status"]
+            | null
+          reminder_type?: Database["public"]["Enums"]["reminder_type"] | null
           status?: string
           updated_at?: string
         }
@@ -696,6 +718,12 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "employee" | "team_head"
+      reminder_status:
+        | "open"
+        | "pending_authorization"
+        | "pending_payment"
+        | "completed"
+      reminder_type: "daily" | "weekly" | "annually"
       team_role: "head" | "member"
     }
     CompositeTypes: {
@@ -825,6 +853,13 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "employee", "team_head"],
+      reminder_status: [
+        "open",
+        "pending_authorization",
+        "pending_payment",
+        "completed",
+      ],
+      reminder_type: ["daily", "weekly", "annually"],
       team_role: ["head", "member"],
     },
   },
