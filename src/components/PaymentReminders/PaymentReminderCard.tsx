@@ -9,7 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuthorizeReminder, useUploadProof } from "@/hooks/useAuthorizeReminder";
 
 const getCurrencySymbol = (currency: string) => {
   const symbols: Record<string, string> = {
@@ -31,6 +31,8 @@ export const PaymentReminderCard = ({ reminder, onEdit }: PaymentReminderCardPro
   const { user } = useAuth();
   const updateReminder = useUpdatePaymentReminder();
   const deleteReminder = useDeletePaymentReminder();
+  const authorizeReminder = useAuthorizeReminder();
+  const uploadProof = useUploadProof();
   const [uploadingProof, setUploadingProof] = useState(false);
 
   const handleMarkDone = () => {
@@ -44,44 +46,20 @@ export const PaymentReminderCard = ({ reminder, onEdit }: PaymentReminderCardPro
   };
 
   const handleAuthorize = () => {
-    updateReminder.mutate({
-      id: reminder.id,
-      updates: { 
-        reminder_status: 'pending_payment',
-        authorized_by: user?.id,
-        authorized_at: new Date().toISOString()
-      }
-    });
+    authorizeReminder.mutate(reminder.id);
   };
 
   const handleProofUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !user?.id) return;
+    if (!file) return;
 
     setUploadingProof(true);
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${reminder.id}-${Date.now()}.${fileExt}`;
-      
-      const { data, error } = await supabase.storage
-        .from('task-attachments')
-        .upload(fileName, file);
-
-      if (error) throw error;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('task-attachments')
-        .getPublicUrl(fileName);
-
-      updateReminder.mutate({
-        id: reminder.id,
-        updates: { 
-          payment_proof_url: publicUrl,
-          reminder_status: reminder.authorization_required ? 'pending_authorization' : 'completed'
-        }
+      uploadProof.mutate({
+        reminderId: reminder.id,
+        file,
+        authRequired: reminder.authorization_required
       });
-    } catch (error) {
-      console.error('Error uploading proof:', error);
     } finally {
       setUploadingProof(false);
     }
