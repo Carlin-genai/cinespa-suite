@@ -49,7 +49,7 @@ const Sidebar = () => {
           <h1 className="font-montserrat text-xl font-bold text-sidebar-primary leading-tight">
             WEDOT
           </h1>
-          <p className="text-xs text-sidebar-foreground font-opensans mt-1 leading-tight">
+          <p className="text-xs text-sidebar-foreground font-opensans mt-1 leading-tight tracking-[0.2em] px-0">
             WE DO IT TOGETHER
           </p>
         </div>

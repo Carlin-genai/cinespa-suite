@@ -149,10 +149,10 @@ const Auth = () => {
           <CardHeader className="text-center">
             <div className="mb-4">
               <h1 className="font-bold text-3xl text-rose-gold-contrast mb-2 font-montserrat">
-                Wedot
+                WEDOT
               </h1>
-              <p className="text-sm text-muted-foreground font-opensans">
-                We do it Together
+              <p className="text-sm text-muted-foreground font-opensans tracking-[0.15em] px-0">
+                WE DO IT TOGETHER
               </p>
             </div>
             <CardTitle className="text-xl text-rose-gold-contrast font-montserrat">
