@@ -9,7 +9,6 @@ interface UserProfile {
   full_name: string;
   avatar_url?: string;
   is_team_head?: boolean;
-  org_id?: string;
 }
 
 interface UserRole {
@@ -28,10 +27,9 @@ interface AuthContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signInWithGoogle: () => Promise<{ error: any }>;
-  signUp: (email: string, password: string, fullName: string, companyName?: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: any }>;
-  ensureOrganization: () => Promise<{ error: string | null; org_id: string | null }>;
   updateUserRole: (role: 'admin' | 'employee') => Promise<{ error: any }>;
 }
 
@@ -76,8 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: data.email,
         full_name: data.full_name || '',
         avatar_url: data.avatar_url,
-        is_team_head: data.is_team_head || false,
-        org_id: data.org_id
+        is_team_head: data.is_team_head || false
       };
 
       return profileData;
@@ -256,7 +253,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signUp = async (email: string, password: string, fullName: string, companyName?: string) => {
+  const signUp = async (email: string, password: string, fullName: string) => {
     console.log('Attempting sign up for:', email);
 
     const redirectUrl = `${window.location.origin}/`;
@@ -265,10 +262,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       email,
       password,
       options: {
-        data: { 
-          full_name: fullName,
-          company_name: companyName || `${fullName}'s Organization` 
-        },
+        data: { full_name: fullName },
         emailRedirectTo: redirectUrl,
       },
     });
@@ -279,39 +273,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { error: signUpError };
     }
 
-    // If we have a session, create organization and update profile
-    if (signUpData?.session && signUpData?.user) {
-      try {
-        // Create organization first
-        const orgName = companyName || `${fullName}'s Organization`;
-        const { data: orgData, error: orgError } = await supabase
-          .from('organizations')
-          .insert({ name: orgName })
-          .select()
-          .single();
-
-        if (orgError) {
-          console.error('Error creating organization:', orgError);
-          return { error: orgError };
-        }
-
-        // Update user profile with org_id
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({ org_id: orgData.id })
-          .eq('id', signUpData.user.id);
-
-        if (profileError) {
-          console.error('Error updating profile with org_id:', profileError);
-          return { error: profileError };
-        }
-
-        console.log('Organization created and user assigned successfully');
-        return { error: null };
-      } catch (error) {
-        console.error('Error in organization setup:', error);
-        return { error };
-      }
+    if (signUpData?.session) {
+      console.log('Sign up returned active session, user is logged in.');
+      return { error: null };
     }
 
     console.log('No active session from sign up, attempting immediate sign in...');
@@ -340,8 +304,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: data.email,
         full_name: data.full_name || '',
         avatar_url: data.avatar_url,
-        is_team_head: data.is_team_head || false,
-        org_id: data.org_id
+        is_team_head: data.is_team_head || false
       };
       setProfile(updatedProfile);
     }
@@ -349,108 +312,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { error };
   };
 
-  // Ensure user has an organization (idempotent)
-  const ensureOrganization = async () => {
-    if (!user) return { error: 'No user logged in', org_id: null };
-
-    try {
-      // Fast path: check if org already exists
-      const userProfile = await fetchUserProfile(user.id);
-      if (userProfile?.org_id) {
-        // Verify org still exists
-        const { data: org, error: orgError } = await supabase
-          .from('organizations')
-          .select('id, name')
-          .eq('id', userProfile.org_id)
-          .maybeSingle();
-
-        if (!orgError && org) {
-          return { error: null, org_id: org.id };
-        }
-        // If org was deleted, fall through to create new one
-      }
-
-      // Create organization atomically
-      const orgName = userProfile?.full_name 
-        ? `${userProfile.full_name}'s Organization` 
-        : 'Mark Technologies';
-
-      const { data: orgData, error: orgError } = await supabase
-        .from('organizations')
-        .insert({ name: orgName })
-        .select()
-        .single();
-
-      if (orgError) {
-        console.error('Error creating organization:', orgError);
-        return { error: 'Failed to create organization', org_id: null };
-      }
-
-      // Update profile with org_id
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ org_id: orgData.id })
-        .eq('id', user.id);
-
-      if (profileError) {
-        console.error('Error updating profile with org_id:', profileError);
-        return { error: 'Failed to link organization', org_id: null };
-      }
-
-      // Refresh local profile state
-      const updatedProfile = await fetchUserProfile(user.id);
-      if (updatedProfile) {
-        setProfile(updatedProfile);
-      }
-
-      return { error: null, org_id: orgData.id };
-    } catch (error) {
-      console.error('Exception in ensureOrganization:', error);
-      return { error: 'Network error. Please check your connection.', org_id: null };
-    }
-  };
-
   const updateUserRole = async (role: 'admin' | 'employee') => {
     if (!user) return { error: 'No user logged in' };
 
-    try {
-      // Ensure organization exists first
-      const orgResult = await ensureOrganization();
-      if (orgResult.error || !orgResult.org_id) {
-        return { error: orgResult.error || 'Failed to set up organization' };
-      }
+    const { data, error } = await supabase
+      .from('user_roles')
+      .update({ role, updated_at: new Date().toISOString() })
+      .eq('user_id', user.id)
+      .select()
+      .single();
 
-      // Delete any existing roles for this user
-      await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', user.id);
-
-      // Insert the new role
-      const { data, error } = await supabase
-        .from('user_roles')
-        .insert({ 
-          user_id: user.id, 
-          role, 
-          org_id: orgResult.org_id
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error inserting user role:', error);
-        return { error: 'Failed to save role. Please try again.' };
-      }
-
-      if (data) {
-        setUserRole(data as UserRole);
-      }
-
-      return { error: null };
-    } catch (error) {
-      console.error('Exception in updateUserRole:', error);
-      return { error: 'Something went wrong. Please try again.' };
+    if (!error && data) {
+      setUserRole(data as UserRole);
     }
+
+    return { error };
   };
 
   const signOut = async () => {
@@ -469,7 +345,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signUp,
     signOut,
     updateProfile,
-    ensureOrganization,
     updateUserRole,
   };
 

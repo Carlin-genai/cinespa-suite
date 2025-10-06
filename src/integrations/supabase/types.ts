@@ -111,7 +111,6 @@ export type Database = {
           daily_reminders: boolean | null
           email_notifications: boolean | null
           id: string
-          org_id: string | null
           task_assigned: boolean | null
           task_completed: boolean | null
           task_overdue: boolean | null
@@ -123,7 +122,6 @@ export type Database = {
           daily_reminders?: boolean | null
           email_notifications?: boolean | null
           id?: string
-          org_id?: string | null
           task_assigned?: boolean | null
           task_completed?: boolean | null
           task_overdue?: boolean | null
@@ -135,7 +133,6 @@ export type Database = {
           daily_reminders?: boolean | null
           email_notifications?: boolean | null
           id?: string
-          org_id?: string | null
           task_assigned?: boolean | null
           task_completed?: boolean | null
           task_overdue?: boolean | null
@@ -374,7 +371,6 @@ export type Database = {
           id: string
           is_sent: boolean | null
           message: string | null
-          org_id: string | null
           reminder_time: string
           task_id: string | null
           user_id: string | null
@@ -384,7 +380,6 @@ export type Database = {
           id?: string
           is_sent?: boolean | null
           message?: string | null
-          org_id?: string | null
           reminder_time: string
           task_id?: string | null
           user_id?: string | null
@@ -394,7 +389,6 @@ export type Database = {
           id?: string
           is_sent?: boolean | null
           message?: string | null
-          org_id?: string | null
           reminder_time?: string
           task_id?: string | null
           user_id?: string | null
@@ -657,7 +651,6 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
-          org_id: string | null
           role: Database["public"]["Enums"]["app_role"]
           updated_at: string | null
           user_id: string
@@ -665,7 +658,6 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
-          org_id?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string | null
           user_id: string
@@ -673,7 +665,6 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
-          org_id?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string | null
           user_id?: string
