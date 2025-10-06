@@ -351,10 +351,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateUserRole = async (role: 'admin' | 'employee') => {
     if (!user) return { error: 'No user logged in' };
 
+    // Fetch user's org_id from profile
+    const userProfile = await fetchUserProfile(user.id);
+    if (!userProfile?.org_id) {
+      return { error: 'User profile not found or org_id missing' };
+    }
+
+    // First, delete any existing roles for this user
+    await supabase
+      .from('user_roles')
+      .delete()
+      .eq('user_id', user.id);
+
+    // Then insert the new role
     const { data, error } = await supabase
       .from('user_roles')
-      .update({ role, updated_at: new Date().toISOString() })
-      .eq('user_id', user.id)
+      .insert({ 
+        user_id: user.id, 
+        role, 
+        org_id: userProfile.org_id
+      })
       .select()
       .single();
 
