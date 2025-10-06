@@ -298,6 +298,17 @@ const TeamTasks = () => {
   // Process team tasks - no more grouping since each team task is now a single record
   const individualTasks = tasks.filter(task => !task.team_id && task.task_type !== 'self');
   const teamTasks = tasks.filter(task => task.team_id);
+  
+  // Debug logging to understand task filtering
+  console.log('[TeamTasks] Total tasks fetched:', tasks.length);
+  console.log('[TeamTasks] Individual tasks (no team_id & not self):', individualTasks.length);
+  console.log('[TeamTasks] Team tasks (has team_id):', teamTasks.length);
+  console.log('[TeamTasks] Task types breakdown:', {
+    self: tasks.filter(t => t.task_type === 'self').length,
+    team: tasks.filter(t => t.task_type === 'team').length,
+    withTeamId: tasks.filter(t => t.team_id).length,
+    withoutTeamId: tasks.filter(t => !t.team_id).length,
+  });
 
   // Group tasks by status for both individual and team
   const groupTasksByStatus = (tasksList: Task[]) => ({
