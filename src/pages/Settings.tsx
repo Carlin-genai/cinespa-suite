@@ -193,6 +193,33 @@ const Settings = () => {
         {/* Editable Profile Information */}
         <EditableProfile />
 
+        {/* Appearance Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <SettingsIcon className="h-5 w-5" />
+              Appearance
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label className="text-base flex items-center gap-2">
+                  {theme === 'dark' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                  Theme
+                </Label>
+                <div className="text-sm text-muted-foreground">
+                  Switch between light and dark mode
+                </div>
+              </div>
+              <Switch 
+                checked={theme === 'dark'}
+                onCheckedChange={toggleTheme}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Notifications Settings */}
         <Card>
           <CardHeader>
