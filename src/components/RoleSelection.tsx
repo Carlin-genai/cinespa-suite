@@ -19,18 +19,45 @@ const RoleSelection: React.FC<RoleSelectionProps> = ({ onRoleSelected }) => {
   const [error, setError] = useState<{ title: string; message: string } | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
-  const { updateUserRole, ensureOrganization, user, profile } = useAuth();
+  const { updateUserRole, ensureOrganization, user, profile, userRole } = useAuth();
   const { toast } = useToast();
 
-  // Initialize organization on mount (idempotent for all users)
+  // Check user status and skip role screen if already set
   useEffect(() => {
-    const initializeOrg = async () => {
+    const checkUserStatus = async () => {
       if (!user) return;
       
       try {
         setOrgInitializing(true);
         setError(null);
         
+        // If user already has a role and org → skip this screen
+        if (userRole?.role && profile?.org_id) {
+          console.log('User already has role and org, redirecting...', { role: userRole.role, org_id: profile.org_id });
+          
+          // Store locally
+          localStorage.setItem('userRole', userRole.role);
+          localStorage.setItem('themePreference', 'light');
+          
+          // Redirect based on role
+          const destination = userRole.role === 'admin' 
+            ? '/dashboard?scope=team' 
+            : '/dashboard?scope=my';
+          
+          toast({
+            title: 'Welcome back!',
+            description: `Redirecting to your ${userRole.role} dashboard...`,
+          });
+          
+          setTimeout(() => {
+            onRoleSelected();
+            window.location.href = destination;
+          }, 500);
+          
+          return;
+        }
+        
+        // Otherwise, ensure org exists for new users
         const result = await ensureOrganization();
         
         if (result.error) {
@@ -49,8 +76,8 @@ const RoleSelection: React.FC<RoleSelectionProps> = ({ onRoleSelected }) => {
       }
     };
 
-    initializeOrg();
-  }, [user]);
+    checkUserStatus();
+  }, [user, profile, userRole]);
 
   const retryOrgInit = async () => {
     setError(null);
