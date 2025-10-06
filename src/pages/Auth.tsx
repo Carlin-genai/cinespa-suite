@@ -14,6 +14,7 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showRoleSelection, setShowRoleSelection] = useState(false);
@@ -56,7 +57,7 @@ const Auth = () => {
 
     try {
       if (isSignUp) {
-        const { error } = await signUp(email, password, fullName);
+        const { error } = await signUp(email, password, fullName, companyName);
         if (error) {
           const msg = String(error.message || '');
           if (msg.toLowerCase().includes('email not confirmed')) {
@@ -148,10 +149,10 @@ const Auth = () => {
           <CardHeader className="text-center">
             <div className="mb-4">
               <h1 className="font-bold text-3xl text-rose-gold-contrast mb-2 font-montserrat">
-                Wedot
+                WEDOT
               </h1>
-              <p className="text-sm text-muted-foreground font-opensans">
-                We do it Together
+              <p className="text-sm text-muted-foreground font-opensans tracking-[0.15em] px-0">
+                WE DO IT TOGETHER
               </p>
             </div>
             <CardTitle className="text-xl text-rose-gold-contrast font-montserrat">
@@ -161,18 +162,30 @@ const Auth = () => {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               {isSignUp && (
-                <div>
-                  <Label htmlFor="fullName">Full Name</Label>
-                  <Input
-                    id="fullName"
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    required
-                    placeholder="Enter your full name"
-                    autoComplete="name"
-                  />
-                </div>
+                <>
+                  <div>
+                    <Label htmlFor="fullName">Full Name</Label>
+                    <Input
+                      id="fullName"
+                      type="text"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      required
+                      placeholder="Enter your full name"
+                      autoComplete="name"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="companyName">Company Name</Label>
+                    <Input
+                      id="companyName"
+                      type="text"
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      placeholder="Enter your company name (optional)"
+                    />
+                  </div>
+                </>
               )}
               
               <div>

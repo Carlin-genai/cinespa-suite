@@ -9,6 +9,7 @@ interface UserProfile {
   full_name: string;
   avatar_url?: string;
   is_team_head?: boolean;
+  org_id?: string;
 }
 
 interface UserRole {
@@ -27,7 +28,7 @@ interface AuthContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signInWithGoogle: () => Promise<{ error: any }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, fullName: string, companyName?: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: any }>;
   updateUserRole: (role: 'admin' | 'employee') => Promise<{ error: any }>;
@@ -74,7 +75,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: data.email,
         full_name: data.full_name || '',
         avatar_url: data.avatar_url,
-        is_team_head: data.is_team_head || false
+        is_team_head: data.is_team_head || false,
+        org_id: data.org_id
       };
 
       return profileData;
@@ -253,7 +255,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = async (email: string, password: string, fullName: string, companyName?: string) => {
     console.log('Attempting sign up for:', email);
 
     const redirectUrl = `${window.location.origin}/`;
@@ -262,7 +264,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       email,
       password,
       options: {
-        data: { full_name: fullName },
+        data: { 
+          full_name: fullName,
+          company_name: companyName || `${fullName}'s Organization` 
+        },
         emailRedirectTo: redirectUrl,
       },
     });
@@ -273,9 +278,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { error: signUpError };
     }
 
-    if (signUpData?.session) {
-      console.log('Sign up returned active session, user is logged in.');
-      return { error: null };
+    // If we have a session, create organization and update profile
+    if (signUpData?.session && signUpData?.user) {
+      try {
+        // Create organization first
+        const orgName = companyName || `${fullName}'s Organization`;
+        const { data: orgData, error: orgError } = await supabase
+          .from('organizations')
+          .insert({ name: orgName })
+          .select()
+          .single();
+
+        if (orgError) {
+          console.error('Error creating organization:', orgError);
+          return { error: orgError };
+        }
+
+        // Update user profile with org_id
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ org_id: orgData.id })
+          .eq('id', signUpData.user.id);
+
+        if (profileError) {
+          console.error('Error updating profile with org_id:', profileError);
+          return { error: profileError };
+        }
+
+        console.log('Organization created and user assigned successfully');
+        return { error: null };
+      } catch (error) {
+        console.error('Error in organization setup:', error);
+        return { error };
+      }
     }
 
     console.log('No active session from sign up, attempting immediate sign in...');
@@ -304,7 +339,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: data.email,
         full_name: data.full_name || '',
         avatar_url: data.avatar_url,
-        is_team_head: data.is_team_head || false
+        is_team_head: data.is_team_head || false,
+        org_id: data.org_id
       };
       setProfile(updatedProfile);
     }
