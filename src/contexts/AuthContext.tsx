@@ -31,6 +31,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, fullName: string, companyName?: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: any }>;
+  ensureOrganization: () => Promise<{ error: string | null; org_id: string | null }>;
   updateUserRole: (role: 'admin' | 'employee') => Promise<{ error: any }>;
 }
 
@@ -348,49 +349,75 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { error };
   };
 
+  // Ensure user has an organization (idempotent)
+  const ensureOrganization = async () => {
+    if (!user) return { error: 'No user logged in', org_id: null };
+
+    try {
+      // Fast path: check if org already exists
+      const userProfile = await fetchUserProfile(user.id);
+      if (userProfile?.org_id) {
+        // Verify org still exists
+        const { data: org, error: orgError } = await supabase
+          .from('organizations')
+          .select('id, name')
+          .eq('id', userProfile.org_id)
+          .maybeSingle();
+
+        if (!orgError && org) {
+          return { error: null, org_id: org.id };
+        }
+        // If org was deleted, fall through to create new one
+      }
+
+      // Create organization atomically
+      const orgName = userProfile?.full_name 
+        ? `${userProfile.full_name}'s Organization` 
+        : 'Mark Technologies';
+
+      const { data: orgData, error: orgError } = await supabase
+        .from('organizations')
+        .insert({ name: orgName })
+        .select()
+        .single();
+
+      if (orgError) {
+        console.error('Error creating organization:', orgError);
+        return { error: 'Failed to create organization', org_id: null };
+      }
+
+      // Update profile with org_id
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ org_id: orgData.id })
+        .eq('id', user.id);
+
+      if (profileError) {
+        console.error('Error updating profile with org_id:', profileError);
+        return { error: 'Failed to link organization', org_id: null };
+      }
+
+      // Refresh local profile state
+      const updatedProfile = await fetchUserProfile(user.id);
+      if (updatedProfile) {
+        setProfile(updatedProfile);
+      }
+
+      return { error: null, org_id: orgData.id };
+    } catch (error) {
+      console.error('Exception in ensureOrganization:', error);
+      return { error: 'Network error. Please check your connection.', org_id: null };
+    }
+  };
+
   const updateUserRole = async (role: 'admin' | 'employee') => {
     if (!user) return { error: 'No user logged in' };
 
     try {
-      // Fetch user's org_id from profile with retry logic
-      let userProfile = await fetchUserProfile(user.id);
-      
-      // If org_id is missing, wait and retry (might still be creating)
-      if (!userProfile?.org_id) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        userProfile = await fetchUserProfile(user.id);
-      }
-
-      // If still no org_id, create one
-      if (!userProfile?.org_id) {
-        const orgName = userProfile?.full_name ? `${userProfile.full_name}'s Organization` : 'My Organization';
-        const { data: orgData, error: orgError } = await supabase
-          .from('organizations')
-          .insert({ name: orgName })
-          .select()
-          .single();
-
-        if (orgError) {
-          console.error('Error creating organization:', orgError);
-          return { error: 'Failed to create organization. Please try again.' };
-        }
-
-        // Update profile with org_id
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({ org_id: orgData.id })
-          .eq('id', user.id);
-
-        if (profileError) {
-          console.error('Error updating profile with org_id:', profileError);
-          return { error: 'Failed to update profile. Please try again.' };
-        }
-
-        // Refresh profile
-        userProfile = await fetchUserProfile(user.id);
-        if (!userProfile?.org_id) {
-          return { error: 'Failed to set up organization. Please try again.' };
-        }
+      // Ensure organization exists first
+      const orgResult = await ensureOrganization();
+      if (orgResult.error || !orgResult.org_id) {
+        return { error: orgResult.error || 'Failed to set up organization' };
       }
 
       // Delete any existing roles for this user
@@ -405,14 +432,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .insert({ 
           user_id: user.id, 
           role, 
-          org_id: userProfile.org_id
+          org_id: orgResult.org_id
         })
         .select()
         .single();
 
       if (error) {
         console.error('Error inserting user role:', error);
-        return { error: error.message || 'Failed to set role. Please try again.' };
+        return { error: 'Failed to save role. Please try again.' };
       }
 
       if (data) {
@@ -442,6 +469,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signUp,
     signOut,
     updateProfile,
+    ensureOrganization,
     updateUserRole,
   };
 
