@@ -26,24 +26,28 @@ const RoleSelection: React.FC<RoleSelectionProps> = ({ onRoleSelected }) => {
 
       if (error) {
         toast({
-          title: 'Error',
-          description: 'Failed to set role. Please try again.',
+          title: 'Failed to set role',
+          description: typeof error === 'string' ? error : 'Please try again or contact support.',
           variant: 'destructive',
         });
+        setLoading(false);
       } else {
         toast({
-          title: 'Welcome!',
-          description: `Your role has been set as ${selectedRole}.`,
+          title: 'Success!',
+          description: `Your role has been set as ${selectedRole === 'admin' ? 'Administrator' : 'Employee'}.`,
         });
-        onRoleSelected();
+        // Small delay to show success message before navigation
+        setTimeout(() => {
+          onRoleSelected();
+        }, 500);
       }
     } catch (error) {
+      console.error('Role selection error:', error);
       toast({
         title: 'Error',
         description: 'Something went wrong. Please try again.',
         variant: 'destructive',
       });
-    } finally {
       setLoading(false);
     }
   };
@@ -137,9 +141,16 @@ const RoleSelection: React.FC<RoleSelectionProps> = ({ onRoleSelected }) => {
           <Button
             onClick={handleRoleSelection}
             disabled={!selectedRole || loading}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-2"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-2 min-w-[150px]"
           >
-            {loading ? 'Setting up your account...' : 'Continue'}
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <span className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                Setting up...
+              </span>
+            ) : (
+              'Continue'
+            )}
           </Button>
           {selectedRole && (
             <p className="text-sm text-muted-foreground mt-2">

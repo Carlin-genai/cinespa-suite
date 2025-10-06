@@ -351,34 +351,79 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateUserRole = async (role: 'admin' | 'employee') => {
     if (!user) return { error: 'No user logged in' };
 
-    // Fetch user's org_id from profile
-    const userProfile = await fetchUserProfile(user.id);
-    if (!userProfile?.org_id) {
-      return { error: 'User profile not found or org_id missing' };
+    try {
+      // Fetch user's org_id from profile with retry logic
+      let userProfile = await fetchUserProfile(user.id);
+      
+      // If org_id is missing, wait and retry (might still be creating)
+      if (!userProfile?.org_id) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        userProfile = await fetchUserProfile(user.id);
+      }
+
+      // If still no org_id, create one
+      if (!userProfile?.org_id) {
+        const orgName = userProfile?.full_name ? `${userProfile.full_name}'s Organization` : 'My Organization';
+        const { data: orgData, error: orgError } = await supabase
+          .from('organizations')
+          .insert({ name: orgName })
+          .select()
+          .single();
+
+        if (orgError) {
+          console.error('Error creating organization:', orgError);
+          return { error: 'Failed to create organization. Please try again.' };
+        }
+
+        // Update profile with org_id
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ org_id: orgData.id })
+          .eq('id', user.id);
+
+        if (profileError) {
+          console.error('Error updating profile with org_id:', profileError);
+          return { error: 'Failed to update profile. Please try again.' };
+        }
+
+        // Refresh profile
+        userProfile = await fetchUserProfile(user.id);
+        if (!userProfile?.org_id) {
+          return { error: 'Failed to set up organization. Please try again.' };
+        }
+      }
+
+      // Delete any existing roles for this user
+      await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', user.id);
+
+      // Insert the new role
+      const { data, error } = await supabase
+        .from('user_roles')
+        .insert({ 
+          user_id: user.id, 
+          role, 
+          org_id: userProfile.org_id
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error inserting user role:', error);
+        return { error: error.message || 'Failed to set role. Please try again.' };
+      }
+
+      if (data) {
+        setUserRole(data as UserRole);
+      }
+
+      return { error: null };
+    } catch (error) {
+      console.error('Exception in updateUserRole:', error);
+      return { error: 'Something went wrong. Please try again.' };
     }
-
-    // First, delete any existing roles for this user
-    await supabase
-      .from('user_roles')
-      .delete()
-      .eq('user_id', user.id);
-
-    // Then insert the new role
-    const { data, error } = await supabase
-      .from('user_roles')
-      .insert({ 
-        user_id: user.id, 
-        role, 
-        org_id: userProfile.org_id
-      })
-      .select()
-      .single();
-
-    if (!error && data) {
-      setUserRole(data as UserRole);
-    }
-
-    return { error };
   };
 
   const signOut = async () => {
