@@ -12,8 +12,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   console.log('ProtectedRoute check:', { user: user?.email, userRole: userRole?.role, loading });
 
-  // Extended loading check - give more time for auth to stabilize
-  if (loading || (user && userRole === null)) {
+  // Only wait for initial auth loading; don't block on userRole which may load separately
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
