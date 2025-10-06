@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import RoleSelection from '@/components/RoleSelection';
+
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -17,12 +17,12 @@ const Auth = () => {
   const [companyName, setCompanyName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showRoleSelection, setShowRoleSelection] = useState(false);
+  
   const [rememberMe, setRememberMe] = useState<boolean>(() => {
     try { return localStorage.getItem('wedot_remember') !== 'false'; } catch { return true; }
   });
   
-  const { signIn, signInWithGoogle, signUp, user, userRole } = useAuth();
+  const { signIn, signInWithGoogle, signUp, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -30,26 +30,15 @@ const Auth = () => {
     try { localStorage.setItem('wedot_remember', rememberMe ? 'true' : 'false'); } catch {}
   }, [rememberMe]);
 
-  // Check if user needs role selection
+  // Navigate to dashboard when user is authenticated (skip role selection entirely)
   useEffect(() => {
-    // Add a small delay to ensure auth state has stabilized
+    if (!user) return;
     const timeout = setTimeout(() => {
-      if (user && !userRole) {
-        console.log('[Auth Page] User exists but no role, showing role selection');
-        setShowRoleSelection(true);
-      } else if (user && userRole) {
-        console.log('[Auth Page] User and role exist, navigating to dashboard');
-        navigate('/', { replace: true });
-      }
+      navigate('/', { replace: true });
     }, 100);
-
     return () => clearTimeout(timeout);
-  }, [user, userRole, navigate]);
+  }, [user, navigate]);
 
-  // Show role selection if needed
-  if (showRoleSelection) {
-    return <RoleSelection onRoleSelected={() => navigate('/')} />;
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
