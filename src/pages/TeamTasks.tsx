@@ -295,11 +295,16 @@ const TeamTasks = () => {
     );
   }
 
-  // Process team tasks - no more grouping since each team task is now a single record
-  const individualTasks = tasks.filter(task => !task.team_id && task.task_type !== 'self');
-  
-  // Role-based filtering for team tasks
+  // Process tasks with role-based filtering
   const isAdmin = userRole?.role === 'admin';
+  
+  // Filter individual tasks (no team_id, not self tasks)
+  const allIndividualTasks = tasks.filter(task => !task.team_id && task.task_type !== 'self');
+  const individualTasks = isAdmin 
+    ? allIndividualTasks 
+    : allIndividualTasks.filter(task => task.assigned_to === user?.id);
+  
+  // Filter team tasks (has team_id)
   const allTeamTasks = tasks.filter(task => task.team_id);
   const teamTasks = isAdmin 
     ? allTeamTasks 
@@ -381,9 +386,13 @@ const TeamTasks = () => {
               <div className="mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
                 <User className="h-12 w-12 text-muted-foreground" />
               </div>
-              <h3 className="text-lg font-semibold font-montserrat mb-2">No individual tasks</h3>
+              <h3 className="text-lg font-semibold font-montserrat mb-2">
+                {isAdmin ? 'No individual tasks' : 'No tasks assigned to you'}
+              </h3>
               <p className="text-muted-foreground font-opensans mb-4">
-                No individual tasks have been created yet.
+                {isAdmin 
+                  ? 'No individual tasks have been created yet.' 
+                  : 'No tasks assigned to you yet.'}
               </p>
             </div>
            ) : showSkeletonLoading ? (
