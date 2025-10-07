@@ -39,7 +39,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
   const { data: assigneeProfile } = useUserProfile(!actuallyTeamTask ? (task as Task).assigned_to : null);
 
   const isAdmin = userRole?.role === 'admin';
-  const canEdit = showActions && (isAdmin || (!actuallyTeamTask && (task as Task).assigned_to === userRole?.user_id));
+  const canEdit = showActions;
 
   // Display logic for assigned to
   const getAssignedToDisplay = () => {
