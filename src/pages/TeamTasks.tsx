@@ -297,7 +297,13 @@ const TeamTasks = () => {
 
   // Process team tasks - no more grouping since each team task is now a single record
   const individualTasks = tasks.filter(task => !task.team_id && task.task_type !== 'self');
-  const teamTasks = tasks.filter(task => task.team_id);
+  
+  // Role-based filtering for team tasks
+  const isAdmin = userRole?.role === 'admin';
+  const allTeamTasks = tasks.filter(task => task.team_id);
+  const teamTasks = isAdmin 
+    ? allTeamTasks 
+    : allTeamTasks.filter(task => task.assigned_to === user?.id);
   
   // Debug logging to understand task filtering
   console.log('[TeamTasks] Total tasks fetched:', tasks.length);
@@ -526,9 +532,13 @@ const TeamTasks = () => {
               <div className="mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
                 <Users className="h-12 w-12 text-muted-foreground" />
               </div>
-              <h3 className="text-lg font-semibold font-montserrat mb-2">No team tasks</h3>
+              <h3 className="text-lg font-semibold font-montserrat mb-2">
+                {isAdmin ? 'No team tasks' : 'No tasks assigned to you'}
+              </h3>
               <p className="text-muted-foreground font-opensans mb-4">
-                No team tasks have been created yet.
+                {isAdmin 
+                  ? 'No team tasks have been created yet.' 
+                  : 'No tasks assigned to you yet.'}
               </p>
             </div>
           ) : showSkeletonLoading ? (
