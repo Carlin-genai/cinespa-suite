@@ -147,6 +147,11 @@ const Dashboard = () => {
   const recentTasks = userTasks
     .sort((a: Task, b: Task) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 5);
+  
+  // Calculate total credit points for the user
+  const totalCreditPoints = useMemo(() => {
+    return userTasks.reduce((sum: number, task: Task) => sum + (task.credit_points || 0), 0);
+  }, [userTasks]);
 
   const handleCreateTask = async (task: Partial<Task> & { attachments?: File[] }) => {
     console.log('[Dashboard] handleCreateTask called with:', task);
@@ -287,7 +292,7 @@ const Dashboard = () => {
             <p className="text-muted-foreground">
               Welcome back, {profile?.full_name || user?.email}
             </p>
-            <div className="flex items-center justify-center gap-2 mt-2">
+            <div className="flex items-center justify-center gap-3 mt-2">
               {isAdmin ? (
                 <div className="flex items-center gap-1 px-3 py-1 bg-rose-gold/10 text-rose-gold rounded-full text-sm">
                   <Shield className="h-4 w-4" />
@@ -297,6 +302,16 @@ const Dashboard = () => {
                 <div className="flex items-center gap-1 px-3 py-1 bg-progress-blue/15 text-progress-blue rounded-full text-sm border border-progress-blue/30">
                   <User className="h-4 w-4" />
                   Employee
+                </div>
+              )}
+              {!isAdmin && (
+                <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold ${
+                  totalCreditPoints > 0 ? 'bg-completed-green/15 text-completed-green border border-completed-green/30' :
+                  totalCreditPoints < 0 ? 'bg-overdue-red/15 text-overdue-red border border-overdue-red/30' :
+                  'bg-muted text-muted-foreground'
+                }`}>
+                  <Award className="h-4 w-4" />
+                  {totalCreditPoints > 0 ? '+' : ''}{totalCreditPoints} Credit Points
                 </div>
               )}
             </div>

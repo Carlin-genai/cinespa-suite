@@ -186,19 +186,20 @@ const AdminTaskDetailsDialog: React.FC<AdminTaskDetailsDialogProps> = ({
             </Popover>
           </div>
 
-          {task.task_type !== 'self' && (
-            <div>
-              <Label htmlFor="credit_points">Credit Points</Label>
-              <Input
-                id="credit_points"
-                type="number"
-                min="0"
-                value={editedTask.credit_points || 0}
-                onChange={(e) => setEditedTask({ ...editedTask, credit_points: parseInt(e.target.value) || 0 })}
-              />
-            </div>
-          )}
-          
+          <div>
+            <Label htmlFor="credit_points">Credit Points</Label>
+            <Input
+              id="credit_points"
+              type="number"
+              value={editedTask.credit_points || 0}
+              onChange={(e) => setEditedTask({ ...editedTask, credit_points: parseInt(e.target.value) || 0 })}
+              placeholder="e.g., 10 or -5"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Positive values for rewards, negative for penalties
+            </p>
+          </div>
+
           <div>
             <Label htmlFor="notes">Notes</Label>
             <Textarea

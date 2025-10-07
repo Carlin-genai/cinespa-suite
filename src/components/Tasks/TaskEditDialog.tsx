@@ -129,6 +129,20 @@ const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
           </div>
           
           <div>
+            <Label htmlFor="creditPoints">Credit Points</Label>
+            <Input
+              id="creditPoints"
+              type="number"
+              value={editedTask.credit_points || 0}
+              onChange={(e) => setEditedTask({ ...editedTask, credit_points: parseInt(e.target.value) || 0 })}
+              placeholder="e.g., 10 or -5"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Positive values for rewards, negative for penalties
+            </p>
+          </div>
+          
+          <div>
             <Label>Due Date</Label>
             <Popover>
               <PopoverTrigger asChild>

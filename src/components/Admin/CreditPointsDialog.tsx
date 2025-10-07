@@ -36,15 +36,6 @@ const CreditPointsDialog: React.FC<CreditPointsDialogProps> = ({
   const handleSave = async () => {
     if (!task) return;
 
-    if (creditPoints < 0 || creditPoints > 100) {
-      toast({
-        title: "Invalid Points",
-        description: "Credit points must be between 0 and 100",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setLoading(true);
     try {
       await onSave(task.id, creditPoints, comment);
@@ -90,21 +81,20 @@ const CreditPointsDialog: React.FC<CreditPointsDialogProps> = ({
           </div>
 
           <div>
-            <Label htmlFor="creditPoints">Credit Points (0-100)</Label>
+            <Label htmlFor="creditPoints">Credit Points (positive or negative)</Label>
             <div className="relative">
               <Input
                 id="creditPoints"
                 type="number"
-                min="0"
-                max="100"
                 value={creditPoints}
                 onChange={(e) => setCreditPoints(parseInt(e.target.value) || 0)}
                 className="pr-10"
+                placeholder="e.g., 10 or -5"
               />
               <Star className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-rose-gold" />
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Award credit points based on task quality and completion time
+              Enter positive values (+10) for rewards or negative values (-5) for penalties
             </p>
           </div>
 

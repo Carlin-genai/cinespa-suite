@@ -127,6 +127,16 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 {task.status.replace('-', ' ')}
               </span>
             </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Credit Points:</span>
+              <span className={`font-semibold ${
+                (task.credit_points || 0) > 0 ? 'text-completed-green' :
+                (task.credit_points || 0) < 0 ? 'text-overdue-red' :
+                'text-muted-foreground'
+              }`}>
+                {(task.credit_points || 0) > 0 ? '+' : ''}{task.credit_points || 0}
+              </span>
+            </div>
           </div>
         </CardContent>
       </Card>
