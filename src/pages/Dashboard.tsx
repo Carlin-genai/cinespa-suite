@@ -20,6 +20,7 @@ import AuthGuard from '@/components/AuthGuard';
 import { useTasks } from '@/hooks/useTasks';
 import { useUnifiedTaskSync } from '@/hooks/useUnifiedTaskSync';
 import { supabase } from '@/integrations/supabase/client';
+import { useUserCreditPoints } from '@/hooks/useUserCreditPoints';
 
 const Dashboard = () => {
   const { user, profile, userRole } = useAuth();
@@ -148,10 +149,8 @@ const Dashboard = () => {
     .sort((a: Task, b: Task) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 5);
   
-  // Calculate total credit points for the user
-  const totalCreditPoints = useMemo(() => {
-    return userTasks.reduce((sum: number, task: Task) => sum + (task.credit_points || 0), 0);
-  }, [userTasks]);
+  // Calculate total credit points with team credit distribution
+  const { totalCreditPoints, isLoading: creditsLoading } = useUserCreditPoints(user?.id, tasks);
 
   const handleCreateTask = async (task: Partial<Task> & { attachments?: File[] }) => {
     console.log('[Dashboard] handleCreateTask called with:', task);
