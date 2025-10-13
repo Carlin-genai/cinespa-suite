@@ -732,7 +732,7 @@ export type Database = {
         | "pending_authorization"
         | "pending_payment"
         | "completed"
-      reminder_type: "daily" | "weekly" | "annually"
+      reminder_type: "daily" | "weekly" | "annually" | "monthly"
       team_role: "head" | "member"
     }
     CompositeTypes: {
@@ -868,7 +868,7 @@ export const Constants = {
         "pending_payment",
         "completed",
       ],
-      reminder_type: ["daily", "weekly", "annually"],
+      reminder_type: ["daily", "weekly", "annually", "monthly"],
       team_role: ["head", "member"],
     },
   },
