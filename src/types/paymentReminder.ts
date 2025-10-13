@@ -1,4 +1,4 @@
-export type ReminderType = 'daily' | 'weekly' | 'annually';
+export type ReminderType = 'daily' | 'weekly' | 'monthly' | 'annually';
 export type ReminderStatus = 'open' | 'pending_authorization' | 'pending_payment' | 'completed';
 
 export interface PaymentReminder {

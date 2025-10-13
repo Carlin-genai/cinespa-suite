@@ -22,7 +22,7 @@ const formSchema = z.object({
   currency: z.string().default("USD"),
   notes: z.string().optional(),
   collaborators: z.array(z.string()).optional(),
-  reminder_type: z.enum(["daily", "weekly", "annually"]).default("daily"),
+  reminder_type: z.enum(["daily", "weekly", "monthly", "annually"]).default("daily"),
   authorization_required: z.boolean().default(false),
 });
 
@@ -258,6 +258,7 @@ export const PaymentReminderDialog = ({ reminder, onClose, trigger }: PaymentRem
                       <SelectContent>
                         <SelectItem value="daily">Daily</SelectItem>
                         <SelectItem value="weekly">Weekly</SelectItem>
+                        <SelectItem value="monthly">Monthly</SelectItem>
                         <SelectItem value="annually">Annually (30-day trigger)</SelectItem>
                       </SelectContent>
                     </Select>
