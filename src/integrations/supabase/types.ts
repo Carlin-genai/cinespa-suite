@@ -685,18 +685,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_current_user_org_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      get_current_user_org_id: { Args: never; Returns: string }
       get_current_user_role: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: Database["public"]["Enums"]["app_role"]
       }
-      get_user_org_id: {
-        Args: { user_uuid: string }
-        Returns: string
-      }
+      get_user_org_id: { Args: { user_uuid: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -704,22 +698,13 @@ export type Database = {
         }
         Returns: boolean
       }
-      is_team_head: {
-        Args: { user_id: string }
-        Returns: boolean
-      }
+      is_team_head: { Args: { user_id: string }; Returns: boolean }
       is_user_team_head: {
         Args: { team_uuid: string; user_uuid: string }
         Returns: boolean
       }
-      migrate_existing_roles: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      update_overdue_tasks: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      migrate_existing_roles: { Args: never; Returns: undefined }
+      update_overdue_tasks: { Args: never; Returns: undefined }
       users_in_same_team: {
         Args: { user1_uuid: string; user2_uuid: string }
         Returns: boolean
