@@ -17,7 +17,8 @@ import {
   UserCheck,
   CreditCard,
   User,
-  LogOut
+  LogOut,
+  Send
 } from "lucide-react";
 
 const Sidebar = () => {
@@ -37,6 +38,7 @@ const Sidebar = () => {
     { name: 'Calendar', href: '/calendar', icon: Calendar },
     { name: 'Notifications', href: '/notifications', icon: Bell },
     { name: 'Payment Reminders', href: '/payment-reminders', icon: CreditCard },
+    { name: 'Telegram', href: '/telegram', icon: Send },
     { name: 'Settings', href: '/settings', icon: Settings },
   ];
 
