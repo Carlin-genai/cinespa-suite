@@ -34,6 +34,7 @@ const PaymentReminders = lazy(() => import("./pages/PaymentReminders"));
 const Calendar = lazy(() => import("./pages/Calendar"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const Settings = lazy(() => import("./pages/Settings"));
+const TelegramSettings = lazy(() => import("./pages/TelegramSettings"));
 const Auth = lazy(() => import("./pages/Auth"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -82,6 +83,7 @@ const App: React.FC = () => {
                       <Route path="calendar" element={<Calendar />} />
                       <Route path="notifications" element={<Notifications />} />
                       <Route path="settings" element={<Settings />} />
+                      <Route path="telegram" element={<TelegramSettings />} />
                       <Route path="*" element={<NotFound />} />
                     </Route>
                   </Routes>

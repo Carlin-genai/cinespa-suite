@@ -2,3 +2,12 @@ project_id = "lyeebbafixacwhmlztzp"
 
 [functions.payment-reminder-notifications]
 verify_jwt = false
+
+[functions.telegram-webhook]
+verify_jwt = false
+
+[functions.telegram-notifications]
+verify_jwt = false
+
+[functions.telegram-daily-summary]
+verify_jwt = false

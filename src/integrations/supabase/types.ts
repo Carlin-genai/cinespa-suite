@@ -317,10 +317,15 @@ export type Database = {
           full_name: string | null
           id: string
           is_team_head: boolean | null
+          is_telegram_connected: boolean | null
           org_id: string | null
           preferences: Json | null
           role: string | null
           team_id: string | null
+          telegram_chat_id: string | null
+          telegram_connected_at: string | null
+          telegram_user_id: string | null
+          telegram_username: string | null
           updated_at: string | null
         }
         Insert: {
@@ -331,10 +336,15 @@ export type Database = {
           full_name?: string | null
           id: string
           is_team_head?: boolean | null
+          is_telegram_connected?: boolean | null
           org_id?: string | null
           preferences?: Json | null
           role?: string | null
           team_id?: string | null
+          telegram_chat_id?: string | null
+          telegram_connected_at?: string | null
+          telegram_user_id?: string | null
+          telegram_username?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -345,10 +355,15 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_team_head?: boolean | null
+          is_telegram_connected?: boolean | null
           org_id?: string | null
           preferences?: Json | null
           role?: string | null
           team_id?: string | null
+          telegram_chat_id?: string | null
+          telegram_connected_at?: string | null
+          telegram_user_id?: string | null
+          telegram_username?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -485,6 +500,8 @@ export type Database = {
           status: string | null
           task_type: string | null
           team_id: string | null
+          telegram_chat_id: string | null
+          telegram_message_id: string | null
           time_limit: number | null
           title: string
           updated_at: string | null
@@ -513,6 +530,8 @@ export type Database = {
           status?: string | null
           task_type?: string | null
           team_id?: string | null
+          telegram_chat_id?: string | null
+          telegram_message_id?: string | null
           time_limit?: number | null
           title: string
           updated_at?: string | null
@@ -541,6 +560,8 @@ export type Database = {
           status?: string | null
           task_type?: string | null
           team_id?: string | null
+          telegram_chat_id?: string | null
+          telegram_message_id?: string | null
           time_limit?: number | null
           title?: string
           updated_at?: string | null
@@ -649,6 +670,60 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      telegram_commands: {
+        Row: {
+          command: string
+          created_at: string | null
+          id: string
+          processed: boolean | null
+          processed_at: string | null
+          raw_message: string | null
+          task_id: string | null
+          telegram_chat_id: string
+          telegram_user_id: string
+          user_id: string | null
+        }
+        Insert: {
+          command: string
+          created_at?: string | null
+          id?: string
+          processed?: boolean | null
+          processed_at?: string | null
+          raw_message?: string | null
+          task_id?: string | null
+          telegram_chat_id: string
+          telegram_user_id: string
+          user_id?: string | null
+        }
+        Update: {
+          command?: string
+          created_at?: string | null
+          id?: string
+          processed?: boolean | null
+          processed_at?: string | null
+          raw_message?: string | null
+          task_id?: string | null
+          telegram_chat_id?: string
+          telegram_user_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_commands_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "telegram_commands_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
