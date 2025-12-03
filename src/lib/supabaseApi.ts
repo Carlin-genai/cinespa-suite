@@ -1,6 +1,6 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Task, User, Project } from '@/types';
+import { sendTelegramTaskNotification } from '@/lib/telegramNotifications';
 
 // Helper mappers to normalize DB rows into our Task union types
 const STATUS_SET = new Set<Task['status']>(['pending', 'in-progress', 'completed', 'overdue']);
@@ -179,6 +179,12 @@ export class SupabaseApiService {
       
       console.log('[SupabaseApi] Team task created:', data);
       const createdTask = data && data.length > 0 ? data[0] : { ...taskData, id: '' };
+      
+      // Send Telegram notification for new team task (non-blocking)
+      if (createdTask.id) {
+        sendTelegramTaskNotification('task_created', createdTask.id).catch(console.error);
+      }
+      
       return mapDbTaskToTask(createdTask);
     }
 
@@ -238,6 +244,12 @@ export class SupabaseApiService {
     
     console.log('[SupabaseApi] Single task created:', data);
     const createdTask = data && data.length > 0 ? data[0] : { ...taskData, id: '' };
+    
+    // Send Telegram notification for new task (non-blocking)
+    if (createdTask.id && createdTask.task_type === 'team') {
+      sendTelegramTaskNotification('task_created', createdTask.id).catch(console.error);
+    }
+    
     return mapDbTaskToTask(createdTask);
   }
 
@@ -291,6 +303,16 @@ export class SupabaseApiService {
     if (!updatedTask) {
       throw new Error('Task not found or could not be updated');
     }
+    
+    // Send Telegram notification based on status change (non-blocking)
+    if (updatedTask.id && updatedTask.task_type === 'team') {
+      if (task.status === 'completed') {
+        sendTelegramTaskNotification('task_completed', updatedTask.id).catch(console.error);
+      } else {
+        sendTelegramTaskNotification('task_updated', updatedTask.id).catch(console.error);
+      }
+    }
+    
     return mapDbTaskToTask(updatedTask);
   }
 
