@@ -26,35 +26,63 @@ export function TelegramConnectionDialog({
   const [isConnecting, setIsConnecting] = useState(false);
 
   const handleConnect = async () => {
-    if (!connectionCode.trim()) {
-      toast.error("Please enter a connection code");
+    const code = connectionCode.trim();
+    if (!code || code.length !== 6) {
+      toast.error("Please enter a valid 6-digit code");
       return;
     }
 
     setIsConnecting(true);
 
     try {
-      // Check if code exists in telegram_commands
-      const { data: command } = await supabase
+      // Fetch recent unprocessed connect commands
+      const { data: commands, error: fetchError } = await supabase
         .from("telegram_commands")
         .select("*")
         .eq("command", "connect")
-        .contains("raw_message", JSON.stringify({ code: connectionCode.toUpperCase() }))
-        .single();
+        .eq("processed", false)
+        .order("created_at", { ascending: false })
+        .limit(50);
 
-      if (!command) {
-        toast.error("Invalid connection code");
+      if (fetchError) {
+        console.error("Error fetching commands:", fetchError);
+        toast.error("Failed to verify code");
         setIsConnecting(false);
         return;
+      }
+
+      // Find command with matching code
+      const matchingCommand = commands?.find((cmd) => {
+        try {
+          const rawData = JSON.parse(cmd.raw_message || "{}");
+          return rawData.code === code || rawData.code === code.toUpperCase();
+        } catch {
+          return false;
+        }
+      });
+
+      if (!matchingCommand) {
+        toast.error("Invalid or expired connection code");
+        setIsConnecting(false);
+        return;
+      }
+
+      // Parse the raw message for username
+      let telegramUsername = "";
+      try {
+        const rawData = JSON.parse(matchingCommand.raw_message || "{}");
+        telegramUsername = rawData.username || "";
+      } catch {
+        console.warn("Could not parse raw_message");
       }
 
       // Update user profile with Telegram info
       const { error } = await supabase
         .from("profiles")
         .update({
-          telegram_user_id: command.telegram_user_id,
-          telegram_chat_id: command.telegram_chat_id,
-          telegram_username: JSON.parse(command.raw_message).username,
+          telegram_user_id: matchingCommand.telegram_user_id,
+          telegram_chat_id: matchingCommand.telegram_chat_id,
+          telegram_username: telegramUsername,
           is_telegram_connected: true,
           telegram_connected_at: new Date().toISOString(),
         })
@@ -65,10 +93,15 @@ export function TelegramConnectionDialog({
       // Mark command as processed
       await supabase
         .from("telegram_commands")
-        .update({ processed: true, processed_at: new Date().toISOString() })
-        .eq("id", command.id);
+        .update({ 
+          processed: true, 
+          processed_at: new Date().toISOString(),
+          user_id: userId 
+        })
+        .eq("id", matchingCommand.id);
 
       toast.success("✅ Telegram connected successfully!");
+      setConnectionCode("");
       onConnectionUpdate();
       onOpenChange(false);
     } catch (error) {
